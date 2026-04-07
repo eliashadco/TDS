@@ -1,0 +1,14 @@
+{
+  "name": "Intelligent Investors - Intelligent Trading System",
+  "short_name": "II",
+  "description": "Intelligent trading workflows for investors who want evidence, risk control, and disciplined execution",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#04070d",
+  "theme_color": "#2563eb",
+  "icons": [
+    { "src": "/ii-mark.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" },
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

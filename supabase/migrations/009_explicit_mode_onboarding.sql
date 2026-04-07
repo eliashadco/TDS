@@ -1,0 +1,3 @@
+ALTER TABLE public.profiles
+  ALTER COLUMN mode DROP DEFAULT,
+  ALTER COLUMN mode DROP NOT NULL;

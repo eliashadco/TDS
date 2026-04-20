@@ -68,19 +68,23 @@ export default function AssessmentMatrix({
   ] as const;
 
   if (metrics.length === 0) {
-    return <div className="fin-card p-5 text-sm text-tds-dim">{emptyMessage}</div>;
+    return <div className="trade-review-card trade-compact-card text-sm text-tds-dim">{emptyMessage}</div>;
   }
 
   return (
-    <div className="space-y-5">
+    <div className="trade-assessment-matrix-grid">
       {sections.map((section) => {
         if (section.metrics.length === 0) {
           return null;
         }
 
         return (
-          <div key={section.key} className="space-y-3">
-            <h3 className="text-lg font-semibold tracking-[-0.03em] text-tds-text">{section.title}</h3>
+          <section key={section.key} className="trade-assessment-section">
+            <div className="trade-assessment-section-header">
+              <h3 className="text-lg font-semibold tracking-[-0.03em] text-tds-text">{section.title}</h3>
+              <span className="trade-summary-pill">{section.metrics.length} checks</span>
+            </div>
+            <div className="trade-assessment-section-list">
             {section.metrics.map((metric) => (
               <div key={metric.id} className="space-y-2">
                 {editable ? (
@@ -92,11 +96,11 @@ export default function AssessmentMatrix({
                     onChange={(value) => onScoreChange?.(metric.id, value)}
                   />
                 ) : (
-                  <div className="fin-card flex flex-wrap items-start justify-between gap-3 p-5">
+                  <div className="trade-review-card flex flex-wrap items-start justify-between gap-3 p-5">
                     <div className="max-w-3xl">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="text-sm font-semibold text-tds-text">{metric.name}</p>
-                        <span className="fin-chip">{metric.type}</span>
+                        <span className="inline-tag neutral">{metric.type}</span>
                       </div>
                       <p className="mt-2 text-sm leading-6 text-tds-dim">{metric.description}</p>
                       <p className="mt-3 text-xs font-semibold uppercase tracking-[0.16em] text-tds-dim">{noteLabel}</p>
@@ -110,7 +114,8 @@ export default function AssessmentMatrix({
                 {learnMode ? <MetricExplainer metricId={metric.id} mode={mode} direction={direction} /> : null}
               </div>
             ))}
-          </div>
+            </div>
+          </section>
         );
       })}
     </div>

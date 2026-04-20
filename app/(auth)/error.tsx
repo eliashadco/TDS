@@ -3,8 +3,8 @@
 export default function AuthError({ reset }: { error: Error; reset: () => void }) {
   return (
     <main className="flex min-h-screen items-center justify-center p-6">
-      <div className="fin-panel w-full max-w-md p-7 text-center">
-        <p className="fin-kicker">Authentication Error</p>
+      <div className="surface-panel w-full max-w-md p-7 text-center">
+        <p className="meta-label">Authentication Error</p>
         <h1 className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-tds-text">Unable to load this authentication page.</h1>
         <p className="mt-3 text-sm leading-6 text-tds-dim">Retry to recover the auth flow and restore access to login or sign-up.</p>
         <button

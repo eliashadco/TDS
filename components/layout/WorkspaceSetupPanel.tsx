@@ -18,26 +18,58 @@ export default function WorkspaceSetupPanel({
   ctaLabel,
 }: WorkspaceSetupPanelProps) {
   return (
-    <main className="space-y-6">
-      <section className="fin-panel p-6 sm:p-8">
-        <p className="fin-kicker">{kicker}</p>
-        <h1 className="mt-2 max-w-3xl text-3xl font-semibold tracking-[-0.05em] text-tds-text">{title}</h1>
-        <p className="mt-4 max-w-3xl text-sm leading-7 text-tds-dim">{description}</p>
-
-        <div className="mt-6 rounded-[24px] border border-slate-200/80 bg-slate-50/75 p-5">
-          <p className="text-sm leading-7 text-tds-text">{hint}</p>
+    <main className="settings-terminal">
+      <div className="page-header">
+        <div>
+          <p className="meta-label">{kicker}</p>
+          <h2>{title}</h2>
+          <p className="page-intro max-w-3xl">{description}</p>
         </div>
+      </div>
 
-        {ctaHref && ctaLabel ? (
-          <div className="mt-6">
-            <Link
-              href={ctaHref}
-              className="inline-flex h-11 items-center rounded-2xl bg-tds-slate px-4 text-sm font-semibold text-white shadow-[0_20px_45px_-24px_rgba(13,21,40,0.7)] hover:-translate-y-0.5 hover:bg-[#162649]"
-            >
-              {ctaLabel}
-            </Link>
+      <section className="settings-grid">
+        <section className="surface-panel">
+          <div className="surface-header">
+            <div>
+              <p className="meta-label">Workspace State</p>
+              <h3>Action required before this route can render</h3>
+            </div>
+            <span className="tag">Setup Gate</span>
           </div>
-        ) : null}
+
+          <div className="priority-stack mt-5">
+            <article className="priority-card calm">
+              <strong>Why this route is blocked</strong>
+              <p>{description}</p>
+            </article>
+            <article className="priority-card calm">
+              <strong>What to do next</strong>
+              <p>{hint}</p>
+            </article>
+          </div>
+
+          {ctaHref && ctaLabel ? (
+            <div className="mt-6">
+              <Link href={ctaHref} className="primary-button">
+                {ctaLabel}
+              </Link>
+            </div>
+          ) : null}
+        </section>
+
+        <aside className="surface-panel settings-side-panel">
+          <p className="meta-label">Operator Note</p>
+          <div className="priority-stack">
+            <article className="priority-card warn">
+              <strong>System-first gating is intentional</strong>
+              <p>The balanced-guided workspace only opens operational routes once the required mode, strategy, or schema context exists.</p>
+            </article>
+            <article className="priority-card calm">
+              <strong>Safe to resume after setup</strong>
+              <p>Once the missing requirement is satisfied, reload or revisit this route and the normal page surface will render in-place.</p>
+            </article>
+          </div>
+        </aside>
       </section>
     </main>
   );

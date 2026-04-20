@@ -1,5 +1,5 @@
+import Link from "next/link";
 import MetricsEditorClient from "@/components/settings/MetricsEditorClient";
-import WorkspaceSetupPanel from "@/components/layout/WorkspaceSetupPanel";
 import { loadSharedTradeStructureLibrary } from "@/lib/trading/structure-library";
 import { ensureStrategyWorkspaceForMode } from "@/lib/trading/strategies";
 import { createServerSupabase } from "@/lib/supabase/server";
@@ -8,20 +8,22 @@ import type { TradeMode } from "@/types/trade";
 
 export default async function MetricsSettingsPage() {
   const { userId, profile } = await getProtectedAppContext();
-  if (!profile.mode) {
+  const mode = (profile.mode as TradeMode) || null;
+
+  if (!mode) {
     return (
-      <WorkspaceSetupPanel
-        kicker="Mode Setup Required"
-        title="Choose a trading mode before editing strategy metrics."
-        description="Metric stacks are now attached to an explicit operating mode. A mode must exist before this workspace can save or rate a strategy."
-        hint="Use the mode selector in the shell to choose Investment, Swing, Day Trade, or Scalp. The app will seed a starter stack for that lane, which you can then customize here."
-      />
+      <main className="settings-terminal">
+        <div className="page-header"><div>
+          <p className="meta-label">Strategy Studio</p>
+          <h2>Strategy configuration requires a lane context</h2>
+          <p className="page-intro max-w-3xl">Choose a lane in the toolbar above to edit the rule set, structure defaults, and scoring behavior for that workflow. Account-wide analytics remain available without a lane.</p>
+        </div></div>
+        <div className="mt-6"><Link href="/portfolio-analytics" className="secondary-button">Open Portfolio Analytics</Link></div>
+      </main>
     );
   }
 
   const supabase = await createServerSupabase();
-
-  const mode = profile.mode as TradeMode;
   const equity = profile.equity;
 
   const [{ strategies, defaultStrategyId, schemaReady }, structureLibrary] = await Promise.all([
@@ -31,12 +33,13 @@ export default async function MetricsSettingsPage() {
 
   if (!schemaReady) {
     return (
-      <WorkspaceSetupPanel
-        kicker="Database Update Required"
-        title="Apply the first-class strategies database migration before opening Strategy Studio."
-        description="Strategy Studio stores named strategies and version snapshots in new Supabase tables, but those tables are not available in the connected database yet."
-        hint="Run the SQL in supabase/migrations/010_first_class_strategies.sql against the connected database, then reload this page."
-      />
+      <main className="settings-terminal">
+        <div className="page-header"><div>
+          <p className="meta-label">Strategy Studio</p>
+          <h2>Database migration required</h2>
+          <p className="page-intro max-w-3xl">Run the SQL in supabase/migrations/010_first_class_strategies.sql against the connected database, then reload the app.</p>
+        </div></div>
+      </main>
     );
   }
 

@@ -44,22 +44,6 @@ function matchesQuery(option: TradePresetOption, query: string): boolean {
   return [option.label, option.family, option.detail, ...option.keywords].join(" ").toLowerCase().includes(needle);
 }
 
-function SelectionCloud({ items, emptyLabel }: { items: string[]; emptyLabel: string }) {
-  if (items.length === 0) {
-    return <p className="mt-2 text-sm leading-6 text-tds-dim">{emptyLabel}</p>;
-  }
-
-  return (
-    <div className="mt-3 flex flex-wrap gap-2">
-      {items.map((item) => (
-        <span key={item} className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-tds-blue">
-          {item}
-        </span>
-      ))}
-    </div>
-  );
-}
-
 export default function GuidedStructurePicker({ sections, learnNotes, finalCtaLabel = "Continue", onComplete }: GuidedStructurePickerProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [queries, setQueries] = useState<Record<string, string>>({});
@@ -126,10 +110,10 @@ export default function GuidedStructurePicker({ sections, learnNotes, finalCtaLa
   }
 
   return (
-    <section className="rounded-[28px] border border-slate-200/80 bg-slate-50/80 p-5 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.28)] sm:p-6">
+    <section className="trade-structure-shell rounded-[28px] border border-slate-200/80 bg-slate-50/80 p-5 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.28)] sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="fin-kicker">Guided Structure Flow</p>
+          <p className="meta-label">Guided Structure Flow</p>
           <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-tds-text">Capture structure in sequence</h2>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-tds-dim">Move through setup types, conditions, and chart pattern one stage at a time. Each stage has its own filter and manual-add lane.</p>
         </div>
@@ -138,9 +122,10 @@ export default function GuidedStructurePicker({ sections, learnNotes, finalCtaLa
         </span>
       </div>
 
-      <div className="mt-5 grid gap-3 lg:grid-cols-3">
+      <div className="trade-structure-stage-row mt-5">
         {sections.map((section, index) => {
           const active = index === activeIndex;
+          const count = section.selectedLabels.length;
 
           return (
             <button
@@ -148,22 +133,22 @@ export default function GuidedStructurePicker({ sections, learnNotes, finalCtaLa
               type="button"
               onClick={() => setActiveIndex(index)}
               className={cn(
-                "rounded-[22px] border px-4 py-4 text-left transition-colors",
-                active ? "border-blue-200 bg-blue-50/85" : "border-white/80 bg-white/88 hover:border-slate-200 hover:bg-white",
+                "trade-structure-stage-pill",
+                active ? "is-active" : "",
               )}
             >
-              <p className="fin-kicker">Stage {index + 1}</p>
-              <p className="mt-2 text-sm font-semibold text-tds-text">{section.title}</p>
-              <SelectionCloud items={section.selectedLabels} emptyLabel={section.emptyLabel} />
+              <span className="trade-structure-stage-kicker">Stage {index + 1}</span>
+              <strong>{section.title}</strong>
+              <span className="trade-structure-stage-count">{count > 0 ? `${count} selected` : section.required ? "required" : "optional"}</span>
             </button>
           );
         })}
       </div>
 
-      <div className="mt-5 rounded-[24px] border border-white/80 bg-white/90 p-5 shadow-sm">
+      <div className="trade-structure-workspace mt-5 rounded-[24px] border border-white/80 bg-white/90 p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="fin-kicker">Current Stage</p>
+            <p className="meta-label">Current Stage</p>
             <h3 className="mt-2 text-xl font-semibold tracking-[-0.04em] text-tds-text">{currentSection.title}</h3>
             <p className="mt-2 text-sm leading-6 text-tds-dim">{currentSection.description}</p>
           </div>
@@ -205,7 +190,7 @@ export default function GuidedStructurePicker({ sections, learnNotes, finalCtaLa
           </button>
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="trade-structure-family-row mt-4 flex flex-wrap gap-2">
           {currentFamilies.map((family) => {
             const active = family === currentFamily;
             return (
@@ -234,7 +219,7 @@ export default function GuidedStructurePicker({ sections, learnNotes, finalCtaLa
             {currentSection.emptyLabel}
           </div>
         ) : (
-          <div className="mt-4 grid gap-3 xl:grid-cols-2">
+          <div className="trade-structure-options-grid mt-4 grid gap-3 xl:grid-cols-3">
             {visibleOptions.map((option) => {
               const active = currentSection.selectedLabels.includes(option.label);
 
@@ -268,10 +253,10 @@ export default function GuidedStructurePicker({ sections, learnNotes, finalCtaLa
           </div>
         )}
 
-        <div className="mt-5 rounded-[22px] border border-dashed border-slate-200 bg-slate-50/75 p-4">
-          <p className="fin-kicker">Manual Entry</p>
+        <div className="trade-structure-manual-shell mt-5 rounded-[22px] border border-dashed border-slate-200 bg-slate-50/75 p-4">
+          <p className="meta-label">Manual Entry</p>
           <p className="mt-2 text-sm leading-6 text-tds-dim">Type a custom entry for this trade. You can use it once or save it into the shared library for every strategy later.</p>
-          <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto_auto]">
+          <div className="trade-structure-manual-grid mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto_auto]">
             <Input
               value={currentManualDraft}
               onChange={(event) =>
@@ -285,6 +270,7 @@ export default function GuidedStructurePicker({ sections, learnNotes, finalCtaLa
             <Button
               type="button"
               variant="secondary"
+              className="secondary-button"
               onClick={() => currentManualDraft.trim() && currentSection.onManualAdd(currentManualDraft.trim())}
               disabled={!currentManualDraft.trim()}
             >
@@ -292,6 +278,7 @@ export default function GuidedStructurePicker({ sections, learnNotes, finalCtaLa
             </Button>
             <Button
               type="button"
+              className="primary-button"
               onClick={() => void saveManualEntry()}
               disabled={!currentManualDraft.trim() || savingKey === currentSection.key}
             >
@@ -301,19 +288,20 @@ export default function GuidedStructurePicker({ sections, learnNotes, finalCtaLa
         </div>
 
         <div className="mt-5 flex items-center justify-between gap-3">
-          <Button type="button" variant="secondary" onClick={() => setActiveIndex((previous) => Math.max(0, previous - 1))} disabled={activeIndex === 0}>
+          <Button type="button" variant="secondary" className="secondary-button" onClick={() => setActiveIndex((previous) => Math.max(0, previous - 1))} disabled={activeIndex === 0}>
             <ChevronLeft className="mr-2 h-4 w-4" />
             Previous stage
           </Button>
 
           {isLastStep ? (
-            <Button type="button" onClick={() => onComplete?.()} disabled={!canMoveNext}>
+            <Button type="button" className="primary-button" onClick={() => onComplete?.()} disabled={!canMoveNext}>
               {finalCtaLabel}
               <ChevronRight className="ml-2 h-4 w-4" />
             </Button>
           ) : (
             <Button
               type="button"
+              className="primary-button"
               onClick={() => setActiveIndex((previous) => Math.min(sections.length - 1, previous + 1))}
               disabled={!canMoveNext}
             >

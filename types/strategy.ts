@@ -4,6 +4,7 @@ export type StrategyStatus = "draft" | "active" | "archived";
 
 export type StrategyMetricSnapshot = Pick<Metric, "id" | "name" | "description" | "category" | "type"> & {
   enabled: boolean;
+  isHard?: boolean;
 };
 
 export type StrategyStructureSnapshot = {

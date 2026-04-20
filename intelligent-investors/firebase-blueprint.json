@@ -1,0 +1,110 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and workspace settings.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "mode": { "type": "string", "enum": ["investment", "swing", "daytrade", "scalp"] },
+        "learnMode": { "type": "boolean" },
+        "equity": { "type": "number" },
+        "riskPerTrade": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Strategy": {
+      "title": "Strategy",
+      "description": "A named trading strategy with versioned metrics.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "mode": { "type": "string" },
+        "version": { "type": "number" },
+        "metrics": { "type": "array", "items": { "$ref": "Metric" } },
+        "aiInstructions": { "type": "string" },
+        "isDefault": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "mode"]
+    },
+    "Trade": {
+      "title": "Trade",
+      "description": "A single trade record with lifecycle data.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "symbol": { "type": "string" },
+        "direction": { "type": "string", "enum": ["LONG", "SHORT"] },
+        "mode": { "type": "string" },
+        "strategyId": { "type": "string" },
+        "strategySnapshot": { "type": "object" },
+        "thesis": { "type": "string" },
+        "assessment": { "type": "object" },
+        "conviction": { "type": "string" },
+        "positionSize": { "type": "number" },
+        "entryPrice": { "type": "number" },
+        "stopLoss": { "type": "number" },
+        "takeProfit": { "type": "number" },
+        "status": { "type": "string", "enum": ["PLANNING", "ACTIVE", "CLOSED", "CANCELLED"] },
+        "journals": { "type": "array", "items": { "type": "object" } },
+        "outcome": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "symbol", "direction", "mode"]
+    },
+    "WatchlistItem": {
+      "title": "Watchlist Item",
+      "description": "A staged ticker in the MarketWatch workbench.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "ticker": { "type": "string" },
+        "direction": { "type": "string", "enum": ["LONG", "SHORT"] },
+        "mode": { "type": "string" },
+        "strategyId": { "type": "string" },
+        "strategySnapshot": { "type": "object" },
+        "scores": { "type": "object" },
+        "verdict": { "type": "string" },
+        "conviction": { "type": "string" },
+        "entry": { "type": "number" },
+        "stop": { "type": "number" },
+        "note": { "type": "string" },
+        "status": { "type": "string", "enum": ["WATCH", "SCORED"] },
+        "lastScoredAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "ticker", "mode"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile documents."
+    },
+    "/strategies/{strategyId}": {
+      "schema": "Strategy",
+      "description": "User-defined trading strategies."
+    },
+    "/trades/{tradeId}": {
+      "schema": "Trade",
+      "description": "Individual trade records."
+    },
+    "/watchlist_items/{itemId}": {
+      "schema": "WatchlistItem",
+      "description": "Staged workbench items."
+    }
+  }
+}

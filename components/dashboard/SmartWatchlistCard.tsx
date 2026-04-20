@@ -198,10 +198,10 @@ export default function SmartWatchlistCard({ mode, strategyLabel, metrics }: Sma
   }, [metrics, mode, refreshToken]);
 
   return (
-    <section className="fin-panel p-6">
+    <section className="surface-panel p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="fin-kicker">Smart Watchlist</p>
+          <p className="meta-label">Smart Watchlist</p>
           <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-tds-text">Top 5 strategy-fit movers</h2>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-tds-dim">Ranked using {strategyLabel}.</p>
           <p className="mt-3 text-xs uppercase tracking-[0.16em] text-tds-dim">Market Sync {formatMarketDataRefreshTime(lastRefreshToken)}</p>
@@ -212,19 +212,19 @@ export default function SmartWatchlistCard({ mode, strategyLabel, metrics }: Sma
         </Link>
       </div>
 
-      {loading ? <div className="fin-card mt-6 p-5 text-sm text-tds-dim">Scoring movers...</div> : null}
+      {loading ? <div className="trade-review-card trade-compact-card mt-6 p-5 text-sm text-tds-dim">Scoring movers...</div> : null}
       {!loading && status ? <div className="mt-5 rounded-[22px] border border-slate-200/80 bg-slate-50/70 px-4 py-3 text-sm text-tds-dim">{status}</div> : null}
 
       <div className="mt-6 space-y-3">
         {!loading && items.length === 0 ? <p className="text-sm leading-6 text-tds-dim">No candidates right now.</p> : null}
         {items.map((item) => (
-          <div key={item.ticker} className="fin-card flex flex-wrap items-center justify-between gap-4 p-4">
+          <div key={item.ticker} className="trade-review-card flex flex-wrap items-center justify-between gap-4 p-4">
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-mono text-base font-semibold text-tds-text">{item.ticker}</span>
                 <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${item.direction === "LONG" ? "bg-tds-green/10 text-tds-green" : "bg-tds-red/10 text-tds-red"}`}>{item.direction}</span>
                 <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${item.verdict === "READY" ? "bg-tds-green/10 text-tds-green" : item.verdict === "QUEUE" ? "bg-tds-blue/10 text-tds-blue" : "bg-tds-amber/10 text-tds-amber"}`}>{item.verdict}</span>
-                {item.sourceLabel ? <span className="fin-chip">{item.sourceLabel}</span> : null}
+                {item.sourceLabel ? <span className="inline-tag neutral">{item.sourceLabel}</span> : null}
               </div>
               <p className="mt-2 text-sm font-medium text-tds-text">{item.name}</p>
               <p className="mt-1 text-xs leading-5 text-tds-dim">{item.note}</p>

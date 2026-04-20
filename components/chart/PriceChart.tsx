@@ -14,6 +14,7 @@ type PriceChartProps = {
   direction?: "LONG" | "SHORT";
   timeframe?: CandleTimeframe;
   height?: number;
+  blindMode?: boolean;
 };
 
 export default function PriceChart({
@@ -25,6 +26,7 @@ export default function PriceChart({
   direction = "LONG",
   timeframe = "day",
   height = 300,
+  blindMode = false,
 }: PriceChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -38,7 +40,7 @@ export default function PriceChart({
       height,
       layout: {
         background: { type: ColorType.Solid, color: "#ffffff" },
-        textColor: "#6b7b8f",
+        textColor: blindMode ? "rgba(107, 123, 143, 0)" : "#6b7b8f",
         fontFamily: "'IBM Plex Mono', monospace",
         fontSize: 10,
       },
@@ -48,11 +50,11 @@ export default function PriceChart({
       },
       crosshair: { mode: CrosshairMode.Normal },
       rightPriceScale: {
-        borderColor: "#d8e2ec",
+        borderColor: blindMode ? "rgba(216, 226, 236, 0)" : "#d8e2ec",
         scaleMargins: { top: 0.1, bottom: 0.1 },
       },
       timeScale: {
-        borderColor: "#d8e2ec",
+        borderColor: blindMode ? "rgba(216, 226, 236, 0)" : "#d8e2ec",
         timeVisible: timeframe !== "week",
         secondsVisible: false,
       },
@@ -83,7 +85,7 @@ export default function PriceChart({
         color: "#2563eb",
         lineWidth: 1,
         lineStyle: LineStyle.Solid,
-        axisLabelVisible: true,
+        axisLabelVisible: !blindMode,
         title: "Entry",
       });
     }
@@ -94,7 +96,7 @@ export default function PriceChart({
         color: "#dc2626",
         lineWidth: 1,
         lineStyle: LineStyle.Solid,
-        axisLabelVisible: true,
+        axisLabelVisible: !blindMode,
         title: "Stop",
       });
     }
@@ -105,7 +107,7 @@ export default function PriceChart({
         color: "#059669",
         lineWidth: 1,
         lineStyle: LineStyle.Dashed,
-        axisLabelVisible: true,
+        axisLabelVisible: !blindMode,
         title: "2R",
       });
     }
@@ -116,7 +118,7 @@ export default function PriceChart({
         color: "#059669",
         lineWidth: 1,
         lineStyle: LineStyle.Dashed,
-        axisLabelVisible: true,
+        axisLabelVisible: !blindMode,
         title: "4R",
       });
     }
@@ -136,11 +138,11 @@ export default function PriceChart({
       observer.disconnect();
       chart.remove();
     };
-  }, [candles, direction, entryPrice, height, r2Target, r4Target, stopLoss, timeframe]);
+  }, [blindMode, candles, direction, entryPrice, height, r2Target, r4Target, stopLoss, timeframe]);
 
   if (candles.length === 0) {
     return (
-      <div className="fin-card flex h-64 items-center justify-center text-xs text-tds-dim">
+      <div className="trade-review-card flex h-64 items-center justify-center text-xs text-tds-dim">
         No candle data available.
       </div>
     );

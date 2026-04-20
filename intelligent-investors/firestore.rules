@@ -1,0 +1,118 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {userId}
+    // Fields:
+    //   - uid: string (required)
+    //   - email: string (required)
+    //   - displayName: string
+    //   - photoURL: string
+    //   - mode: string (investment, swing, daytrade, scalp)
+    //   - learnMode: bool
+    //   - equity: number
+    //   - riskPerTrade: number
+    //   - createdAt: timestamp
+    //   - updatedAt: timestamp
+    //
+    // Collection: strategies
+    // Document ID: {strategyId}
+    // Fields:
+    //   - userId: string (required)
+    //   - name: string (required)
+    //   - mode: string (required)
+    //   - version: number
+    //   - metrics: list
+    //   - aiInstructions: string
+    //   - isDefault: bool
+    //   - createdAt: timestamp
+    //   - updatedAt: timestamp
+    //
+    // Collection: trades
+    // Document ID: {tradeId}
+    // Fields:
+    //   - userId: string (required)
+    //   - symbol: string (required)
+    //   - direction: string (LONG, SHORT)
+    //   - mode: string (required)
+    //   - strategyId: string
+    //   - strategySnapshot: map
+    //   - thesis: string
+    //   - assessment: map
+    //   - conviction: string
+    //   - positionSize: number
+    //   - entryPrice: number
+    //   - stopLoss: number
+    //   - takeProfit: number
+    //   - status: string (PLANNING, ACTIVE, CLOSED, CANCELLED)
+    //   - journals: list
+    //   - outcome: map
+    //   - createdAt: timestamp
+    //   - updatedAt: timestamp
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+    function isNewDocOwner() {
+      return isAuthenticated() && request.auth.uid == request.resource.data.userId;
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.uid == userId;
+      allow update: if isOwner(userId) && request.resource.data.uid == userId;
+    }
+
+    match /strategies/{strategyId} {
+      allow read: if isDocOwner();
+      allow create: if isNewDocOwner();
+      allow update: if isDocOwner() && request.resource.data.userId == resource.data.userId;
+      allow delete: if isDocOwner();
+    }
+
+    match /user_strategies/{strategyId} {
+      allow read: if isDocOwner();
+      allow create: if isNewDocOwner();
+      allow update: if isDocOwner() && request.resource.data.userId == resource.data.userId;
+      allow delete: if isDocOwner();
+    }
+
+    match /strategy_versions/{versionId} {
+      allow read: if isDocOwner();
+      allow create: if isNewDocOwner();
+    }
+
+    match /trades/{tradeId} {
+      allow read: if isDocOwner();
+      allow create: if isNewDocOwner();
+      allow update: if isDocOwner() && request.resource.data.userId == resource.data.userId;
+      allow delete: if isDocOwner();
+    }
+
+    match /watchlist_items/{itemId} {
+      allow read: if isDocOwner();
+      allow create: if isNewDocOwner();
+      allow update: if isDocOwner() && request.resource.data.userId == resource.data.userId;
+      allow delete: if isDocOwner();
+    }
+  }
+}

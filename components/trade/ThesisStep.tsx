@@ -2,6 +2,7 @@
 
 import { useMemo, useRef } from "react";
 import GuidedStructurePicker from "@/components/trade/GuidedStructurePicker";
+import AIProviderBadge from "@/components/ai/AIProviderBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,13 +17,18 @@ import type { TradeThesis } from "@/types/trade";
 import { cn } from "@/lib/utils";
 import { useLearnMode } from "@/components/learn/LearnModeContext";
 import { SETUP_EXPLANATIONS } from "@/lib/learn/explanations";
+import type { AIResponseMeta } from "@/lib/ai/response";
 
 type ThesisStepProps = {
   thesis: TradeThesis;
   contradictions: string[];
+  draftLoading: boolean;
+  draftMeta: AIResponseMeta | null;
+  smartStopHint: string | null;
   sharedLibraryItems: TradeStructureLibraryItem[];
   onSaveLibraryItem: (itemType: TradeStructureItemType, label: string) => Promise<void>;
   onChange: (patch: Partial<TradeThesis>) => void;
+  onGenerateDraft: () => void;
   onNext: () => void;
 };
 
@@ -47,17 +53,38 @@ function serializeChartPatterns(patterns: string[]): string {
   return patterns.length > 0 ? patterns.join(", ") : "None";
 }
 
+function ThesisSelectionSummary({ items, emptyLabel }: { items: string[]; emptyLabel: string }) {
+  if (items.length === 0) {
+    return <p className="trade-thesis-summary-empty">{emptyLabel}</p>;
+  }
+
+  return (
+    <div className="trade-thesis-pill-cloud">
+      {items.map((item) => (
+        <span key={item} className="trade-summary-pill">
+          {item}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export default function ThesisStep({
   thesis,
   contradictions,
+  draftLoading,
+  draftMeta,
+  smartStopHint,
   sharedLibraryItems,
   onSaveLibraryItem,
   onChange,
+  onGenerateDraft,
   onNext,
 }: ThesisStepProps) {
   const { learnMode } = useLearnMode();
   const isLong = thesis.direction === "LONG";
   const tradeStoryRef = useRef<HTMLDivElement | null>(null);
+  const selectedPatterns = parseChartPatterns(thesis.chartPattern);
 
   const canContinue =
     Boolean(thesis.ticker.trim()) &&
@@ -90,32 +117,35 @@ export default function ThesisStep({
       baseOptions: CHART_PATTERN_OPTIONS,
       sharedItems: sharedLibraryItems,
       itemType: "chart_pattern",
-      selectedLabels: parseChartPatterns(thesis.chartPattern),
+      selectedLabels: selectedPatterns,
     }),
-    [sharedLibraryItems, thesis.chartPattern],
+    [selectedPatterns, sharedLibraryItems],
   );
 
   function togglePattern(pattern: string) {
-    onChange({ chartPattern: serializeChartPatterns(toggleInArray(parseChartPatterns(thesis.chartPattern), pattern)) });
+    onChange({ chartPattern: serializeChartPatterns(toggleInArray(selectedPatterns, pattern)) });
   }
 
   function addManualPattern(pattern: string) {
-    onChange({ chartPattern: serializeChartPatterns(toggleInArray(parseChartPatterns(thesis.chartPattern), pattern)) });
+    onChange({ chartPattern: serializeChartPatterns(toggleInArray(selectedPatterns, pattern)) });
   }
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="fin-kicker">Step 1</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-tds-text">Build the trade thesis</h1>
+      <div className="trade-step-hero trade-thesis-hero">
+        <div className="trade-step-hero-copy">
+          <p className="meta-label">Step 1</p>
+          <h2>Build the trade thesis</h2>
+          <p>Write the trade case first, then lock the setup, conditions, and chart pattern that justify it.</p>
+        </div>
+
+        <div className={cn("trade-direction-banner", isLong ? "is-long" : "is-short")}>
+          {isLong ? "▲ Bullish thesis selected. Assessment will look for upside support." : "▼ Bearish thesis selected. Assessment will look for downside support."}
+        </div>
       </div>
 
-      <div className={cn("rounded-[24px] border px-4 py-4 text-sm font-semibold", isLong ? "border-tds-green/20 bg-tds-green/10 text-tds-green" : "border-tds-red/20 bg-tds-red/10 text-tds-red")}>
-        {isLong ? "▲ Bullish thesis selected. Assessment will look for upside support." : "▼ Bearish thesis selected. Assessment will look for downside support."}
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
+      <div className="trade-input-grid trade-thesis-meta-grid">
+        <div className="trade-field-shell space-y-2">
           <Label htmlFor="ticker">Ticker</Label>
           <Input
             id="ticker"
@@ -126,7 +156,7 @@ export default function ThesisStep({
           />
         </div>
 
-        <div className="space-y-2">
+        <div className="trade-field-shell space-y-2">
           <Label>Direction</Label>
           <div className="flex gap-3">
             <Button
@@ -147,24 +177,128 @@ export default function ThesisStep({
             </Button>
           </div>
         </div>
+
+        <div className="trade-field-shell space-y-2">
+          <Label htmlFor="asset">Asset Class</Label>
+          <select
+            id="asset"
+            aria-label="Asset class"
+            title="Asset class"
+            value={thesis.assetClass}
+            onChange={(event) => onChange({ assetClass: event.target.value })}
+            className="trade-select"
+          >
+            {ASSETS.map((asset) => (
+              <option key={asset} value={asset}>
+                {asset}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="asset">Asset Class</Label>
-        <select
-          id="asset"
-          aria-label="Asset class"
-          title="Asset class"
-          value={thesis.assetClass}
-          onChange={(event) => onChange({ assetClass: event.target.value })}
-          className="flex h-11 w-full rounded-2xl border border-white/80 bg-white/88 px-4 py-2.5 text-sm text-tds-text shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_10px_24px_-18px_rgba(15,23,42,0.35)]"
-        >
-          {ASSETS.map((asset) => (
-            <option key={asset} value={asset}>
-              {asset}
-            </option>
-          ))}
-        </select>
+      <div className="trade-thesis-workspace">
+        <div ref={tradeStoryRef} className="trade-review-card trade-story-card trade-story-editor sm:p-6">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="meta-label">Trade Story</p>
+              <h3>Write the case in plain language</h3>
+              <p className="trade-story-copy">State the edge, what should confirm, and what price action invalidates the idea.</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {draftMeta ? <AIProviderBadge meta={draftMeta} /> : null}
+              <Button type="button" variant="secondary" className="secondary-button" onClick={onGenerateDraft} disabled={draftLoading || !thesis.ticker.trim()}>
+                {draftLoading ? "Generating..." : "AI Draft + Smart Stop"}
+              </Button>
+            </div>
+          </div>
+
+          <div className="trade-thesis-editor-grid">
+            <div className="space-y-2">
+              <Label htmlFor="thesis">Thesis</Label>
+              <textarea
+                id="thesis"
+                value={thesis.thesis}
+                onChange={(event) => onChange({ thesis: event.target.value })}
+                className="trade-textarea trade-thesis-textarea"
+                placeholder={isLong ? "Why does this ticker fit your edge right now?" : "Why does this ticker fit your short edge right now?"}
+              />
+              <p className="text-xs uppercase tracking-[0.14em] text-tds-dim">Write the story first, then lock its timing and invalidation.</p>
+            </div>
+
+            <div className="trade-thesis-support-grid">
+              <div className="space-y-2">
+                <Label htmlFor="catalyst">Catalyst Window</Label>
+                <Input
+                  id="catalyst"
+                  value={thesis.catalystWindow}
+                  onChange={(event) => onChange({ catalystWindow: event.target.value })}
+                  placeholder="What catalyst or timing window matters here?"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="invalidation">Invalidation</Label>
+                <Input
+                  id="invalidation"
+                  value={thesis.invalidation}
+                  onChange={(event) => onChange({ invalidation: event.target.value })}
+                  placeholder={isLong ? "What price action proves this long thesis wrong?" : "What price action proves this short thesis wrong?"}
+                />
+              </div>
+            </div>
+          </div>
+
+          {smartStopHint ? <p className="mt-4 text-xs uppercase tracking-[0.14em] text-tds-dim">Smart stop note: {smartStopHint}</p> : null}
+        </div>
+
+        <aside className="trade-thesis-side-rail">
+          <article className="trade-review-card trade-compact-card">
+            <p className="meta-label">Structure Snapshot</p>
+            <div className="trade-thesis-summary-stack">
+              <div>
+                <p className="trade-thesis-summary-label">Setup Types</p>
+                <ThesisSelectionSummary items={thesis.setupTypes} emptyLabel="Choose at least one setup to unlock the next step." />
+              </div>
+              <div>
+                <p className="trade-thesis-summary-label">Conditions</p>
+                <ThesisSelectionSummary items={thesis.conditions} emptyLabel="No conditions selected yet." />
+              </div>
+              <div>
+                <p className="trade-thesis-summary-label">Chart Pattern</p>
+                <ThesisSelectionSummary items={selectedPatterns} emptyLabel="No dominant pattern selected." />
+              </div>
+            </div>
+          </article>
+
+          {contradictions.length > 0 ? (
+            <div className="trade-warning-panel trade-thesis-warning-panel">
+              <p className="meta-label">Potential Contradictions</p>
+              <ul className="list-disc space-y-1 pl-4 text-xs text-tds-dim">
+                {contradictions.map((warning) => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <article className="trade-review-card trade-compact-card">
+              <p className="meta-label">Story Gate</p>
+              <p className="trade-thesis-summary-empty">Complete the thesis, invalidation, and at least one setup type to open the assessment window cleanly.</p>
+            </article>
+          )}
+
+          {learnMode && thesis.setupTypes.length > 0 ? (
+            <div className="trade-review-card trade-compact-card text-sm text-tds-dim">
+              <p className="meta-label">Learn Notes</p>
+              <div className="mt-3 space-y-2">
+                {thesis.setupTypes.map((setup) => (
+                  <p key={setup}>
+                    <span className="font-semibold text-tds-text">{setup}:</span> {SETUP_EXPLANATIONS[setup] ?? "Directional structure setup."}
+                  </p>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </aside>
       </div>
 
       <GuidedStructurePicker
@@ -202,7 +336,7 @@ export default function ThesisStep({
             description: "Optional. Add one or more chart patterns when they materially support the thesis.",
             itemType: "chart_pattern",
             options: patternOptions,
-            selectedLabels: parseChartPatterns(thesis.chartPattern),
+            selectedLabels: selectedPatterns,
             emptyLabel: "No chart patterns match the current filter. Broaden the search or save a custom entry.",
             multiSelect: true,
             onToggleLabel: togglePattern,
@@ -211,78 +345,12 @@ export default function ThesisStep({
             onSaveManual: (label) => onSaveLibraryItem("chart_pattern", label),
           },
         ]}
-        finalCtaLabel="Continue to trade story"
+        finalCtaLabel="Review trade story"
         onComplete={() => tradeStoryRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-        learnNotes={
-          learnMode && thesis.setupTypes.length > 0 ? (
-            <div className="rounded-[24px] border border-slate-200/80 bg-white/90 p-4 text-sm text-tds-dim">
-              <p className="fin-kicker">Learn Notes</p>
-              <div className="mt-3 space-y-2">
-                {thesis.setupTypes.map((setup) => (
-                  <p key={setup}>
-                    <span className="font-semibold text-tds-text">{setup}:</span> {SETUP_EXPLANATIONS[setup] ?? "Directional structure setup."}
-                  </p>
-                ))}
-              </div>
-            </div>
-          ) : null
-        }
       />
 
-      <div ref={tradeStoryRef} className="rounded-[28px] border border-white/80 bg-white/88 p-5 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.28)] sm:p-6">
-        <div>
-          <p className="fin-kicker">Trade Story</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-tds-text">Write the case in plain language</h2>
-          <p className="mt-3 text-sm leading-6 text-tds-dim">Keep it short: what is happening now, what confirms it, and what breaks the idea.</p>
-        </div>
-
-        <div className="mt-5 space-y-2">
-          <Label htmlFor="thesis">Thesis</Label>
-          <textarea
-            id="thesis"
-            value={thesis.thesis}
-            onChange={(event) => onChange({ thesis: event.target.value })}
-            className="min-h-[140px] w-full rounded-[24px] border border-white/80 bg-white/88 px-4 py-3 text-sm text-tds-text shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_10px_24px_-18px_rgba(15,23,42,0.35)] placeholder:text-tds-dim"
-            placeholder={isLong ? "Why this should move higher now" : "Why this should move lower now"}
-          />
-          <p className="text-xs uppercase tracking-[0.14em] text-tds-dim">Focus on why now, what should confirm, and where the thesis fails.</p>
-        </div>
-
-        <div className="mt-5 grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="catalyst">Catalyst Window</Label>
-            <Input
-              id="catalyst"
-              value={thesis.catalystWindow}
-              onChange={(event) => onChange({ catalystWindow: event.target.value })}
-              placeholder="1-2 weeks"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="invalidation">Invalidation</Label>
-            <Input
-              id="invalidation"
-              value={thesis.invalidation}
-              onChange={(event) => onChange({ invalidation: event.target.value })}
-              placeholder={isLong ? "Break below support / thesis breach" : "Break above resistance / thesis breach"}
-            />
-          </div>
-        </div>
-      </div>
-
-      {contradictions.length > 0 ? (
-        <div className="rounded-[24px] border border-tds-amber/20 bg-tds-amber/10 p-4 text-sm text-tds-text">
-          <p className="mb-1 font-semibold">Potential Contradictions</p>
-          <ul className="list-disc space-y-1 pl-4 text-xs text-tds-dim">
-            {contradictions.map((warning) => (
-              <li key={warning}>{warning}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
       <div className="flex justify-end">
-        <Button type="button" disabled={!canContinue} onClick={onNext}>
+        <Button type="button" className="primary-button" disabled={!canContinue} onClick={onNext}>
           Next →
         </Button>
       </div>

@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Balanced Guided Redesign Prototype</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="layout-shell">
+      <aside class="nav-rail">
+        <div class="rail-top">
+          <div class="brand-block">
+            <div class="brand-mark">II</div>
+            <div>
+              <p class="brand-title">Intelligent Investors</p>
+              <p class="brand-subtitle">Balanced Guided Terminal v2.4.0</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="rail-main">
+          <p class="rail-section-label">Main Menu</p>
+          <nav class="nav-stack">
+            <button class="nav-link active" data-page="dashboard">
+              <span class="nav-icon">◫</span>
+              <span>Dashboard</span>
+            </button>
+            <button class="nav-link" data-page="marketwatch">
+              <span class="nav-icon">⌁</span>
+              <span>MarketWatch</span>
+            </button>
+            <button class="nav-link" data-page="analytics">
+              <span class="nav-icon">∿</span>
+              <span>Analytics</span>
+            </button>
+            <button class="nav-link" data-page="trade-studio">
+              <span class="nav-icon">＋</span>
+              <span>New Trade</span>
+            </button>
+            <button class="nav-link" data-page="archive">
+              <span class="nav-icon">◔</span>
+              <span>Archive</span>
+            </button>
+            <button class="nav-link" data-page="settings">
+              <span class="nav-icon">⚙</span>
+              <span>Settings</span>
+            </button>
+          </nav>
+        </div>
+
+        <div class="rail-footer">
+          <button class="action-link" type="button">
+            <span class="nav-icon danger-icon">↪</span>
+            <span>Sign Out</span>
+          </button>
+        </div>
+      </aside>
+
+      <div class="workspace">
+        <header class="utility-bar">
+          <div class="utility-status">
+            <span class="meta-label">System Status:</span>
+            <span class="meta-pill success-pill">Live Feed</span>
+          </div>
+
+          <div class="utility-center">
+            <span class="meta-label">Lane:</span>
+            <div class="segment-control">
+              <span class="segment-pill">Investment</span>
+              <span class="segment-pill active">Swing</span>
+              <span class="segment-pill">Day Trade</span>
+              <span class="segment-pill">Scalp</span>
+            </div>
+          </div>
+
+          <div class="utility-meta utility-controls">
+            <button class="toggle-card theme-toggle-card" type="button" aria-pressed="false" aria-label="Toggle dark theme">
+              <div>
+                <p class="meta-label">Theme</p>
+                <strong class="theme-toggle-label">Light</strong>
+              </div>
+              <span class="toggle-switch theme-toggle-switch" aria-hidden="true"></span>
+            </button>
+            <div class="toggle-card">
+              <div>
+                <p class="meta-label">Learn Mode</p>
+                <strong>Enabled</strong>
+              </div>
+              <span class="toggle-switch active" aria-hidden="true"></span>
+            </div>
+            <div class="equity-card">
+              <p class="meta-label">Equity</p>
+              <strong>$100,000</strong>
+            </div>
+            <div class="profile-chip">AL</div>
+          </div>
+        </header>
+
+        <main class="page-deck">
+          <section class="page active" data-page="dashboard">
+            <div class="dashboard-terminal">
+              <div class="dashboard-action-row">
+                <div>
+                  <p class="meta-label">Dashboard</p>
+                  <p class="page-intro">Portfolio state, signal readiness, and active work in a tighter operating layout.</p>
+                </div>
+                <div class="dashboard-primary-actions">
+                  <button class="primary-button">Execute New Thesis</button>
+                  <button class="secondary-button">Full Analytics</button>
+                </div>
+              </div>
+
+              <section class="dashboard-terminal-grid">
+                <section class="surface-panel overview-panel">
+                  <div class="surface-header overview-header">
+                    <div>
+                      <p class="meta-label">Portfolio Overview</p>
+                      <h3>Real-time execution picture</h3>
+                    </div>
+                    <span class="meta-pill success-pill">Risk: Nominal</span>
+                  </div>
+
+                  <div class="terminal-metric-grid">
+                    <article class="metric-card terminal-metric-card">
+                      <p class="meta-label">Total Deployed</p>
+                      <strong>$148,400</strong>
+                      <span>49.5% of book is allocated</span>
+                    </article>
+                    <article class="metric-card terminal-metric-card">
+                      <p class="meta-label">Unrealized P&amp;L</p>
+                      <strong class="positive">+$4,280</strong>
+                      <span>+$231 vs benchmark basket</span>
+                    </article>
+                    <article class="metric-card terminal-metric-card">
+                      <p class="meta-label">Portfolio Heat</p>
+                      <strong>6.2%</strong>
+                      <span>Max allowed: 12%</span>
+                    </article>
+                  </div>
+                </section>
+
+                <aside class="surface-panel monitor-panel">
+                  <div class="surface-header monitor-header">
+                    <div>
+                      <p class="meta-label">Signal Monitor</p>
+                      <h3>AI Readiness</h3>
+                    </div>
+                    <span class="signal-badge">⚡</span>
+                  </div>
+
+                  <div class="mini-stats signal-stats">
+                    <article>
+                      <span>Ready</span>
+                      <strong>04</strong>
+                    </article>
+                    <article>
+                      <span>Watch</span>
+                      <strong>03</strong>
+                    </article>
+                  </div>
+
+                  <div class="monitor-log">
+                    <p class="meta-label">Recent Signals</p>
+                    <p>Scanning for momentum continuation, event follow-through, and clean pullback structures.</p>
+                  </div>
+
+                  <button class="secondary-button full-width">Open Workbench</button>
+                </aside>
+              </section>
+
+              <section class="terminal-lower-grid">
+                <section class="surface-panel positions-terminal-panel">
+                  <div class="surface-header">
+                    <div>
+                      <p class="meta-label">Active Positions</p>
+                      <h3>Capital currently at work</h3>
+                    </div>
+                    <span class="tag">6 Open Positions</span>
+                  </div>
+
+                  <div class="position-list">
+                    <article class="position-row">
+                      <div>
+                        <div class="row-title">NVDA <span class="inline-tag green">Long</span></div>
+                        <p>Entry 918.40 · Last 941.20 · Risk 1.8%</p>
+                      </div>
+                      <div class="row-value positive">+$1,640</div>
+                    </article>
+                    <article class="position-row">
+                      <div>
+                        <div class="row-title">MSFT <span class="inline-tag green">Long</span></div>
+                        <p>Entry 428.10 · Last 433.70 · Risk 1.0%</p>
+                      </div>
+                      <div class="row-value positive">+$510</div>
+                    </article>
+                    <article class="position-row">
+                      <div>
+                        <div class="row-title">TSLA <span class="inline-tag red">Short</span></div>
+                        <p>Entry 189.60 · Last 185.20 · Risk 1.2%</p>
+                      </div>
+                      <div class="row-value positive">+$890</div>
+                    </article>
+                  </div>
+                </section>
+
+                <aside class="surface-panel queue-panel">
+                  <div class="surface-header">
+                    <div>
+                      <p class="meta-label">Priority Queue</p>
+                      <h3>Action required</h3>
+                    </div>
+                    <span class="tag">2 Critical</span>
+                  </div>
+
+                  <div class="priority-stack">
+                    <article class="priority-card warn">
+                      <p class="meta-label">Target Review</p>
+                      <strong>NVDA is through 2R</strong>
+                      <p>Check partials and stop adjustment before adding new risk.</p>
+                    </article>
+                    <article class="priority-card calm">
+                      <p class="meta-label">Workflow</p>
+                      <strong>4 names are already staged</strong>
+                      <p>Evaluate the ready board before scanning fresh names.</p>
+                    </article>
+                  </div>
+                </aside>
+              </section>
+            </div>
+          </section>
+
+          <section class="page" data-page="marketwatch">
+            <section class="marketwatch-terminal">
+              <div class="marketwatch-toolbar">
+                <div>
+                  <h2>MarketWatch</h2>
+                  <p class="page-intro">Discovery and workbench for swing lane.</p>
+                </div>
+
+                <div class="marketwatch-actions">
+                  <div class="import-shell">
+                    <input class="import-input" type="text" value="Import Tickers (e.g. NVDA, AAPL)" aria-label="Import tickers" readonly />
+                    <button class="square-action primary-square" type="button">+</button>
+                    <button class="square-action" type="button">↻</button>
+                  </div>
+                </div>
+              </div>
+
+              <section class="marketwatch-terminal-grid">
+                <section class="market-column">
+                  <div class="section-heading-row">
+                    <div class="heading-with-tabs">
+                      <h3>Active Movers</h3>
+                      <div class="segmented-mini-tabs">
+                        <span class="mini-tab active">All</span>
+                        <span class="mini-tab">Gainers</span>
+                        <span class="mini-tab">Losers</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <section class="surface-panel terminal-table-shell movers-shell">
+                    <div class="terminal-table-header five-col-header">
+                      <span>Ticker</span>
+                      <span>Price</span>
+                      <span>Change</span>
+                      <span>Preview</span>
+                      <span>Action</span>
+                    </div>
+
+                    <div class="terminal-row-list">
+                      <article class="terminal-table-row five-col-row">
+                        <span class="ticker-cell">NVDA</span>
+                        <span>$145.20</span>
+                        <span class="positive">+3.86%</span>
+                        <span class="action-icon">◉</span>
+                        <span class="positive">✓</span>
+                      </article>
+                      <article class="terminal-table-row five-col-row">
+                        <span class="ticker-cell">TSLA</span>
+                        <span>$350.15</span>
+                        <span class="negative">-3.39%</span>
+                        <span class="action-icon">◉</span>
+                        <span class="action-icon">＋</span>
+                      </article>
+                      <article class="terminal-table-row five-col-row">
+                        <span class="ticker-cell">AAPL</span>
+                        <span>$232.10</span>
+                        <span class="positive">+0.52%</span>
+                        <span class="action-icon">◉</span>
+                        <span class="action-icon">＋</span>
+                      </article>
+                      <article class="terminal-table-row five-col-row">
+                        <span class="ticker-cell">AMD</span>
+                        <span>$158.45</span>
+                        <span class="positive">+2.69%</span>
+                        <span class="action-icon">◉</span>
+                        <span class="action-icon">＋</span>
+                      </article>
+                      <article class="terminal-table-row five-col-row">
+                        <span class="ticker-cell">MSFT</span>
+                        <span>$415.60</span>
+                        <span class="negative">-0.57%</span>
+                        <span class="action-icon">◉</span>
+                        <span class="action-icon">＋</span>
+                      </article>
+                      <article class="terminal-table-row five-col-row">
+                        <span class="ticker-cell">GOOGL</span>
+                        <span>$178.30</span>
+                        <span class="positive">+0.45%</span>
+                        <span class="action-icon">◉</span>
+                        <span class="action-icon">＋</span>
+                      </article>
+                      <article class="terminal-table-row five-col-row">
+                        <span class="ticker-cell">META</span>
+                        <span>$585.20</span>
+                        <span class="positive">+2.70%</span>
+                        <span class="action-icon">◉</span>
+                        <span class="action-icon">＋</span>
+                      </article>
+                      <article class="terminal-table-row five-col-row">
+                        <span class="ticker-cell">AMZN</span>
+                        <span>$198.15</span>
+                        <span class="negative">-0.63%</span>
+                        <span class="action-icon">◉</span>
+                        <span class="action-icon">＋</span>
+                      </article>
+                      <article class="terminal-table-row five-col-row">
+                        <span class="ticker-cell">NFLX</span>
+                        <span>$760.40</span>
+                        <span class="positive">+1.62%</span>
+                        <span class="action-icon">◉</span>
+                        <span class="action-icon">＋</span>
+                      </article>
+                    </div>
+                  </section>
+                </section>
+
+                <section class="workbench-column">
+                  <div class="section-heading-row split-heading-row">
+                    <h3>Scored Workbench</h3>
+                    <span class="tag">0 Items Ready</span>
+                  </div>
+
+                  <section class="surface-panel empty-workbench-card">
+                    <div class="empty-state-panel">
+                      <p>No scored items in workbench. Use the preview drawer to score a ticker.</p>
+                    </div>
+                  </section>
+
+                  <div class="section-heading-row split-heading-row watchlist-heading-row">
+                    <h3>Watchlist</h3>
+                    <span class="tag">2 Staged</span>
+                  </div>
+
+                  <section class="surface-panel terminal-table-shell watchlist-shell">
+                    <div class="terminal-table-header four-col-header">
+                      <span>Ticker</span>
+                      <span>Status</span>
+                      <span>Added</span>
+                      <span>Action</span>
+                    </div>
+
+                    <div class="terminal-row-list">
+                      <article class="terminal-table-row four-col-row">
+                        <span class="ticker-cell">AAPL</span>
+                        <span><span class="inline-tag neutral">Staged</span></span>
+                        <span>4/14/2026</span>
+                        <span class="row-actions">⚡ 🗑</span>
+                      </article>
+                      <article class="terminal-table-row four-col-row">
+                        <span class="ticker-cell">NVDA</span>
+                        <span><span class="inline-tag neutral">Staged</span></span>
+                        <span>4/14/2026</span>
+                        <span class="row-actions">⚡ 🗑</span>
+                      </article>
+                    </div>
+                  </section>
+                </section>
+              </section>
+            </section>
+          </section>
+
+          <section class="page" data-page="trade-studio">
+            <section class="new-trade-terminal">
+              <div class="trade-header-row">
+                <div>
+                  <h2>New Trade Entry</h2>
+                  <p class="page-intro">Gated execution for swing lane.</p>
+                </div>
+
+                <div class="trade-progress-bar" aria-label="trade progress">
+                  <span class="trade-progress-segment active" data-segment="1"></span>
+                  <span class="trade-progress-segment" data-segment="2"></span>
+                  <span class="trade-progress-segment" data-segment="3"></span>
+                  <span class="trade-progress-segment" data-segment="4"></span>
+                </div>
+              </div>
+
+              <section class="surface-panel trade-form-shell">
+                <div class="trade-stage-header">
+                  <div class="trade-stage-title">
+                    <p class="meta-label">Step <span class="trade-step-number">1</span>:</p>
+                    <h3 class="trade-step-heading">Thesis</h3>
+                  </div>
+                  <div class="trade-stage-strategy">
+                    <p class="meta-label">Active Strategy</p>
+                    <strong>New Swing Strategy</strong>
+                  </div>
+                </div>
+
+                <div class="trade-step-panel active" data-trade-step="1">
+                  <div class="trade-form-grid trade-form-grid-top">
+                    <label class="trade-field trade-field-wide">
+                      <span class="meta-label">Ticker Symbol</span>
+                      <input type="text" value="e.g. NVDA" readonly />
+                    </label>
+
+                    <div class="trade-field trade-direction-field">
+                      <span class="meta-label">Direction</span>
+                      <div class="direction-toggle">
+                        <button class="direction-button active" type="button">Long</button>
+                        <button class="direction-button" type="button">Short</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="trade-form-grid trade-form-grid-three">
+                    <label class="trade-field">
+                      <span class="meta-label">Setup Type</span>
+                      <div class="terminal-select">Breakout</div>
+                    </label>
+                    <label class="trade-field">
+                      <span class="meta-label">Condition</span>
+                      <div class="terminal-select">High Volume</div>
+                    </label>
+                    <label class="trade-field">
+                      <span class="meta-label">Pattern</span>
+                      <div class="terminal-select">Select Pattern</div>
+                    </label>
+                  </div>
+
+                  <div class="trade-form-grid trade-form-grid-top">
+                    <label class="trade-field trade-field-wide">
+                      <span class="meta-label">Catalyst Window</span>
+                      <input type="text" value="e.g. Next 3 weeks, Post-Earnings" readonly />
+                    </label>
+
+                    <label class="trade-field trade-field-wide">
+                      <span class="meta-label">Invalidation Condition</span>
+                      <input type="text" value="e.g. Revenue growth &lt; 10%" readonly />
+                    </label>
+                  </div>
+
+                  <label class="trade-field trade-textarea-field">
+                    <span class="meta-label">The Thesis (2-3 sentences)</span>
+                    <textarea readonly>What is mispriced and why? Be specific.</textarea>
+                  </label>
+                </div>
+
+                <div class="trade-step-panel" data-trade-step="2">
+                  <div class="trade-step-body-grid">
+                    <article class="trade-review-card">
+                      <p class="meta-label">Assessment Matrix</p>
+                      <h4>Quality checks before execution</h4>
+                      <div class="assessment-list">
+                        <div><span>Structure quality</span><strong>8 / 10</strong></div>
+                        <div><span>Relative strength</span><strong>7 / 10</strong></div>
+                        <div><span>Event alignment</span><strong>9 / 10</strong></div>
+                        <div><span>Execution clarity</span><strong>8 / 10</strong></div>
+                      </div>
+                    </article>
+                    <article class="trade-review-card">
+                      <p class="meta-label">System Notes</p>
+                      <h4>Why the setup qualifies</h4>
+                      <p>The setup has clear continuation context, catalyst support, and enough structure quality to advance into risk sizing.</p>
+                    </article>
+                  </div>
+                </div>
+
+                <div class="trade-step-panel" data-trade-step="3">
+                  <div class="trade-step-body-grid">
+                    <article class="trade-review-card">
+                      <p class="meta-label">Sizing Engine</p>
+                      <h4>Position sizing recommendation</h4>
+                      <div class="assessment-list">
+                        <div><span>Risk per trade</span><strong>0.75%</strong></div>
+                        <div><span>Suggested size</span><strong>420 shares</strong></div>
+                        <div><span>Stop distance</span><strong>3.2%</strong></div>
+                        <div><span>Heat after entry</span><strong>6.9%</strong></div>
+                      </div>
+                    </article>
+                    <article class="trade-review-card">
+                      <p class="meta-label">Lane Controls</p>
+                      <h4>Capital discipline</h4>
+                      <p>This size respects the swing lane heat limit and keeps discretionary override budget untouched.</p>
+                    </article>
+                  </div>
+                </div>
+
+                <div class="trade-step-panel" data-trade-step="4">
+                  <div class="trade-step-body-grid confirm-grid">
+                    <article class="trade-review-card">
+                      <p class="meta-label">Confirm Entry</p>
+                      <h4>Ready to submit</h4>
+                      <div class="assessment-list">
+                        <div><span>Ticker</span><strong>NVDA</strong></div>
+                        <div><span>Direction</span><strong>Long</strong></div>
+                        <div><span>Setup</span><strong>Breakout</strong></div>
+                        <div><span>Strategy</span><strong>New Swing Strategy</strong></div>
+                      </div>
+                    </article>
+                    <article class="trade-review-card">
+                      <p class="meta-label">Execution Summary</p>
+                      <h4>Final system checkpoint</h4>
+                      <p>All required thesis, assessment, and sizing checks are complete. Submit when execution timing is live.</p>
+                    </article>
+                  </div>
+                </div>
+
+                <div class="trade-bottom-actions">
+                  <button class="secondary-button trade-prev-button" type="button">Previous</button>
+                  <button class="primary-button trade-next-button" type="button">Next</button>
+                </div>
+              </section>
+            </section>
+          </section>
+
+          <section class="page" data-page="analytics">
+            <section class="analytics-terminal">
+              <div class="analytics-header-row">
+                <div>
+                  <h2>Portfolio Analytics</h2>
+                  <p class="page-intro">Performance attribution and mechanical discipline review.</p>
+                </div>
+
+                <div class="analytics-summary-strip">
+                  <article class="override-budget-card">
+                    <p class="meta-label">Override Budget</p>
+                    <strong>1/2 <span>Used</span></strong>
+                  </article>
+                  <article class="analytics-top-stat">
+                    <p class="meta-label">Expectancy</p>
+                    <strong>$182</strong>
+                  </article>
+                  <article class="analytics-top-stat">
+                    <p class="meta-label">Total P&amp;L</p>
+                    <strong class="positive">$12,840</strong>
+                  </article>
+                </div>
+              </div>
+
+              <section class="analytics-kpi-grid">
+                <article class="surface-panel analytics-kpi-card">
+                  <p class="meta-label">Win Rate</p>
+                  <strong>58%</strong>
+                  <span>27 winners out of 46 trades</span>
+                </article>
+                <article class="surface-panel analytics-kpi-card">
+                  <p class="meta-label">Profit Factor</p>
+                  <strong>1.88</strong>
+                  <span>Gross wins are compounding efficiently</span>
+                </article>
+                <article class="surface-panel analytics-kpi-card">
+                  <p class="meta-label">Avg R-Multiple</p>
+                  <strong>1.42R</strong>
+                  <span>Average outcome stays above discipline floor</span>
+                </article>
+                <article class="surface-panel analytics-kpi-card">
+                  <p class="meta-label">Trade Count</p>
+                  <strong>46</strong>
+                  <span>34 swing entries, 12 continuation adds</span>
+                </article>
+              </section>
+
+              <section class="analytics-chart-grid">
+                <section class="surface-panel analytics-chart-panel wide-chart-panel">
+                  <div class="analytics-panel-header">
+                    <h3>Equity Curve &amp; Rolling Expectancy</h3>
+                    <div class="analytics-legend-row">
+                      <span class="tag">Equity</span>
+                      <span class="tag">Rolling Expectancy</span>
+                    </div>
+                  </div>
+                  <div class="analytics-frame large-analytics-frame">
+                    <div class="chart-grid-lines"></div>
+                    <div class="chart-baseline"></div>
+                    <div class="chart-callout top-left-callout">Momentum lane outperformed after earnings continuation trades were isolated.</div>
+                    <div class="chart-callout bottom-right-callout">Most drawdown compression came from fewer overrides in week 6 onward.</div>
+                  </div>
+                </section>
+
+                <section class="surface-panel analytics-chart-panel narrow-analytics-panel">
+                  <div class="analytics-panel-header">
+                    <h3>Expectancy Divergence</h3>
+                  </div>
+                  <div class="analytics-frame divergence-frame">
+                    <div class="divergence-axis">
+                      <span>4</span>
+                      <span>3</span>
+                      <span>2</span>
+                      <span>1</span>
+                      <span>0</span>
+                    </div>
+                    <div class="divergence-plot">
+                      <div class="chart-grid-lines vertical-grid-lines"></div>
+                      <div class="divergence-baseline"></div>
+                      <div class="divergence-labels">
+                        <span>System</span>
+                        <span>Override</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              </section>
+
+              <section class="analytics-insight-grid">
+                <article class="surface-panel analytics-insight-card">
+                  <p class="meta-label">Lane Attribution</p>
+                  <h3>Swing momentum remains the strongest edge</h3>
+                  <p>72% of total P&amp;L came from high relative-strength breakouts held over 3 to 9 sessions.</p>
+                </article>
+                <article class="surface-panel analytics-insight-card">
+                  <p class="meta-label">Risk Efficiency</p>
+                  <h3>Heat stayed controlled</h3>
+                  <p>Average portfolio heat remained at 6.4%, well under the 12% maximum even during clustered setups.</p>
+                </article>
+                <article class="surface-panel analytics-insight-card">
+                  <p class="meta-label">Discipline Review</p>
+                  <h3>Overrides are the main drag</h3>
+                  <p>The single discretionary override reduced expectancy by 0.24R. Keep system-confirmed entries as the baseline.</p>
+                </article>
+              </section>
+            </section>
+          </section>
+
+          <section class="page" data-page="archive">
+            <section class="archive-terminal">
+              <div class="archive-header-row">
+                <div>
+                  <h2>Trade Archive</h2>
+                  <p class="page-intro">Full history of your swing lane operations.</p>
+                </div>
+
+                <div class="archive-filters">
+                  <label class="archive-search-shell">
+                    <span class="archive-search-icon">⌕</span>
+                    <input type="text" value="Search symbol or thesis..." readonly aria-label="Search symbol or thesis" />
+                  </label>
+                  <div class="archive-select">All Status</div>
+                  <div class="archive-select">All Directions</div>
+                </div>
+              </div>
+
+              <section class="archive-summary-grid">
+                <article class="surface-panel analytics-kpi-card">
+                  <p class="meta-label">Closed Trades</p>
+                  <strong>46</strong>
+                  <span>Last 90 days</span>
+                </article>
+                <article class="surface-panel analytics-kpi-card">
+                  <p class="meta-label">Realized P&amp;L</p>
+                  <strong class="positive">$12,840</strong>
+                  <span>Net after fees and partials</span>
+                </article>
+                <article class="surface-panel analytics-kpi-card">
+                  <p class="meta-label">Avg Hold</p>
+                  <strong>5.3d</strong>
+                  <span>Aligned with swing lane rules</span>
+                </article>
+                <article class="surface-panel analytics-kpi-card">
+                  <p class="meta-label">Overrides</p>
+                  <strong>3</strong>
+                  <span>Logged and reviewable</span>
+                </article>
+              </section>
+
+              <section class="archive-history-grid">
+                <section class="surface-panel terminal-table-shell archive-table-shell">
+                  <div class="terminal-table-header archive-six-col-header">
+                    <span>Ticker</span>
+                    <span>Direction</span>
+                    <span>Status</span>
+                    <span>R-Multiple</span>
+                    <span>Closed</span>
+                    <span>P&amp;L</span>
+                  </div>
+
+                  <div class="terminal-row-list">
+                    <article class="terminal-table-row archive-six-col-row">
+                      <span class="ticker-cell">NVDA</span>
+                      <span>Long</span>
+                      <span><span class="inline-tag neutral">Closed</span></span>
+                      <span>2.4R</span>
+                      <span>4/12/2026</span>
+                      <span class="positive">+$2,180</span>
+                    </article>
+                    <article class="terminal-table-row archive-six-col-row">
+                      <span class="ticker-cell">AAPL</span>
+                      <span>Long</span>
+                      <span><span class="inline-tag neutral">Closed</span></span>
+                      <span>1.6R</span>
+                      <span>4/09/2026</span>
+                      <span class="positive">+$940</span>
+                    </article>
+                    <article class="terminal-table-row archive-six-col-row">
+                      <span class="ticker-cell">TSLA</span>
+                      <span>Short</span>
+                      <span><span class="inline-tag neutral">Closed</span></span>
+                      <span>1.9R</span>
+                      <span>4/07/2026</span>
+                      <span class="positive">+$1,120</span>
+                    </article>
+                    <article class="terminal-table-row archive-six-col-row">
+                      <span class="ticker-cell">META</span>
+                      <span>Long</span>
+                      <span><span class="inline-tag neutral">Stopped</span></span>
+                      <span>-0.8R</span>
+                      <span>4/02/2026</span>
+                      <span class="negative">-$420</span>
+                    </article>
+                    <article class="terminal-table-row archive-six-col-row">
+                      <span class="ticker-cell">AMD</span>
+                      <span>Long</span>
+                      <span><span class="inline-tag neutral">Closed</span></span>
+                      <span>1.2R</span>
+                      <span>3/29/2026</span>
+                      <span class="positive">+$610</span>
+                    </article>
+                  </div>
+                </section>
+
+                <aside class="surface-panel archive-detail-rail">
+                  <div class="surface-header">
+                    <div>
+                      <p class="meta-label">Selected Trade</p>
+                      <h3>NVDA breakout continuation</h3>
+                    </div>
+                    <span class="tag">2.4R</span>
+                  </div>
+
+                  <div class="priority-stack">
+                    <article class="priority-card calm">
+                      <p class="meta-label">Thesis</p>
+                      <strong>Post-earnings continuation held above the pivot shelf</strong>
+                      <p>Entered on confirmation after relative volume and sector leadership aligned.</p>
+                    </article>
+                    <article class="priority-card calm">
+                      <p class="meta-label">Execution Notes</p>
+                      <strong>Partial taken at 1.8R, remainder trailed</strong>
+                      <p>No override used. Exit was triggered by loss of intraday momentum into gap fill.</p>
+                    </article>
+                  </div>
+                </aside>
+              </section>
+            </section>
+          </section>
+
+          <section class="page" data-page="settings">
+            <section class="settings-terminal">
+              <div class="page-header">
+                <div>
+                  <p class="meta-label">Settings</p>
+                  <h2>Quiet workspace controls and strategy management</h2>
+                  <p class="page-intro">Configure profile, strategies, AI, and risk without operational noise.</p>
+                </div>
+              </div>
+
+              <section class="settings-grid">
+                <section class="surface-panel">
+                  <div class="surface-header">
+                    <div>
+                      <p class="meta-label">Profile</p>
+                      <h3>Identity and capital</h3>
+                    </div>
+                    <span class="tag">Primary Workspace</span>
+                  </div>
+
+                  <div class="settings-detail-grid">
+                    <article class="settings-info-card">
+                      <p class="meta-label">Account</p>
+                      <strong>Alex Laurent</strong>
+                      <p>alex@intelligentinvestors.app</p>
+                    </article>
+                    <article class="settings-info-card">
+                      <p class="meta-label">Capital Base</p>
+                      <strong>$300,000</strong>
+                      <p>$100,000 active equity allocation</p>
+                    </article>
+                    <article class="settings-info-card">
+                      <p class="meta-label">Default Lane</p>
+                      <strong>Swing</strong>
+                      <p>Beginner-guided workflow enabled</p>
+                    </article>
+                    <article class="settings-info-card">
+                      <p class="meta-label">Review Cadence</p>
+                      <strong>Daily + Weekly</strong>
+                      <p>Morning dashboard and Friday analytics review</p>
+                    </article>
+                  </div>
+                </section>
+
+                <aside class="surface-panel settings-side-panel">
+                  <p class="meta-label">Workspace Modes</p>
+                  <div class="priority-stack">
+                    <article class="priority-card calm">
+                      <strong>Learn Mode is enabled</strong>
+                      <p>Explanations appear under key metrics, sizing decisions, and archive notes.</p>
+                    </article>
+                    <article class="priority-card calm">
+                      <strong>Daily prep reminders</strong>
+                      <p>Premarket scan and end-of-day review notifications are both active.</p>
+                    </article>
+                  </div>
+                </aside>
+              </section>
+
+              <section class="settings-grid">
+                <section class="surface-panel terminal-table-shell">
+                  <div class="surface-header settings-surface-header">
+                    <div>
+                      <p class="meta-label">Strategy Library</p>
+                      <h3>Live lanes and versions</h3>
+                    </div>
+                    <span class="tag">3 Active</span>
+                  </div>
+
+                  <div class="terminal-table-header settings-strategy-header">
+                    <span>Strategy</span>
+                    <span>Version</span>
+                    <span>Role</span>
+                    <span>Metrics</span>
+                    <span>Status</span>
+                  </div>
+                  <div class="terminal-row-list">
+                    <article class="terminal-table-row settings-strategy-row">
+                      <span>Swing Momentum</span>
+                      <span>v8</span>
+                      <span>Default</span>
+                      <span>14 metrics</span>
+                      <span><span class="inline-tag neutral">Live</span></span>
+                    </article>
+                    <article class="terminal-table-row settings-strategy-row">
+                      <span>Earnings Continuation</span>
+                      <span>v3</span>
+                      <span>Secondary</span>
+                      <span>10 metrics</span>
+                      <span><span class="inline-tag neutral">Live</span></span>
+                    </article>
+                    <article class="terminal-table-row settings-strategy-row">
+                      <span>Pullback Quality</span>
+                      <span>v2</span>
+                      <span>Review</span>
+                      <span>9 metrics</span>
+                      <span><span class="inline-tag neutral">Draft</span></span>
+                    </article>
+                  </div>
+                </section>
+
+                <aside class="surface-panel settings-side-panel">
+                  <p class="meta-label">AI + Data</p>
+                  <div class="priority-stack">
+                    <article class="priority-card calm">
+                      <strong>Primary AI routing: Anthropic + Gemini fallback</strong>
+                      <p>Reasoning tasks prefer Anthropic, while structured summaries can fall back to Gemini.</p>
+                    </article>
+                    <article class="priority-card calm">
+                      <strong>Market data: Polygon live, delayed backup active</strong>
+                      <p>Use live feed first and fail over to delayed context during provider interruptions.</p>
+                    </article>
+                  </div>
+                </aside>
+              </section>
+
+              <section class="settings-grid">
+                <section class="surface-panel">
+                  <div class="surface-header">
+                    <div>
+                      <p class="meta-label">Risk Controls</p>
+                      <h3>Execution guardrails</h3>
+                    </div>
+                    <span class="tag">System Enforced</span>
+                  </div>
+
+                  <div class="settings-detail-grid">
+                    <article class="settings-info-card">
+                      <p class="meta-label">Portfolio Heat Cap</p>
+                      <strong>12%</strong>
+                      <p>Hard ceiling before any new size is blocked</p>
+                    </article>
+                    <article class="settings-info-card">
+                      <p class="meta-label">Risk Per Trade</p>
+                      <strong>0.75% - 1.25%</strong>
+                      <p>Scaled by conviction and setup quality</p>
+                    </article>
+                    <article class="settings-info-card">
+                      <p class="meta-label">Override Budget</p>
+                      <strong>2 / week</strong>
+                      <p>Every override is logged into analytics and archive review</p>
+                    </article>
+                    <article class="settings-info-card">
+                      <p class="meta-label">Minimum Thesis Quality</p>
+                      <strong>Required</strong>
+                      <p>Trade cannot proceed without thesis and invalidation fields complete</p>
+                    </article>
+                  </div>
+                </section>
+
+                <aside class="surface-panel danger-panel settings-side-panel">
+                  <p class="meta-label">Danger Zone</p>
+                  <h3>Reset controls remain isolated</h3>
+                  <p>Use destructive actions only when onboarding, metrics, or paper-trade history genuinely need to be reset.</p>
+                  <div class="settings-action-row">
+                    <button class="secondary-button" type="button">Restart Onboarding</button>
+                    <button class="secondary-button" type="button">Reset Portfolio</button>
+                  </div>
+                </aside>
+              </section>
+            </section>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <script src="./script.js"></script>
+  </body>
+</html>

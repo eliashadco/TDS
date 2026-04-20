@@ -34,7 +34,7 @@ type ActiveTradeAnalyticsView = {
 type ActiveStrategyContextView = {
   name: string;
   description: string;
-  versionNumber: number;
+  versionNumber: number | null;
   metricCount: number;
 };
 
@@ -51,7 +51,7 @@ type StrategyRefresh = {
 };
 
 type PortfolioAnalyticsOverviewProps = {
-  mode: TradeMode;
+  mode: TradeMode | null;
   activeStrategy: ActiveStrategyContextView;
   activeTrades: ActiveTradeAnalyticsView[];
   closedTrades: Trade[];
@@ -69,7 +69,11 @@ function money(value: number): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value);
 }
 
-function formatModeLabel(mode: TradeMode): string {
+function formatModeLabel(mode: TradeMode | null): string {
+  if (!mode) {
+    return "No lane selected";
+  }
+
   if (mode === "daytrade") {
     return "Day Trade";
   }
@@ -151,9 +155,9 @@ export default function PortfolioAnalyticsOverview({ mode, activeStrategy, activ
                 ticker: trade.ticker,
                 direction: trade.direction,
                 thesis: trade.thesis || `${trade.ticker} active trade follow-up review.`,
-                setups: trade.setupTypes.length > 0 ? trade.setupTypes : [`${formatModeLabel(mode)} active strategy`],
+                setups: trade.setupTypes.length > 0 ? trade.setupTypes : [mode ? `${formatModeLabel(mode)} active strategy` : "Account-wide active trade review"],
                 asset: "Equity",
-                mode,
+                mode: mode ?? undefined,
                 metrics: metrics.map((metric) => ({
                   id: metric.id,
                   name: metric.name,
@@ -256,34 +260,37 @@ export default function PortfolioAnalyticsOverview({ mode, activeStrategy, activ
   return (
     <div className="space-y-8">
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_340px]">
-        <div className="fin-panel p-6 sm:p-8">
-          <p className="fin-kicker">Live Trade Performance</p>
+        <div className="surface-panel p-6 sm:p-8">
+          <p className="meta-label">Live Trade Performance</p>
           <h2 className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-tds-text">Refresh each active trade against its assigned strategy before making the next decision.</h2>
           <p className="mt-4 max-w-3xl text-sm leading-7 text-tds-dim">This view combines live performance with an updated strategy score and follow-up recommendation so current positions stay tied to the same saved strategy used at entry, not whatever the current mode stack happens to be today.</p>
 
           <div className="mt-6 grid gap-4 md:grid-cols-3">
-            <div className="fin-card p-5">
-              <p className="fin-kicker">Open Trades</p>
+            <div className="trade-review-card trade-compact-card p-5">
+              <p className="meta-label">Open Trades</p>
               <p className="mt-3 font-mono text-3xl text-tds-text">{activeTrades.length}</p>
             </div>
-            <div className="fin-card p-5">
-              <p className="fin-kicker">Live P&amp;L</p>
+            <div className="trade-review-card trade-compact-card p-5">
+              <p className="meta-label">Live P&amp;L</p>
               <p className={`mt-3 font-mono text-3xl ${aggregatePnl >= 0 ? "text-tds-green" : "text-tds-red"}`}>{aggregatePnl >= 0 ? "+" : "-"}{money(Math.abs(aggregatePnl))}</p>
             </div>
-            <div className="fin-card p-5">
-              <p className="fin-kicker">Avg Strategy Score</p>
+            <div className="trade-review-card trade-compact-card p-5">
+              <p className="meta-label">Avg Strategy Score</p>
               <p className="mt-3 font-mono text-3xl text-tds-text">{loading ? "--" : averageScore.toFixed(0)}</p>
               <p className="mt-2 text-sm text-tds-dim">{goCount} GO recommendation{goCount === 1 ? "" : "s"} across active trades.</p>
             </div>
           </div>
         </div>
 
-        <aside className="fin-panel p-6">
-          <p className="fin-kicker">Strategy Context</p>
+        <aside className="surface-panel p-6">
+          <p className="meta-label">Strategy Context</p>
           <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-tds-text">Current scoring lane</h2>
           <div className="mt-5 space-y-3 text-sm leading-6 text-tds-dim">
             <p>Mode: {formatModeLabel(mode)}</p>
-            <p>Default strategy: {activeStrategy.name} · v{activeStrategy.versionNumber}</p>
+            <p>
+              Default strategy: {activeStrategy.name}
+              {activeStrategy.versionNumber != null ? ` · v${activeStrategy.versionNumber}` : ""}
+            </p>
             <p>Default enabled checks: {activeStrategy.metricCount}</p>
             <p>Active-trade follow-up reads each trade&apos;s saved strategy snapshot first. Only legacy trades without one fall back to the current default lane.</p>
             {legacyFallbackCount > 0 ? <p>{legacyFallbackCount} active trade{legacyFallbackCount === 1 ? " is" : "s are"} using the current default strategy as a legacy fallback.</p> : null}
@@ -292,16 +299,16 @@ export default function PortfolioAnalyticsOverview({ mode, activeStrategy, activ
         </aside>
       </section>
 
-      <section className="fin-panel p-6">
+      <section className="surface-panel p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="fin-kicker">Strategy Refresh</p>
+            <p className="meta-label">Strategy Refresh</p>
             <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-tds-text">Updated score and follow-up AI recommendation</h2>
           </div>
-          <span className="fin-chip">{activeTrades.length} active</span>
+          <span className="inline-tag neutral">{activeTrades.length} active</span>
         </div>
 
-        {loading ? <div className="fin-card mt-6 p-5 text-sm text-tds-dim">Refreshing every active trade against its saved strategy snapshot...</div> : null}
+        {loading ? <div className="trade-review-card trade-compact-card mt-6 p-5 text-sm text-tds-dim">Refreshing every active trade against its saved strategy snapshot...</div> : null}
         {!loading && activeTrades.length === 0 ? <p className="mt-6 text-sm text-tds-dim">No active trades are open right now.</p> : null}
 
         <div className="mt-6 space-y-4">
@@ -309,17 +316,17 @@ export default function PortfolioAnalyticsOverview({ mode, activeStrategy, activ
             const refresh = refreshRows[trade.id];
 
             return (
-              <div key={trade.id} className="fin-card p-5">
+              <div key={trade.id} className="trade-review-card p-5">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-mono text-lg font-semibold text-tds-text">{trade.ticker}</span>
                       <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${trade.direction === "LONG" ? "bg-tds-green/10 text-tds-green" : "bg-tds-red/10 text-tds-red"}`}>{trade.direction}</span>
-                      {trade.conviction ? <span className="fin-chip">{trade.conviction}</span> : null}
-                      <span className="fin-chip">{trade.source === "marketwatch" ? "MarketWatch" : "Thesis"}</span>
-                      <span className="fin-chip">{trade.strategyName}</span>
-                      {trade.strategyVersionNumber ? <span className="fin-chip">v{trade.strategyVersionNumber}</span> : null}
-                      {trade.usesDefaultStrategyFallback ? <span className="fin-chip">Legacy fallback</span> : <span className="fin-chip">Snapshot</span>}
+                      {trade.conviction ? <span className="inline-tag neutral">{trade.conviction}</span> : null}
+                      <span className="inline-tag neutral">{trade.source === "marketwatch" ? "MarketWatch" : "Thesis"}</span>
+                      <span className="inline-tag neutral">{trade.strategyName}</span>
+                      {trade.strategyVersionNumber ? <span className="inline-tag neutral">v{trade.strategyVersionNumber}</span> : null}
+                      {trade.usesDefaultStrategyFallback ? <span className="inline-tag neutral">Legacy fallback</span> : <span className="inline-tag neutral">Snapshot</span>}
                       <QuoteStatusBadge status={trade.quoteStatus ?? null} provider={trade.quoteProvider ?? null} />
                     </div>
                     <p className="mt-3 text-sm text-tds-dim">Entry {trade.entryPrice.toFixed(2)} · Current {trade.currentPrice.toFixed(2)} · Risk {(trade.riskPct * 100).toFixed(2)}% · {trade.strategyMetrics.length} saved checks</p>
@@ -334,7 +341,7 @@ export default function PortfolioAnalyticsOverview({ mode, activeStrategy, activ
 
                 <div className="mt-5 grid gap-4 lg:grid-cols-[140px_minmax(0,1fr)_auto]">
                   <div className="rounded-[22px] border border-slate-200 bg-slate-50/70 px-4 py-4 text-center">
-                    <p className="fin-kicker">Score</p>
+                    <p className="meta-label">Score</p>
                     <p className="mt-2 font-mono text-3xl text-tds-text">{refresh ? refresh.score : "--"}</p>
                     <p className="mt-2 text-xs text-tds-dim">{refresh ? `${refresh.passed}/${refresh.total} passed` : "Pending"}</p>
                   </div>
@@ -342,7 +349,7 @@ export default function PortfolioAnalyticsOverview({ mode, activeStrategy, activ
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
                       <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${refresh?.verdict === "GO" ? "bg-tds-green/10 text-tds-green" : refresh?.verdict === "CAUTION" ? "bg-tds-amber/10 text-tds-amber" : "bg-tds-red/10 text-tds-red"}`}>{refresh?.verdict ?? "PENDING"}</span>
-                      {refresh?.fallback ? <span className="fin-chip">Fallback</span> : null}
+                      {refresh?.fallback ? <span className="inline-tag neutral">Fallback</span> : null}
                     </div>
                     <p className="mt-3 text-sm leading-6 text-tds-text">{refresh?.summary ?? `Refreshing ${trade.strategyName} against current market conditions...`}</p>
                     {refresh?.edge ? <p className="mt-2 text-xs text-tds-dim">Edge: {refresh.edge}</p> : null}

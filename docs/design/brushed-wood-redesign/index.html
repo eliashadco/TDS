@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Brushed Wood Redesign Prototype</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="layout-shell">
+      <aside class="nav-rail">
+        <div class="rail-top">
+          <div class="brand-block">
+            <div class="brand-mark">II</div>
+            <div>
+              <p class="brand-title">Intelligent Investors</p>
+              <p class="brand-subtitle">Brushed Wood Strategy Desk</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="rail-main">
+          <div class="rail-intro-card">
+            <p class="meta-label">Design Direction</p>
+            <strong>Warm, tactile, deliberate</strong>
+            <p>Nature-led light mode with paper surfaces over a wood desk base.</p>
+          </div>
+
+          <p class="rail-section-label">Navigation</p>
+          <nav class="nav-stack">
+            <button class="nav-link active" data-page="dashboard">
+              <span class="nav-icon">◫</span>
+              <span>Dashboard</span>
+            </button>
+            <button class="nav-link" data-page="marketwatch">
+              <span class="nav-icon">⌁</span>
+              <span>MarketWatch</span>
+            </button>
+            <button class="nav-link" data-page="trade-studio">
+              <span class="nav-icon">＋</span>
+              <span>Trade Studio</span>
+            </button>
+            <button class="nav-link" data-page="analytics">
+              <span class="nav-icon">∿</span>
+              <span>Portfolio Analytics</span>
+            </button>
+            <button class="nav-link" data-page="settings">
+              <span class="nav-icon">⚙</span>
+              <span>Settings</span>
+            </button>
+          </nav>
+        </div>
+
+        <div class="rail-footer">
+          <div class="rail-note-card">
+            <p class="meta-label">Material Notes</p>
+            <p>Use copper sparingly. Data stays crisp. Texture should support mood, not compete with hierarchy.</p>
+          </div>
+        </div>
+      </aside>
+
+      <div class="workspace">
+        <header class="utility-bar">
+          <div class="utility-status">
+            <div>
+              <p class="meta-label">Strategy Anchor</p>
+              <strong>Day Trade Core Strategy v2</strong>
+            </div>
+            <span class="status-chip">Disciplined</span>
+          </div>
+
+          <div class="utility-center">
+            <span class="meta-label">Mode</span>
+            <div class="segment-control">
+              <span class="segment-pill">Investment</span>
+              <span class="segment-pill">Swing</span>
+              <span class="segment-pill active">Day Trade</span>
+              <span class="segment-pill">Scalp</span>
+            </div>
+          </div>
+
+          <div class="utility-actions">
+            <button class="theme-toggle" type="button" aria-pressed="false">
+              <span>
+                <span class="meta-label">Theme</span>
+                <strong class="theme-toggle-label">Light Desk</strong>
+              </span>
+              <span class="toggle-orb" aria-hidden="true"></span>
+            </button>
+            <div class="utility-card">
+              <p class="meta-label">Equity</p>
+              <strong>$100,000</strong>
+            </div>
+            <div class="utility-card">
+              <p class="meta-label">Heat</p>
+              <strong>5.6%</strong>
+            </div>
+          </div>
+        </header>
+
+        <main class="page-deck">
+          <section class="page active" data-page="dashboard">
+            <div class="hero-panel">
+              <div>
+                <p class="meta-label">Dashboard</p>
+                <h1>Run the book like a physical desk: clean briefs, visible risk, deliberate action.</h1>
+                <p class="hero-copy">The light mode moves away from glassy fintech chrome and toward warm layers that feel like wood, paper, and marked-up notes.</p>
+              </div>
+
+              <div class="hero-actions">
+                <button class="primary-button">Stage New Thesis</button>
+                <button class="secondary-button">Review Heat</button>
+              </div>
+            </div>
+
+            <div class="dashboard-grid">
+              <section class="paper-panel metric-board">
+                <div class="panel-header">
+                  <div>
+                    <p class="meta-label">Operating Brief</p>
+                    <h2>Capital and readiness</h2>
+                  </div>
+                  <span class="tag-chip">Morning Session</span>
+                </div>
+
+                <div class="metric-grid">
+                  <article class="metric-card">
+                    <p class="meta-label">Deployed</p>
+                    <strong>$148,400</strong>
+                    <span>49.5% of book allocated</span>
+                  </article>
+                  <article class="metric-card">
+                    <p class="meta-label">Open Risk</p>
+                    <strong>1.9R</strong>
+                    <span>Below lane ceiling</span>
+                  </article>
+                  <article class="metric-card accent-card">
+                    <p class="meta-label">Ready Trades</p>
+                    <strong>04</strong>
+                    <span>Two are fully qualified</span>
+                  </article>
+                </div>
+
+                <div class="ledger-list">
+                  <article class="ledger-row">
+                    <div>
+                      <div class="row-title">NVDA <span class="inline-chip positive-chip">Long</span></div>
+                      <p>Entry 918.40 · Last 941.20 · 2R target in play</p>
+                    </div>
+                    <strong class="positive-text">+$1,640</strong>
+                  </article>
+                  <article class="ledger-row">
+                    <div>
+                      <div class="row-title">AMD <span class="inline-chip pending-chip">Staged</span></div>
+                      <p>Breakout thesis with clean mechanical floor allocation</p>
+                    </div>
+                    <strong>$0</strong>
+                  </article>
+                  <article class="ledger-row">
+                    <div>
+                      <div class="row-title">QQQ <span class="inline-chip caution-chip">Watch</span></div>
+                      <p>Needs confirmation before promoting to scoring</p>
+                    </div>
+                    <strong>Observe</strong>
+                  </article>
+                </div>
+              </section>
+
+              <aside class="note-stack">
+                <section class="note-card pinned-note">
+                  <p class="meta-label">Desk Note</p>
+                  <h3>Mechanical discipline should feel calm, not restrictive.</h3>
+                  <p>Use the warm palette to slow the visual tempo while keeping risk numbers unmistakable.</p>
+                </section>
+
+                <section class="note-card">
+                  <p class="meta-label">Priority</p>
+                  <h3>Adjust NVDA partial plan</h3>
+                  <p>Position is through 2R. Review stop and reserve before adding new exposure.</p>
+                </section>
+
+                <section class="note-card copper-note">
+                  <p class="meta-label">Action</p>
+                  <h3>Prototype the new sizing floor interaction</h3>
+                  <p>Starter deployment stays locked above the minimum tranche while the reserve remains visible.</p>
+                </section>
+              </aside>
+            </div>
+          </section>
+
+          <section class="page" data-page="marketwatch">
+            <div class="section-shell three-column-grid">
+              <section class="paper-panel side-ledger">
+                <div class="panel-header">
+                  <div>
+                    <p class="meta-label">Filters</p>
+                    <h2>Qualification ledger</h2>
+                  </div>
+                </div>
+
+                <div class="filter-stack">
+                  <button class="filter-chip active">Breakout</button>
+                  <button class="filter-chip">Trend Resume</button>
+                  <button class="filter-chip">Compression</button>
+                  <button class="filter-chip">Event Follow-through</button>
+                </div>
+
+                <div class="note-card compact-note">
+                  <p class="meta-label">Context</p>
+                  <p>Left rail reads like a paper checklist instead of a utility drawer.</p>
+                </div>
+              </section>
+
+              <section class="paper-panel table-panel">
+                <div class="panel-header">
+                  <div>
+                    <p class="meta-label">MarketWatch</p>
+                    <h2>Candidates worth promoting</h2>
+                  </div>
+                  <span class="tag-chip">12 names</span>
+                </div>
+
+                <div class="table-block">
+                  <div class="table-header-row">
+                    <span>Ticker</span>
+                    <span>Setup</span>
+                    <span>Score</span>
+                    <span>Status</span>
+                  </div>
+                  <div class="table-row active-row">
+                    <span>AMD</span>
+                    <span>Ascending Triangle</span>
+                    <span>84</span>
+                    <span class="positive-text">Qualified</span>
+                  </div>
+                  <div class="table-row">
+                    <span>NET</span>
+                    <span>Trend Resume</span>
+                    <span>77</span>
+                    <span>Watch</span>
+                  </div>
+                  <div class="table-row">
+                    <span>SNOW</span>
+                    <span>Compression</span>
+                    <span>71</span>
+                    <span>Needs catalyst</span>
+                  </div>
+                </div>
+              </section>
+
+              <aside class="paper-panel detail-panel">
+                <div class="panel-header">
+                  <div>
+                    <p class="meta-label">Instrument Brief</p>
+                    <h2>AMD</h2>
+                  </div>
+                  <span class="status-chip">Ready</span>
+                </div>
+
+                <div class="detail-chart"></div>
+                <p class="detail-copy">Copper and timber accents should guide the eye to conviction and action without turning the panel ornamental.</p>
+                <button class="primary-button full-width">Send to Trade Studio</button>
+              </aside>
+            </div>
+          </section>
+
+          <section class="page" data-page="trade-studio">
+            <div class="section-shell trade-grid">
+              <section class="paper-panel trade-main-panel">
+                <div class="panel-header">
+                  <div>
+                    <p class="meta-label">Trade Studio</p>
+                    <h2>Deliberate sequence, warmer room tone</h2>
+                  </div>
+                  <div class="step-strip">
+                    <span class="step-pill active">1 Thesis</span>
+                    <span class="step-pill active">2 Assessment</span>
+                    <span class="step-pill">3 Sizing</span>
+                    <span class="step-pill">4 Confirm</span>
+                  </div>
+                </div>
+
+                <div class="trade-paper-stack">
+                  <article class="clip-card">
+                    <p class="meta-label">Thesis Prompt</p>
+                    <h3>Why does this ticker fit your edge right now?</h3>
+                    <p>Prompt-style placeholders remain, but the surface becomes more like a marked-up strategy sheet.</p>
+                  </article>
+                  <article class="clip-card accent-clip">
+                    <p class="meta-label">Sizing</p>
+                    <h3>Starter deployment respects the mechanical floor.</h3>
+                    <p>Show the floor, reserve, and add-on logic like entries in a trading ledger.</p>
+                  </article>
+                </div>
+              </section>
+
+              <aside class="note-stack">
+                <section class="note-card pinned-note">
+                  <p class="meta-label">Material Rule</p>
+                  <p>The main workflow panel should feel like pale drafting paper above the wood desk base.</p>
+                </section>
+                <section class="note-card">
+                  <p class="meta-label">Interaction</p>
+                  <p>Pulse states should feel like a desk lamp brightening, not an arcade animation.</p>
+                </section>
+              </aside>
+            </div>
+          </section>
+
+          <section class="page" data-page="analytics">
+            <div class="section-shell analytics-grid">
+              <section class="paper-panel analytics-chart-panel">
+                <div class="panel-header">
+                  <div>
+                    <p class="meta-label">Portfolio Analytics</p>
+                    <h2>Results framed like a review journal</h2>
+                  </div>
+                  <span class="tag-chip">Quarter to date</span>
+                </div>
+
+                <div class="chart-stage">
+                  <div class="chart-line chart-line-a"></div>
+                  <div class="chart-line chart-line-b"></div>
+                </div>
+              </section>
+
+              <aside class="paper-panel takeaway-panel">
+                <div class="panel-header">
+                  <div>
+                    <p class="meta-label">Takeaways</p>
+                    <h2>Review notes</h2>
+                  </div>
+                </div>
+
+                <div class="takeaway-list">
+                  <article class="takeaway-item">
+                    <strong>Consistency improved after reducing first deployment size.</strong>
+                    <p>Use wood-theme warmth to make retrospective pages feel less clinical and more reflective.</p>
+                  </article>
+                  <article class="takeaway-item">
+                    <strong>Keep mono numerics high contrast.</strong>
+                    <p>Data clarity is non-negotiable even when the environment grows more atmospheric.</p>
+                  </article>
+                </div>
+              </aside>
+            </div>
+          </section>
+
+          <section class="page" data-page="settings">
+            <div class="section-shell settings-grid">
+              <section class="paper-panel settings-panel">
+                <div class="panel-header">
+                  <div>
+                    <p class="meta-label">Settings</p>
+                    <h2>Workspace materials and strategy defaults</h2>
+                  </div>
+                </div>
+
+                <div class="settings-list">
+                  <article class="settings-row">
+                    <div>
+                      <strong>Theme package</strong>
+                      <p>Brushed Wood light mode as the natural workspace variant.</p>
+                    </div>
+                    <span class="status-chip">Prototype</span>
+                  </article>
+                  <article class="settings-row">
+                    <div>
+                      <strong>Typography pairing</strong>
+                      <p>Serif headings with IBM Plex Mono for metrics and labels.</p>
+                    </div>
+                    <span class="tag-chip">Editorial + operational</span>
+                  </article>
+                  <article class="settings-row danger-row">
+                    <div>
+                      <strong>Danger zone stays isolated</strong>
+                      <p>Even in a softer theme, destructive actions remain explicit and separated.</p>
+                    </div>
+                    <span class="danger-text">Caution</span>
+                  </article>
+                </div>
+              </section>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <script src="./script.js"></script>
+  </body>
+</html>

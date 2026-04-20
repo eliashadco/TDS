@@ -132,10 +132,10 @@ export default function LandingWalkthrough() {
       {isReady && isOpen ? (
         <div className="fixed inset-0 z-[90] bg-slate-950/42 px-4 py-4 backdrop-blur-sm sm:px-6 sm:py-6">
           <div className="mx-auto grid h-full max-w-6xl gap-4 lg:grid-cols-[290px_minmax(0,1fr)]">
-            <aside className="fin-shell overflow-y-auto px-4 py-5 sm:px-5">
+            <aside className="surface-panel overflow-y-auto px-4 py-5 sm:px-5">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="fin-kicker">Guided Setup</p>
+                  <p className="meta-label">Guided Setup</p>
                   <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-tds-text">New user tour</h2>
                   <p className="mt-3 text-sm leading-6 text-tds-dim">A step-by-step preview of how the platform works from first access to post-trade review.</p>
                 </div>
@@ -178,9 +178,9 @@ export default function LandingWalkthrough() {
               </div>
             </aside>
 
-            <section className="fin-panel flex min-h-0 flex-col overflow-y-auto p-6 sm:p-7 lg:p-8">
+            <section className="surface-panel flex min-h-0 flex-col overflow-y-auto p-6 sm:p-7 lg:p-8">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="fin-kicker">Step {activeStep + 1} of {TOUR_STEPS.length}</p>
+                <p className="meta-label">Step {activeStep + 1} of {TOUR_STEPS.length}</p>
                 <button
                   type="button"
                   onClick={() => {
@@ -195,13 +195,13 @@ export default function LandingWalkthrough() {
 
               <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_280px]">
                 <div>
-                  <p className="fin-chip">{step.feature}</p>
+                  <p className="inline-tag neutral">{step.feature}</p>
                   <h3 className="mt-4 max-w-3xl text-3xl font-semibold tracking-[-0.05em] text-tds-text sm:text-4xl">{step.title}</h3>
                   <p className="mt-4 max-w-3xl text-sm leading-7 text-tds-dim sm:text-base">{step.description}</p>
 
                   <div className="mt-6 space-y-3">
                     {step.details.map((detail) => (
-                      <div key={detail} className="fin-card flex items-start gap-3 p-4">
+                      <div key={detail} className="trade-review-card flex items-start gap-3 p-4">
                         <CheckCircle2 className="mt-0.5 h-5 w-5 text-tds-teal" />
                         <p className="text-sm leading-6 text-tds-text">{detail}</p>
                       </div>
@@ -209,8 +209,8 @@ export default function LandingWalkthrough() {
                   </div>
                 </div>
 
-                <aside className="fin-card h-fit p-5">
-                  <p className="fin-kicker">Operator Outcome</p>
+                <aside className="trade-review-card h-fit p-5">
+                  <p className="meta-label">Operator Outcome</p>
                   <p className="mt-3 text-lg font-semibold tracking-[-0.03em] text-tds-text">{step.outcome}</p>
                   <div className="mt-5 rounded-[20px] border border-dashed border-tds-border bg-white/70 p-4">
                     <p className="text-xs uppercase tracking-[0.16em] text-tds-dim">Suggested Path</p>

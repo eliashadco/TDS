@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+@layer base {
+  :root {
+    --bg: #E4E3E0;
+    --ink: #141414;
+    --line: #141414;
+  }
+
+  body {
+    @apply bg-[var(--bg)] text-[var(--ink)] font-sans antialiased;
+  }
+}
+
+@layer components {
+  .data-row {
+    @apply grid grid-cols-[40px_1.5fr_1fr_1fr] p-4 border-b border-[var(--line)] transition-colors cursor-pointer hover:bg-[var(--ink)] hover:text-[var(--bg)];
+  }
+
+  .col-header {
+    @apply font-serif italic text-[11px] opacity-50 uppercase tracking-wider;
+  }
+
+  .data-value {
+    @apply font-mono tracking-tighter;
+  }
+}

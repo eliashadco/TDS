@@ -1,10 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
-import { BarChart3, LayoutDashboard, Menu, Plus, Radar, Settings, Sparkles } from "lucide-react";
+import { Archive, BarChart3, BookOpen, LayoutDashboard, LogOut, Menu, Plus, Radar, Settings } from "lucide-react";
 import type { TradeMode } from "@/types/trade";
 import { cn } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
 
 type NavBarProps = {
   mode: TradeMode | null;
@@ -22,19 +25,30 @@ const MODE_META: Record<TradeMode, { label: string; description: string }> = {
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/portfolio-analytics", label: "Portfolio Analytics", icon: BarChart3 },
+  { href: "/portfolio-analytics", label: "Analytics", icon: BarChart3 },
   { href: "/portfolio-analytics?tab=marketwatch", label: "MarketWatch", icon: Radar },
+  { href: "/trade/new", label: "New Trade", icon: Plus },
+  { href: "/journal", label: "Journal", icon: BookOpen },
+  { href: "/archive", label: "Archive", icon: Archive },
   { href: "/settings/profile", label: "Settings", icon: Settings },
 ];
 
 export default function NavBar({ mode, currentPath, onModeToggle, onDrawerToggle }: NavBarProps) {
+  const router = useRouter();
+  const supabase = useMemo(() => createClient(), []);
   const searchParams = useSearchParams();
   const modeMeta = mode ? MODE_META[mode] : { label: "Set Mode", description: "Configure your workflow" };
 
+  async function signOut() {
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  }
+
   const renderNavItem = (item: (typeof NAV_ITEMS)[number], compact = false) => {
     const Icon = item.icon;
-    const isMarketWatchItem = item.label === "MarketWatch";
-    const isPortfolioAnalyticsItem = item.label === "Portfolio Analytics";
+    const isMarketWatchItem = item.href.includes("tab=marketwatch");
+    const isPortfolioAnalyticsItem = item.href === "/portfolio-analytics";
     const activeTab = searchParams.get("tab");
     const isActive = isMarketWatchItem
       ? currentPath === "/portfolio-analytics" && activeTab === "marketwatch"
@@ -52,11 +66,11 @@ export default function NavBar({ mode, currentPath, onModeToggle, onDrawerToggle
             : "flex items-center gap-3 rounded-[22px] border px-4 py-3 text-sm font-semibold",
           isActive
             ? compact
-              ? "border-white/18 bg-white/16 text-white shadow-[0_18px_35px_-26px_rgba(8,15,28,0.4)]"
-              : "border-white/12 bg-white/10 text-white shadow-[0_18px_35px_-26px_rgba(8,15,28,0.42)]"
+              ? "app-nav-rail-link-active"
+              : "app-nav-rail-link-active"
             : compact
-              ? "border-transparent bg-white/6 text-white/75 hover:bg-white/12 hover:text-white"
-              : "border-transparent bg-transparent text-white/70 hover:border-white/10 hover:bg-white/8 hover:text-white",
+              ? "app-nav-rail-link-idle border-transparent bg-white/8"
+              : "app-nav-rail-link-idle border-transparent bg-transparent",
         )}
       >
         <Icon className={compact ? "h-4 w-4" : "h-5 w-5"} />
@@ -68,12 +82,12 @@ export default function NavBar({ mode, currentPath, onModeToggle, onDrawerToggle
   return (
     <>
       <div className="fixed inset-x-4 top-4 z-50 md:hidden">
-        <div className="fin-sidebar px-4 py-4 text-white">
-          <div className="flex items-start justify-between gap-3">
-            <Link href="/dashboard" className="space-y-1">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/50">Intelligent Trading System</p>
-              <div className="flex items-center gap-2 text-lg font-semibold tracking-[-0.04em] text-white">
-                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-tds-slate font-serif text-base font-semibold tracking-[0.24em] text-white shadow-[0_18px_34px_-22px_rgba(13,21,40,0.75)]">
+        <div className="nav-rail-shell fin-sidebar app-nav-rail px-4 py-4">
+          <div className="rail-top app-nav-rail-divider flex items-start justify-between gap-3 border-b pb-4">
+            <Link href="/dashboard" className="brand-block space-y-1">
+              <p className="app-nav-rail-muted text-[11px] font-semibold uppercase tracking-[0.22em]">Intelligent Trading System</p>
+              <div className="app-nav-rail-ink flex items-center gap-2 text-lg font-semibold tracking-[-0.04em]">
+                <span className="app-nav-brand-mark brand-mark flex h-10 w-10 items-center justify-center rounded-2xl font-serif text-base font-semibold tracking-[0.24em] text-white">
                   II
                 </span>
                 Intelligent Investors
@@ -84,90 +98,72 @@ export default function NavBar({ mode, currentPath, onModeToggle, onDrawerToggle
               <button
                 type="button"
                 onClick={onModeToggle}
-                className="rounded-full border border-white/12 bg-white/8 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-white shadow-sm"
+                className="app-nav-rail-control rounded-full px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em]"
               >
                 {modeMeta.label}
               </button>
-              <Link
-                href="/trade/new"
-                className="inline-flex h-11 items-center gap-2 rounded-2xl bg-white px-4 text-sm font-semibold text-tds-slate shadow-[0_20px_45px_-24px_rgba(13,21,40,0.4)]"
-              >
-                <Plus className="h-4 w-4" />
-                New
-              </Link>
               <button
                 type="button"
                 onClick={onDrawerToggle}
                 aria-label="Open trade drawer"
                 title="Open trade drawer"
-                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/12 bg-white/8 text-white shadow-sm"
+                className="app-nav-rail-control inline-flex h-11 w-11 items-center justify-center rounded-2xl"
               >
                 <Menu className="h-4 w-4" />
               </button>
             </div>
           </div>
 
-          <div className="mt-4 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="rail-main mt-4 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {NAV_ITEMS.map((item) => renderNavItem(item, true))}
+          </div>
+
+          <div className="rail-footer app-nav-rail-divider mt-4 border-t pt-4">
+            <button
+              type="button"
+              onClick={() => void signOut()}
+              className="app-nav-signout action-link flex w-full items-center gap-3 rounded-[16px] px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em]"
+            >
+              <LogOut className="h-4 w-4 text-[#d97706]" />
+              Sign Out
+            </button>
           </div>
         </div>
       </div>
 
       <aside className="fixed left-6 top-6 z-40 hidden h-[calc(100vh-3rem)] w-[248px] md:block">
-        <div className="fin-sidebar flex h-full flex-col px-4 py-5 text-white">
-          <Link href="/dashboard" className="rounded-[26px] p-3 hover:bg-white/6">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/50">Intelligent Trading System</p>
-            <div className="mt-2 flex items-center gap-3">
-              <span className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-tds-slate font-serif text-lg font-semibold tracking-[0.24em] text-white shadow-[0_20px_40px_-24px_rgba(13,21,40,0.72)]">
-                II
-              </span>
-              <div>
-                <p className="text-lg font-semibold tracking-[-0.04em] text-white">Intelligent Investors</p>
-                <p className="text-sm text-white/60">Cleaner decisions, tighter execution.</p>
+        <div className="nav-rail-shell fin-sidebar app-nav-rail flex h-full flex-col px-4 py-5">
+          <div className="rail-top app-nav-rail-divider border-b pb-5">
+            <Link href="/dashboard" className="brand-block rounded-[26px] p-3 hover:bg-white/5">
+              <p className="app-nav-rail-muted text-[11px] font-semibold uppercase tracking-[0.22em]">Intelligent Trading System</p>
+              <div className="mt-2 flex items-center gap-3">
+                <span className="app-nav-brand-mark brand-mark flex h-12 w-12 items-center justify-center rounded-[18px] font-serif text-lg font-semibold tracking-[0.24em] text-white">
+                  II
+                </span>
+                <div>
+                  <p className="app-nav-rail-ink text-lg font-semibold tracking-[-0.04em]">Intelligent Investors</p>
+                  <p className="app-nav-rail-muted text-sm">Balanced guided terminal</p>
+                </div>
               </div>
-            </div>
-          </Link>
+            </Link>
+          </div>
 
-          <button
-            type="button"
-            onClick={onModeToggle}
-            className="fin-sidebar-card mt-5 flex items-center justify-between rounded-[26px] px-4 py-4 text-left hover:-translate-y-0.5"
-          >
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/50">Active Mode</p>
-              <p className="mt-1 text-base font-semibold text-white">{modeMeta.label}</p>
-              <p className="mt-1 text-sm text-white/60">{modeMeta.description}</p>
-            </div>
-            <Sparkles className="h-5 w-5 text-teal-200" />
-          </button>
+          <div className="rail-main mt-5 flex flex-1 flex-col">
+            <p className="app-nav-rail-muted rail-section-label px-2 text-[11px] font-semibold uppercase tracking-[0.22em]">Main Menu</p>
+            <nav className="nav-stack mt-3 space-y-2">
+              {NAV_ITEMS.map((item) => renderNavItem(item))}
+            </nav>
+          </div>
 
-          <nav className="mt-5 space-y-2">
-            {NAV_ITEMS.map((item) => renderNavItem(item))}
-          </nav>
-
-          <div className="mt-auto space-y-3 pt-6">
+          <div className="rail-footer app-nav-rail-divider mt-auto border-t pt-6">
             <button
               type="button"
-              onClick={onDrawerToggle}
-              className="flex w-full items-center justify-between rounded-[22px] border border-white/12 bg-white/8 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-white/12"
+              onClick={() => void signOut()}
+              className="app-nav-signout action-link flex w-full items-center gap-3 rounded-[18px] px-2 py-2 text-sm font-semibold"
             >
-              <span className="flex items-center gap-3">
-                <Menu className="h-5 w-5 text-white/70" />
-                Trade drawer
-              </span>
-              <span className="text-xs uppercase tracking-[0.18em] text-white/50">Open</span>
+              <LogOut className="h-5 w-5 text-[#d97706]" />
+              <span>Sign Out</span>
             </button>
-
-            <Link
-              href="/trade/new"
-              className="flex items-center justify-between rounded-[22px] bg-white px-4 py-3 text-sm font-semibold text-tds-slate shadow-[0_22px_45px_-24px_rgba(13,21,40,0.38)] hover:-translate-y-0.5 hover:bg-[#f4f8fc]"
-            >
-              <span className="flex items-center gap-3">
-                <Plus className="h-5 w-5" />
-                New thesis trade
-              </span>
-              <span className="text-xs uppercase tracking-[0.18em] text-tds-dim">Go</span>
-            </Link>
           </div>
         </div>
       </aside>

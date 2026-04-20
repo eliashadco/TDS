@@ -1,0 +1,474 @@
+YSTEM + PRODUCT UNIFIED MAP (V4.1 — DOCTRINE EDITION)
+1. CORE PRINCIPLE (NON-NEGOTIABLE)
+The platform is not designed to help users trade more.
+
+It is designed to prevent users from trading incorrectly.
+2. EXECUTION WORKSPACE (CORE SURFACE)
+ORIGIN
+
+Retail traders consistently fail at the moment of execution, not analysis. Emotional override occurs exactly when capital is deployed.
+
+PROBLEM
+
+Traditional platforms optimize for:
+
+speed
+flexibility
+optional confirmation
+
+→ This enables impulsive, undisciplined trades.
+
+PURPOSE
+
+To gate execution through system validation, ensuring:
+
+only qualified trades are frictionless
+all deviations are slowed and recorded
+BEHAVIORAL TARGET
+Eliminate impulse entries
+Force conscious decision-making
+Anchor execution to system logic
+DESIGN PHILOSOPHY
+
+Execution should feel:
+
+controlled
+intentional
+slightly restrictive
+
+Friction is not UX debt — it is the product.
+
+WHY THIS DESIGN
+
+Rejected:
+
+Modal confirmations → break chart focus
+Free-form execution → no discipline enforcement
+
+Chosen:
+
+Inline Action Desk
+Unified scoring + execution surface
+Context preserved at all times
+3. OPPORTUNITY QUEUE ENGINE
+ORIGIN
+
+Traders lose money by:
+
+scanning random tickers
+chasing movement
+cherry-picking setups
+PROBLEM
+
+Unlimited choice leads to:
+
+cognitive overload
+inconsistent execution
+bias-driven selection
+PURPOSE
+
+To constrain decision space into a ranked, system-approved queue.
+
+BEHAVIORAL TARGET
+Remove randomness
+Eliminate scanning addiction
+Enforce structured opportunity flow
+DESIGN PHILOSOPHY
+
+“You don’t find trades. The system presents them.”
+
+WHY THIS DESIGN
+
+Rejected:
+
+Watchlist-driven exploration
+Manual ticker input as primary flow
+
+Chosen:
+
+Ranked queue
+Sequential unlocking mechanism
+4. STRATEGY BUILDER
+ORIGIN
+
+Most traders operate with:
+
+vague rules
+inconsistent logic
+no formal system
+PROBLEM
+
+Undefined strategies lead to:
+
+subjective decisions
+post-rationalization
+inability to measure discipline
+PURPOSE
+
+To externalize trading logic into structured, testable rules
+
+BEHAVIORAL TARGET
+Force clarity
+Remove ambiguity
+Enable system enforcement
+DESIGN PHILOSOPHY
+
+A strategy must be:
+
+explicit
+versioned
+machine-readable
+WHY THIS DESIGN
+
+Rejected:
+
+free-text strategies
+informal notes
+
+Chosen:
+
+rule-based system
+hard vs soft rules
+version tracking
+5. SCORING ENGINE
+ORIGIN
+
+Traders cannot consistently evaluate multi-factor conditions in real time.
+
+PROBLEM
+
+Manual evaluation leads to:
+
+inconsistency
+bias
+missed conditions
+PURPOSE
+
+To provide a deterministic compatibility score between market state and strategy.
+
+BEHAVIORAL TARGET
+Remove subjective evaluation
+Standardize decision quality
+DESIGN PHILOSOPHY
+
+The system judges. The user executes.
+
+WHY THIS DESIGN
+
+Rejected:
+
+discretionary evaluation
+indicator-only systems
+
+Chosen:
+
+weighted scoring
+hard rule validation
+cached computations
+6. EXECUTION ENGINE
+ORIGIN
+
+Even with good setups, execution inconsistency destroys performance.
+
+PROBLEM
+
+Users bypass:
+
+risk controls
+position sizing
+rule validation
+PURPOSE
+
+To enforce correct execution mechanics
+
+BEHAVIORAL TARGET
+Prevent invalid trades
+Standardize trade structure
+DESIGN PHILOSOPHY
+
+Execution is not optional — it is validated and controlled
+
+WHY THIS DESIGN
+
+Rejected:
+
+broker-style open execution
+
+Chosen:
+
+validation layer before execution
+enforced structure
+7. OVERRIDE SYSTEM
+ORIGIN
+
+Users will always attempt to bypass rules under emotional pressure.
+
+PROBLEM
+
+Hard blocking leads to:
+
+frustration
+abandonment of system
+PURPOSE
+
+To allow deviation with cost and accountability
+
+BEHAVIORAL TARGET
+Slow down bad decisions
+Make deviation conscious
+DESIGN PHILOSOPHY
+
+“You can break the rules, but you cannot do it casually.”
+
+WHY THIS DESIGN
+
+Rejected:
+
+full restriction (too rigid)
+free override (too weak)
+
+Chosen:
+
+friction (timer + justification)
+AI validation
+full audit trail
+8. DISCIPLINE ENGINE
+ORIGIN
+
+Traders evaluate themselves based on P&L, not behavior.
+
+PROBLEM
+
+Good behavior can lose money short-term, leading users to abandon discipline.
+
+PURPOSE
+
+To separate:
+
+execution quality
+from financial outcome
+BEHAVIORAL TARGET
+reinforce correct behavior
+decouple emotions from results
+DESIGN PHILOSOPHY
+
+A good trade is one that follows the system — not one that wins.
+
+WHY THIS DESIGN
+
+Rejected:
+
+profit-based evaluation
+
+Chosen:
+
+adherence metrics
+override tracking
+behavioral scoring
+9. JOURNAL SYSTEM
+ORIGIN
+
+Traders fail to review decisions objectively.
+
+PROBLEM
+
+Memory is biased:
+
+winners are remembered
+mistakes are ignored
+PURPOSE
+
+To create a complete, immutable record of behavior
+
+BEHAVIORAL TARGET
+force reflection
+enable pattern detection
+DESIGN PHILOSOPHY
+
+The journal is not for storytelling — it is for evidence
+
+WHY THIS DESIGN
+
+Rejected:
+
+manual journaling
+
+Chosen:
+
+automatic logging
+structured data
+override separation
+10. DISCIPLINE DASHBOARD
+ORIGIN
+
+Users lack visibility into behavioral performance.
+
+PROBLEM
+
+Without metrics:
+
+discipline cannot be improved
+patterns remain hidden
+PURPOSE
+
+To visualize:
+
+adherence trends
+override impact
+BEHAVIORAL TARGET
+self-awareness
+behavior correction
+DESIGN PHILOSOPHY
+
+Show truth, not comfort.
+
+WHY THIS DESIGN
+
+Rejected:
+
+generic analytics dashboards
+
+Chosen:
+
+behavior-first metrics
+strategy-level insights
+11. WATCHLIST SYSTEM
+ORIGIN
+
+Traders rely on watchlists but misuse them.
+
+PROBLEM
+
+Watchlists become:
+
+distraction pools
+sources of impulsive trades
+PURPOSE
+
+To act as a data source, not a decision driver
+
+BEHAVIORAL TARGET
+reduce noise
+separate monitoring from execution
+DESIGN PHILOSOPHY
+
+Watchlist informs — Queue decides.
+
+WHY THIS DESIGN
+
+Rejected:
+
+watchlist-centric trading
+
+Chosen:
+
+queue dominance over watchlist
+12. MARKET DATA ENGINE
+ORIGIN
+
+All decisions rely on timely, structured data.
+
+PURPOSE
+
+To provide consistent, normalized inputs.
+
+DESIGN PHILOSOPHY
+
+Accuracy > speed (within reason)
+
+13. CACHE LAYER
+ORIGIN
+
+Real-time scoring is computationally expensive.
+
+PURPOSE
+
+Ensure system responsiveness without sacrificing logic.
+
+DESIGN PHILOSOPHY
+
+Precompute everything possible.
+
+14. EVENT SYSTEM
+ORIGIN
+
+System components must stay synchronized.
+
+PURPOSE
+
+Enable reactive architecture.
+
+DESIGN PHILOSOPHY
+
+Everything important emits an event.
+
+15. NOTIFICATION SYSTEM
+ORIGIN
+
+Users must be alerted without constant monitoring.
+
+PURPOSE
+
+Surface critical system states.
+
+DESIGN PHILOSOPHY
+
+Notify only when it matters.
+
+16. CIRCUIT BREAKER SYSTEM
+ORIGIN
+
+Strategies fail under regime shifts.
+
+PROBLEM
+
+Users continue trading losing strategies.
+
+PURPOSE
+
+Force strategic pause.
+
+BEHAVIORAL TARGET
+prevent spirals
+enforce review
+DESIGN PHILOSOPHY
+
+The system protects the user from persistence in failure.
+
+WHY THIS DESIGN
+
+Rejected:
+
+passive alerts
+
+Chosen:
+
+hard execution lock
+17. AI AUDIT SERVICE
+ORIGIN
+
+Users will attempt to game justification systems.
+
+PURPOSE
+
+Validate cognitive effort.
+
+DESIGN PHILOSOPHY
+
+Effort must be real, not simulated.
+
+FINAL SYSTEM DEFINITION
+
+This platform is:
+
+A Behavioral Execution Control System
+Disguised as a Trading Platform
+FINAL INSIGHT (CRITICAL)
+
+Most platforms optimize for:
+
+More trades
+
+This platform optimizes for:
+
+Fewer, higher-integrity decisions

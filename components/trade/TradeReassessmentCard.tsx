@@ -231,16 +231,16 @@ export default function TradeReassessmentCard({ trade, availableStrategies, onTr
   }
 
   return (
-    <section className="fin-panel p-6 sm:p-7">
+    <section className="surface-panel p-6 sm:p-7">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="fin-kicker">Reassessment Studio</p>
+          <p className="meta-label">Reassessment Studio</p>
           <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-tds-text">Re-score the live trade with another strategy</h2>
           <p className="mt-3 text-sm leading-6 text-tds-dim">Use this when the trade has no saved assessment, when the current lane is stale, or when you want to promote the idea into a new mode like swing or investment.</p>
         </div>
         <div className="flex items-center gap-2">
           {reassessmentMeta ? <AIProviderBadge meta={reassessmentMeta} /> : null}
-          {modeSwitch ? <span className="fin-chip">Switching to {formatModeLabel(selectedStrategy.mode)}</span> : <span className="fin-chip">{selectedStrategy.name}</span>}
+          {modeSwitch ? <span className="inline-tag neutral">Switching to {formatModeLabel(selectedStrategy.mode)}</span> : <span className="inline-tag neutral">{selectedStrategy.name}</span>}
         </div>
       </div>
 
@@ -273,16 +273,16 @@ export default function TradeReassessmentCard({ trade, availableStrategies, onTr
       </div>
 
       <div className="mt-4 grid gap-3 md:grid-cols-3">
-        <div className="fin-card p-4">
-          <p className="fin-kicker">Mode</p>
+        <div className="trade-review-card trade-compact-card p-4">
+          <p className="meta-label">Mode</p>
           <p className="mt-2 text-sm text-tds-text">{formatModeLabel(selectedStrategy.mode)}</p>
         </div>
-        <div className="fin-card p-4">
-          <p className="fin-kicker">Enabled checks</p>
+        <div className="trade-review-card trade-compact-card p-4">
+          <p className="meta-label">Enabled checks</p>
           <p className="mt-2 text-sm text-tds-text">{metrics.length}</p>
         </div>
-        <div className="fin-card p-4">
-          <p className="fin-kicker">Current gate</p>
+        <div className="trade-review-card trade-compact-card p-4">
+          <p className="meta-label">Current gate</p>
           <p className="mt-2 text-sm text-tds-text">F {fScore}/{fMetrics.length || 0} · T {tScore}/{tMetrics.length || 0} · {conviction?.tier ?? "No conviction"}</p>
         </div>
       </div>

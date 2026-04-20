@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
+
+export const maxDuration = 60;
 import { buildAssessmentPrompt } from "@/lib/ai/prompts";
 import { parseAIResponse } from "@/lib/ai/parser";
 import { aiErrorResponse, createAIJsonCompletion, resolveAIProviderConfig } from "@/lib/ai/provider";

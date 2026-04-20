@@ -1,0 +1,334 @@
+ADVANCED USER LAYER (Precision Without Losing Discipline)
+1. Adjustable Discipline Strictness (CRITICAL)
+Problem
+
+Advanced users will resist fixed friction and rigid gating.
+
+Solution
+
+Introduce a Discipline Profile System
+
+Modes:
+Strict Mode (default)
+Hard rules = absolute
+Full friction on override
+Balanced Mode
+Some hard rules can degrade into “soft-block” (warning but executable)
+Reduced timer
+Expert Mode
+All rules enforce scoring, not blocking
+Overrides still logged + penalized
+No timer, but mandatory justification remains
+TRD Addition
+DisciplineProfile {
+  mode: "strict" | "balanced" | "expert"
+  overrideFrictionLevel: number
+  hardRuleEnforcement: "block" | "warn"
+}
+UX
+
+Settings → “Discipline Level”
+
+Slider or 3-state toggle
+Visual explanation:
+“Strict = maximum enforcement”
+“Expert = full flexibility, full accountability”
+2. Strategy Variants & Branching
+Problem
+
+Advanced users iterate constantly.
+
+Solution
+
+Allow branching strategies like version control
+
+Feature:
+“Clone & Modify Strategy”
+Track lineage:
+Growth Breakout v1 → v2 → v2.1
+TRD Addition
+Strategy {
+  parentStrategyId?: string
+  changeLog: string[]
+}
+UX
+
+Strategy Page:
+
+“Branch Strategy” button
+Timeline view of versions
+3. Multi-Strategy Parallel Scoring
+Problem
+
+Advanced traders think in multiple lenses simultaneously.
+
+Solution
+
+Allow:
+
+One ticker → scored against multiple strategies simultaneously
+
+UX
+
+Compatibility Card expands into:
+
+NVDA
+
+Strategy A → HIGH (Deploy)
+Strategy B → BLOCKED
+Strategy C → WATCH
+Action:
+“Deploy with Strategy A”
+“Compare differences”
+4. Custom Rule Builder (Advanced Logic Layer)
+Problem
+
+Advanced users need precision.
+
+Solution
+
+Allow conditional logic:
+
+Examples:
+
+IF RSI < 30 AND price above 50 SMA
+IF earnings surprise > X AND volume spike
+TRD Addition
+Rule {
+  type: "simple" | "composite"
+  conditions: RuleCondition[]
+  operator: "AND" | "OR"
+}
+UX
+“Advanced Rule Builder” toggle
+Visual logic blocks (node-based or structured form)
+5. Execution Speed Mode (For Day Traders)
+Problem
+
+Friction can kill intraday usability.
+
+Solution
+
+Introduce:
+
+“Fast Execution Mode” (within Expert Mode only)
+
+Behavior:
+Pre-approved strategy → skip compatibility card UI
+Direct hotkey execution if:
+all hard rules pass
+UX:
+Keyboard-driven flow:
+/ → ticker
+Enter → deploy
+6. API / Export Layer (Advanced Users)
+Problem
+
+Advanced users use external tools.
+
+Solution
+Export trades
+API access for strategies
+TRD Addition:
+/api/strategy/export
+/api/trades/export
+II. BEGINNER LAYER (Learning Without Overload)
+
+Your learning mode is strong. Here’s how to refine it.
+
+1. Guided Decision Overlay (Contextual Learning)
+Upgrade
+
+Instead of generic popups:
+
+Make explanations contextual to the current trade
+
+Example:
+
+User sees:
+“RSI overbought”
+
+Popup:
+
+“This means the asset may be extended. In your strategy, this reduces probability of continuation.”
+
+2. “Why Blocked?” Deep Explanation
+
+When a trade is BLOCKED:
+
+UX
+
+Clickable:
+
+“Why can’t I take this trade?”
+
+Shows:
+
+failed rules
+simplified explanation
+example of valid setup
+3. Strategy Templates as Playbooks
+
+Upgrade templates into:
+
+Interactive playbooks
+
+Each template includes:
+
+explanation of philosophy
+when NOT to use it
+historical examples
+4. Progressive Complexity Unlock
+Problem
+
+Too many features overwhelm beginners.
+
+Solution
+
+Features unlock as:
+
+number of trades increases
+discipline score improves
+
+Example:
+
+Advanced rules → unlocked after 20 trades
+Strategy branching → after 50 trades
+5. “Shadow Mode” (Extremely Powerful)
+Concept
+
+Beginner can:
+
+simulate decisions without real execution
+
+System tracks:
+
+what they would have done
+compares vs system recommendation
+III. CORE SYSTEM IMPROVEMENTS (AFFECTS BOTH)
+1. Confidence Transparency Layer
+Problem
+
+Users may distrust scoring.
+
+Solution
+
+Show:
+
+“Why this score?”
+
+Breakdown:
+
+each rule contribution
+weights
+2. Missed Trades Tracking
+
+System logs:
+
+“You ignored 3 HIGH conviction trades this week”
+
+This balances:
+
+overtrading vs undertrading
+3. Strategy Performance Segmentation
+
+Show performance per:
+
+strategy
+regime
+setup type
+4. Override Pattern Detection
+
+System detects:
+
+“You override RSI rule frequently”
+
+Suggest:
+
+convert to soft rule
+or remove
+5. Pre-Market Planning Mode
+UX
+
+Before market open:
+
+review top setups
+pre-approve trades
+
+Reduces impulsive behavior.
+
+IV. UX REFINEMENTS (CRITICAL)
+1. Visual Hierarchy of Discipline
+
+Use consistent color language:
+
+Green → In policy
+Yellow → Watch
+Red → Blocked
+Orange → Exception
+
+This reinforces behavior subconsciously.
+
+2. “Friction Without Frustration”
+
+During override:
+
+Instead of feeling blocked:
+
+user feels challenged
+
+Tone matters:
+
+Not: “You cannot do this”
+But: “This violates your system. Proceed deliberately.”
+3. Strategy Anchor Enhancement
+
+Always visible:
+
+current strategy
+discipline mode
+regime state
+4. Micro-feedback Loop
+
+After each trade:
+
+small indicator:
+“+1 discipline”
+“Override logged”
+
+Gamifies consistency subtly.
+
+V. WHAT NOT TO CHANGE (IMPORTANT)
+
+Do NOT:
+
+remove hard rules
+remove friction
+allow silent overrides
+over-automate decision-making
+
+Because that breaks your core thesis:
+
+discipline enforced through structure
+
+FINAL SYNTHESIS
+
+With these additions, your platform becomes:
+
+For Beginners:
+a guided learning system
+For Intermediate:
+a discipline enforcement system
+For Advanced:
+a precision execution + behavioral analytics system
+Final Insight
+
+You are building something rare:
+
+A platform that adapts to user maturity without abandoning its philosophy
+
+That’s difficult—but if executed well, it becomes:
+
+scalable across skill levels
+habit-forming
+and very hard to replace

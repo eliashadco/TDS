@@ -1,7 +1,14 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, Manrope } from "next/font/google";
+import { Fraunces, IBM_Plex_Mono, Manrope } from "next/font/google";
 import LocalPreviewStabilizer from "@/components/system/LocalPreviewStabilizer";
 import "./globals.css";
+
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-fraunces",
+  weight: ["500", "600", "700"],
+  display: "swap",
+});
 
 const manrope = Manrope({
   subsets: ["latin"],
@@ -49,7 +56,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${manrope.variable} ${ibmPlexMono.variable} bg-tds-bg font-sans text-tds-text antialiased`}
+        className={`${fraunces.variable} ${manrope.variable} ${ibmPlexMono.variable} bg-tds-bg font-sans text-tds-text antialiased`}
       >
         <LocalPreviewStabilizer />
         {children}

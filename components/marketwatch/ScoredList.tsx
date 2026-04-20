@@ -126,7 +126,7 @@ export default function ScoredList({ items, equity, loadingKey, onEntryChange, o
                         <span className="font-mono text-base font-semibold text-tds-text">{item.ticker}</span>
                         <DirectionBadge direction={item.direction} />
                         <VerdictBadge verdict={item.verdict} />
-                        {item.conviction ? <span className="fin-chip">{item.conviction.tier}</span> : null}
+                        {item.conviction ? <span className="inline-tag neutral">{item.conviction.tier}</span> : null}
                       </div>
                       <p className="text-xs uppercase tracking-[0.14em] text-tds-dim">{item.name}</p>
                       <p className="text-xs text-tds-dim">Saved {formatUpdatedAt(item.updatedAt)}</p>

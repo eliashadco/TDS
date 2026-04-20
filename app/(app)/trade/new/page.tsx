@@ -1,10 +1,10 @@
 import NewTradeClient from "@/components/trade/NewTradeClient";
-import WorkspaceSetupPanel from "@/components/layout/WorkspaceSetupPanel";
 import { loadSharedTradeStructureLibrary } from "@/lib/trading/structure-library";
 import { ensureStrategyWorkspaceForMode } from "@/lib/trading/strategies";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { getProtectedAppContext } from "@/lib/supabase/protected-app";
 import { getPortfolioHeat } from "@/lib/trading/scoring";
+import Link from "next/link";
 import type {
   Trade,
   TradeMode,
@@ -12,19 +12,22 @@ import type {
 
 export default async function NewTradePage() {
   const { userId, profile } = await getProtectedAppContext();
-  if (!profile.mode) {
+  const mode = (profile.mode as TradeMode) || null;
+
+  if (!mode) {
     return (
-      <WorkspaceSetupPanel
-        kicker="Mode Setup Required"
-        title="Choose a trading mode before creating a thesis."
-        description="The trade workflow is now explicitly mode-aware from the first step instead of defaulting to swing behind the scenes."
-        hint="Use the mode selector in the shell to choose your operating lane. That choice seeds the starter metric stack used for thesis assessment and position management."
-      />
+      <main className="settings-terminal">
+        <div className="page-header"><div>
+          <p className="meta-label">New Trade</p>
+          <h2>Execution workflow requires a lane configuration</h2>
+          <p className="page-intro max-w-3xl">Choose a lane in the toolbar above to set the execution rules, sizing defaults, and strategy context for this trade workflow. Account-level analytics remain available without a lane.</p>
+        </div></div>
+        <div className="mt-6"><Link href="/portfolio-analytics" className="secondary-button">Open Portfolio Analytics</Link></div>
+      </main>
     );
   }
 
   const supabase = await createServerSupabase();
-  const mode = profile.mode as TradeMode;
 
   const [{ strategies, defaultStrategyId, schemaReady }, { data: activeTrades }, structureLibrary] = await Promise.all([
     ensureStrategyWorkspaceForMode(supabase, userId, mode),
@@ -37,29 +40,18 @@ export default async function NewTradePage() {
     loadSharedTradeStructureLibrary(supabase, userId),
   ]);
 
-  if (!schemaReady) {
-    return (
-      <WorkspaceSetupPanel
-        kicker="Database Update Required"
-        title="Apply the first-class strategies database migration before creating a new trade."
-        description="New Trade now depends on saved strategy records and version snapshots, but those tables are missing from the connected Supabase schema."
-        hint="Run the SQL in supabase/migrations/010_first_class_strategies.sql against the connected database, then reload the app. After that, the strategy-first thesis flow will work normally."
-      />
-    );
-  }
-
-  const activeStrategy = strategies.find((strategy) => strategy.id === defaultStrategyId) ?? strategies[0] ?? null;
+  const activeStrategy = schemaReady ? (strategies.find((strategy) => strategy.id === defaultStrategyId) ?? strategies[0] ?? null) : null;
   const enabledMetrics = activeStrategy?.metrics.filter((metric) => metric.enabled) ?? [];
-  if (!activeStrategy || enabledMetrics.length === 0) {
+  if (!schemaReady || !activeStrategy || enabledMetrics.length === 0) {
     return (
-      <WorkspaceSetupPanel
-        kicker="Strategy Setup Required"
-        title="Save at least one complete strategy before building a trade thesis."
-        description="New Trade is now strategy-first. The thesis, assessment, and sizing flow only run against a named saved strategy with an enabled metric stack."
-        hint="Open Strategy Metrics to create or clone a strategy, enable the checks you want, and set the strategy as the default lane for this mode."
-        ctaHref="/settings/metrics"
-        ctaLabel="Open Strategy Studio"
-      />
+      <main className="settings-terminal">
+        <div className="page-header"><div>
+          <p className="meta-label">New Trade</p>
+          <h2>This workflow needs an active strategy</h2>
+          <p className="page-intro max-w-3xl">Create or enable a strategy with at least one active check in Strategy Studio, then return here to build and validate a thesis against that configuration.</p>
+        </div></div>
+        <div className="mt-6"><Link href="/settings/metrics" className="primary-button">Open Strategy Studio</Link></div>
+      </main>
     );
   }
 

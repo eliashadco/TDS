@@ -32,6 +32,7 @@ function toneClasses(tone: PriorityTone): string {
 
 export default function TodaysPrioritiesCard({ items }: TodaysPrioritiesCardProps) {
   const [checkedIds, setCheckedIds] = useState<string[]>([]);
+  const criticalCount = items.filter((item) => item.tone === "alert" || item.tone === "warning").length;
 
   useEffect(() => {
     try {
@@ -53,28 +54,45 @@ export default function TodaysPrioritiesCard({ items }: TodaysPrioritiesCardProp
   }
 
   return (
-    <section className="rounded-[32px] bg-tds-slate p-6 text-white shadow-[0_28px_70px_-38px_rgba(13,21,40,0.72)]">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/58">Today&apos;s Priorities</p>
-      <h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-white">Automatic reminders and checks</h2>
-      <p className="mt-3 text-sm leading-6 text-white/70">Surface rebalancing risk, target events, and review debt before they turn into missed execution work.</p>
+    <aside className="surface-panel queue-panel">
+      <div className="surface-header">
+        <div>
+          <p className="meta-label">Priority Queue</p>
+          <h3>Action required</h3>
+        </div>
+        <span className="tag">{criticalCount} Critical</span>
+      </div>
 
-      <div className="mt-6 space-y-4">
-        {items.length === 0 ? <p className="text-sm text-white/70">No urgent reminders right now. Review the smart watchlist and keep risk capacity available.</p> : null}
+      <div className="priority-stack mt-4">
+        {items.length === 0 ? (
+          <article className="priority-card calm">
+            <p className="meta-label">Workflow</p>
+            <strong>No urgent workflow debt</strong>
+            <p>Risk is controlled. Review the ready board before expanding into fresh scans.</p>
+          </article>
+        ) : null}
         {items.map((item) => {
           const checked = checkedIds.includes(item.id);
+          const toneClass = item.tone === "alert" || item.tone === "warning" ? "warn" : "calm";
 
           return (
-            <label key={item.id} className={`flex cursor-pointer items-start gap-3 rounded-[24px] border px-4 py-4 ${checked ? "border-white/12 bg-white/6 opacity-60" : "border-white/10 bg-white/8"}`}>
-              <input type="checkbox" checked={checked} onChange={() => toggleItem(item.id)} className="mt-1 h-4 w-4 rounded border-white/30 bg-transparent text-emerald-400 focus:ring-emerald-300" />
+            <label key={item.id} className={`priority-card ${toneClass} flex cursor-pointer items-start gap-3 ${checked ? "opacity-60" : ""}`}>
+              <input
+                type="checkbox"
+                checked={checked}
+                onChange={() => toggleItem(item.id)}
+                className="mt-1 h-4 w-4 rounded border-[rgba(197,210,224,0.84)] bg-transparent text-[#247457] focus:ring-[#b8d7c8]"
+              />
               <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${toneClasses(item.tone)}`} />
               <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold text-white">{item.title}</span>
-                <span className="mt-1 block text-sm leading-6 text-white/68">{item.detail}</span>
+                <span className="meta-label">{item.tone === "alert" || item.tone === "warning" ? "Target Review" : "Workflow"}</span>
+                <strong className="mt-2 block">{item.title}</strong>
+                <span className="mt-2 block text-sm leading-6 text-[#4e6273]">{item.detail}</span>
               </span>
             </label>
           );
         })}
       </div>
-    </section>
+    </aside>
   );
 }

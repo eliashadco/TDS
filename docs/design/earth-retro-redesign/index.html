@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Earth Retro Redesign Prototype</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand-block">
+          <div class="brand-mark">II</div>
+          <div>
+            <p class="brand-name">Intelligent Investors</p>
+            <p class="brand-subtitle">Trading Operating System</p>
+          </div>
+        </div>
+
+        <nav class="nav-list">
+          <button class="nav-item active" data-page="dashboard">Dashboard</button>
+          <button class="nav-item" data-page="marketwatch">MarketWatch</button>
+          <button class="nav-item" data-page="trade-studio">Trade Studio</button>
+          <button class="nav-item" data-page="analytics">Portfolio Analytics</button>
+          <button class="nav-item" data-page="settings">Settings</button>
+        </nav>
+
+        <div class="sidebar-note">
+          <p class="eyebrow">Direction</p>
+          <p>The redesign splits workflows into dedicated surfaces so each page has one clear operating job.</p>
+        </div>
+      </aside>
+
+      <div class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Concept</p>
+            <h1 class="topbar-title">Light fintech, retro editorial, high-contrast earth palette</h1>
+          </div>
+
+          <div class="topbar-meta">
+            <div class="meta-pill">Mode: Swing</div>
+            <div class="meta-pill">Theme: Earth Retro</div>
+            <div class="meta-pill">Separate Prototype</div>
+          </div>
+        </header>
+
+        <main class="page-stack">
+          <section class="page active" data-page="dashboard">
+            <div class="page-header">
+              <div>
+                <p class="eyebrow">Dashboard</p>
+                <h2>Command center without clutter</h2>
+                <p class="page-summary">A dominant portfolio brief on the left, a narrow ready-trades rail on the right, then only the next operational surfaces below.</p>
+              </div>
+            </div>
+
+            <div class="grid-dashboard-top">
+              <section class="hero-panel">
+                <div class="hero-header">
+                  <div>
+                    <span class="chip chip-hero">Portfolio Health</span>
+                    <h3>Live portfolio snapshot</h3>
+                  </div>
+                  <span class="status-badge">Within Limit</span>
+                </div>
+
+                <div class="hero-strip">
+                  <p class="eyebrow invert">Active Capital</p>
+                  <p class="hero-strip-value">$148,400 deployed across 6 live trades</p>
+                  <div class="legend-row">
+                    <span class="legend-tag live">Live</span>
+                    <span class="legend-tag delayed">Delayed</span>
+                    <span class="legend-tag cached">Cached</span>
+                    <span class="legend-tag fallback">Fallback</span>
+                  </div>
+                </div>
+
+                <div class="metric-grid">
+                  <article class="metric-card metric-card-dark">
+                    <p class="eyebrow invert">Current P&amp;L</p>
+                    <h4>+$4,280</h4>
+                    <p>+2.88% on deployed capital</p>
+                  </article>
+                  <article class="metric-card metric-card-dark">
+                    <p class="eyebrow invert">Deployed</p>
+                    <h4>$148,400</h4>
+                    <p>Book size $300,000</p>
+                  </article>
+                  <article class="metric-card metric-card-dark">
+                    <p class="eyebrow invert">Heat</p>
+                    <h4>6.2%</h4>
+                    <p>Controlled exposure</p>
+                  </article>
+                  <article class="metric-card metric-card-dark">
+                    <p class="eyebrow invert">Current Trades</p>
+                    <h4>06</h4>
+                    <p>Actively managed positions</p>
+                  </article>
+                </div>
+
+                <div class="action-row">
+                  <button class="primary-action">New Thesis</button>
+                  <button class="secondary-action secondary-action-dark">Portfolio Analytics</button>
+                </div>
+              </section>
+
+              <aside class="rail-panel olive-rail">
+                <p class="eyebrow invert">AI Ready Board</p>
+                <h3>Ready trades</h3>
+                <p class="rail-copy">High-fit names from MarketWatch, scored and waiting for structured deployment.</p>
+                <button class="secondary-action secondary-action-dark full-width">Open MarketWatch</button>
+
+                <div class="rail-metrics">
+                  <article>
+                    <p class="eyebrow invert">Ready Now</p>
+                    <strong>04</strong>
+                  </article>
+                  <article>
+                    <p class="eyebrow invert">Queued Next</p>
+                    <strong>03</strong>
+                  </article>
+                </div>
+
+                <div class="empty-block">
+                  <p>Names stay here until they qualify or decay.</p>
+                </div>
+              </aside>
+            </div>
+
+            <div class="grid-dashboard-bottom">
+              <section class="surface-panel">
+                <div class="surface-header">
+                  <div>
+                    <p class="eyebrow">Active Positions</p>
+                    <h3>Capital currently at work</h3>
+                  </div>
+                  <span class="chip">6 open</span>
+                </div>
+
+                <div class="position-list">
+                  <article class="data-row">
+                    <div>
+                      <div class="row-title">NVDA <span class="chip green">Long</span></div>
+                      <p>Entry 918.40 · Last 941.20 · Risk 1.8%</p>
+                    </div>
+                    <div class="row-metric positive">+$1,640</div>
+                  </article>
+                  <article class="data-row">
+                    <div>
+                      <div class="row-title">MSFT <span class="chip green">Long</span></div>
+                      <p>Entry 428.10 · Last 433.70 · Risk 1.0%</p>
+                    </div>
+                    <div class="row-metric positive">+$510</div>
+                  </article>
+                  <article class="data-row">
+                    <div>
+                      <div class="row-title">TSLA <span class="chip red">Short</span></div>
+                      <p>Entry 189.60 · Last 185.20 · Risk 1.2%</p>
+                    </div>
+                    <div class="row-metric positive">+$890</div>
+                  </article>
+                </div>
+              </section>
+
+              <aside class="surface-panel priority-panel">
+                <div class="surface-header">
+                  <div>
+                    <p class="eyebrow">Daily Priorities</p>
+                    <h3>What needs attention next</h3>
+                  </div>
+                </div>
+
+                <div class="priority-stack">
+                  <article class="priority-card warn">
+                    <p class="eyebrow">Target Review</p>
+                    <strong>NVDA reached 2R</strong>
+                    <p>Review partials and stop movement before adding fresh risk.</p>
+                  </article>
+                  <article class="priority-card neutral">
+                    <p class="eyebrow">Workflow</p>
+                    <strong>4 ready names are staged</strong>
+                    <p>Prioritize the AI Ready Board before scanning new ideas.</p>
+                  </article>
+                  <article class="priority-card neutral">
+                    <p class="eyebrow">Discipline</p>
+                    <strong>Heat remains controlled</strong>
+                    <p>Capacity exists, but only for A-tier entries.</p>
+                  </article>
+                </div>
+              </aside>
+            </div>
+          </section>
+
+          <section class="page" data-page="marketwatch">
+            <div class="page-header">
+              <div>
+                <p class="eyebrow">MarketWatch</p>
+                <h2>Discovery and qualification only</h2>
+                <p class="page-summary">A dedicated surface for scanning, ranking, and reviewing candidates without analytics or settings noise.</p>
+              </div>
+            </div>
+
+            <div class="grid-marketwatch">
+              <aside class="surface-panel narrow-panel">
+                <p class="eyebrow">Filters</p>
+                <h3>Market context</h3>
+                <div class="filter-stack">
+                  <span class="chip">Premarket</span>
+                  <span class="chip">High Relative Volume</span>
+                  <span class="chip">Gap Continuation</span>
+                  <span class="chip">Earnings Follow-Through</span>
+                </div>
+              </aside>
+
+              <section class="surface-panel">
+                <div class="surface-header">
+                  <div>
+                    <p class="eyebrow">Scored Universe</p>
+                    <h3>Best candidates first</h3>
+                  </div>
+                  <span class="chip">12 names</span>
+                </div>
+                <div class="table-stack">
+                  <article class="table-row">
+                    <span>NVDA</span>
+                    <span>Long</span>
+                    <span>8.7 / 10</span>
+                    <span>GO</span>
+                  </article>
+                  <article class="table-row">
+                    <span>SNOW</span>
+                    <span>Long</span>
+                    <span>8.2 / 10</span>
+                    <span>GO</span>
+                  </article>
+                  <article class="table-row">
+                    <span>TSLA</span>
+                    <span>Short</span>
+                    <span>7.4 / 10</span>
+                    <span>CAUTION</span>
+                  </article>
+                </div>
+              </section>
+
+              <aside class="surface-panel narrow-panel">
+                <p class="eyebrow">Qualification</p>
+                <h3>Instrument drawer</h3>
+                <div class="drawer-card">
+                  <strong>NVDA</strong>
+                  <p>Momentum leader with earnings continuation, strong relative strength, and clean reclaim structure.</p>
+                  <button class="primary-action full-width">Run Strategy Score</button>
+                </div>
+              </aside>
+            </div>
+          </section>
+
+          <section class="page" data-page="trade-studio">
+            <div class="page-header">
+              <div>
+                <p class="eyebrow">Trade Studio</p>
+                <h2>One guided flow from thesis to confirm</h2>
+                <p class="page-summary">The page is sequential and intentionally calm. No competing overview cards belong here.</p>
+              </div>
+            </div>
+
+            <div class="studio-stack">
+              <section class="surface-panel">
+                <div class="progress-row">
+                  <span class="progress-step active">1 Thesis</span>
+                  <span class="progress-step">2 Assessment</span>
+                  <span class="progress-step">3 Sizing</span>
+                  <span class="progress-step">4 Confirm</span>
+                </div>
+              </section>
+              <section class="surface-panel">
+                <p class="eyebrow">Thesis</p>
+                <h3>Why does this trade deserve risk?</h3>
+                <div class="form-grid">
+                  <div class="field-box large"></div>
+                  <div class="field-box"></div>
+                  <div class="field-box"></div>
+                  <div class="field-box"></div>
+                </div>
+              </section>
+              <section class="surface-panel">
+                <p class="eyebrow">Sizing</p>
+                <h3>Mechanical position framework</h3>
+                <div class="metric-grid compact-grid">
+                  <article class="metric-card">
+                    <p class="eyebrow">Conviction</p>
+                    <h4>High</h4>
+                  </article>
+                  <article class="metric-card">
+                    <p class="eyebrow">Risk Unit</p>
+                    <h4>$6,000</h4>
+                  </article>
+                  <article class="metric-card">
+                    <p class="eyebrow">Heat Check</p>
+                    <h4>Pass</h4>
+                  </article>
+                </div>
+              </section>
+            </div>
+          </section>
+
+          <section class="page" data-page="analytics">
+            <div class="page-header">
+              <div>
+                <p class="eyebrow">Portfolio Analytics</p>
+                <h2>Performance review without execution noise</h2>
+                <p class="page-summary">A dedicated review surface for closed-trade truth, lane breakdowns, and accountability trends.</p>
+              </div>
+            </div>
+
+            <div class="analytics-grid">
+              <section class="surface-panel">
+                <div class="surface-header">
+                  <div>
+                    <p class="eyebrow">Overview</p>
+                    <h3>Review snapshot</h3>
+                  </div>
+                </div>
+                <div class="metric-grid compact-grid">
+                  <article class="metric-card">
+                    <p class="eyebrow">Win Rate</p>
+                    <h4>58%</h4>
+                  </article>
+                  <article class="metric-card">
+                    <p class="eyebrow">Avg R</p>
+                    <h4>1.42R</h4>
+                  </article>
+                  <article class="metric-card">
+                    <p class="eyebrow">Profit Factor</p>
+                    <h4>1.88</h4>
+                  </article>
+                </div>
+              </section>
+
+              <section class="surface-panel tall-chart">
+                <p class="eyebrow">Equity Curve</p>
+                <h3>Modeled growth over time</h3>
+                <div class="chart-placeholder bars"></div>
+              </section>
+
+              <section class="surface-panel tall-chart">
+                <p class="eyebrow">Trade Distribution</p>
+                <h3>R-multiple spread</h3>
+                <div class="chart-placeholder grid-chart"></div>
+              </section>
+            </div>
+          </section>
+
+          <section class="page" data-page="settings">
+            <div class="page-header">
+              <div>
+                <p class="eyebrow">Settings</p>
+                <h2>Configuration and controls in one calm workspace</h2>
+                <p class="page-summary">Keep settings quiet, modular, and separated from execution and review screens.</p>
+              </div>
+            </div>
+
+            <div class="settings-stack">
+              <section class="surface-panel">
+                <p class="eyebrow">Profile</p>
+                <h3>Identity and capital</h3>
+                <div class="form-grid">
+                  <div class="field-box"></div>
+                  <div class="field-box"></div>
+                  <div class="field-box"></div>
+                </div>
+              </section>
+              <section class="surface-panel">
+                <p class="eyebrow">Strategy Library</p>
+                <h3>Live lanes and version snapshots</h3>
+                <div class="table-stack">
+                  <article class="table-row">
+                    <span>Swing Momentum</span>
+                    <span>v8</span>
+                    <span>14 metrics</span>
+                    <span>Default</span>
+                  </article>
+                  <article class="table-row">
+                    <span>Earnings Continuation</span>
+                    <span>v3</span>
+                    <span>10 metrics</span>
+                    <span>Secondary</span>
+                  </article>
+                </div>
+              </section>
+              <section class="surface-panel danger-surface">
+                <p class="eyebrow">Danger Zone</p>
+                <h3>Reset controls are isolated</h3>
+                <p>Destructive actions are visually separated from normal workspace settings.</p>
+              </section>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <script src="./script.js"></script>
+  </body>
+</html>

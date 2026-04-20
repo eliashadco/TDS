@@ -24,11 +24,11 @@ export default function ModeSelector({ open, hasExistingMode, onSelectMode, onCa
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/30 p-4 backdrop-blur-sm">
-      <div className="fin-shell w-full max-w-5xl p-6 sm:p-8">
-        <div className="fin-hero p-6 sm:p-8">
-          <p className="fin-chip fin-chip-strong">Mode Selector</p>
-          <h2 className="mt-5 max-w-2xl text-3xl font-semibold tracking-[-0.05em] text-white sm:text-4xl">Choose the operating mode that matches your holding window and execution pace.</h2>
-          <p className="mt-4 max-w-2xl text-sm leading-6 text-white/74 sm:text-base">
+      <div className="surface-panel w-full max-w-5xl p-6 sm:p-8">
+        <div className="rounded-[28px] border border-slate-200/80 bg-white/72 p-6 sm:p-8">
+          <p className="meta-label">Mode Selector</p>
+          <h2 className="mt-5 max-w-2xl text-3xl font-semibold tracking-[-0.05em] text-tds-text sm:text-4xl">Choose the operating mode that matches your holding window and execution pace.</h2>
+          <p className="mt-4 max-w-2xl text-sm leading-6 text-tds-dim sm:text-base">
             Each mode seeds a starter metric stack and reconfigures your decision cadence so risk, evidence, and trade speed stay aligned from the first session.
           </p>
         </div>
@@ -41,17 +41,17 @@ export default function ModeSelector({ open, hasExistingMode, onSelectMode, onCa
                 key={item.mode}
                 type="button"
                 onClick={() => onSelectMode(item.mode)}
-                className="fin-card p-5 text-left transition-all hover:-translate-y-0.5 hover:shadow-[0_28px_55px_-34px_rgba(15,23,42,0.28)]"
+                className="rounded-[24px] border border-slate-200/80 bg-white/78 p-5 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_28px_55px_-34px_rgba(15,23,42,0.2)]"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="fin-kicker">{item.icon} Workflow</p>
+                    <p className="meta-label">{item.icon} Workflow</p>
                     <h3 className="mt-2 text-xl font-semibold tracking-[-0.03em] text-tds-text">{item.label}</h3>
                   </div>
-                  <span className="fin-chip">{preset.f.length}F / {preset.t.length}T</span>
+                  <span className="tag">{preset.f.length}F / {preset.t.length}T</span>
                 </div>
                 <p className="mt-3 text-sm leading-6 text-tds-dim">{item.description}</p>
-                <div className="mt-4 fin-divider" />
+                <div className="mt-4 h-px w-full bg-gradient-to-r from-slate-200/20 via-slate-200 to-slate-200/20" />
                 <p className="mt-4 text-xs uppercase tracking-[0.16em] text-tds-dim">Tap to activate</p>
               </button>
             );
@@ -60,7 +60,7 @@ export default function ModeSelector({ open, hasExistingMode, onSelectMode, onCa
 
         {hasExistingMode ? (
           <div className="mt-6 flex justify-end">
-            <button type="button" onClick={onCancel} className="rounded-2xl border border-white/80 bg-white/82 px-4 py-2.5 text-sm font-semibold text-tds-dim shadow-sm hover:bg-white hover:text-tds-text">
+            <button type="button" onClick={onCancel} className="secondary-button">
               Cancel
             </button>
           </div>

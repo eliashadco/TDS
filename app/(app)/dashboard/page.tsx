@@ -1,10 +1,9 @@
 import { createServerSupabase } from "@/lib/supabase/server";
 import { getProtectedAppContext } from "@/lib/supabase/protected-app";
 import { getQuotes } from "@/lib/market/polygon";
-import WorkspaceSetupPanel from "@/components/layout/WorkspaceSetupPanel";
 import { ensureStrategyWorkspaceForMode } from "@/lib/trading/strategies";
 import DashboardClient from "@/components/dashboard/DashboardClient";
-import type { TradeMode } from "@/types/trade";
+import type { Metric, TradeMode } from "@/types/trade";
 
 function asRecord(value: unknown): Record<string, unknown> {
   return typeof value === "object" && value !== null ? (value as Record<string, unknown>) : {};
@@ -25,6 +24,7 @@ function asReadyVerdict(value: unknown): "GO" | "CAUTION" | "SKIP" | null {
 
 function buildReadyTradeView(row: {
   id: string;
+  strategy_id: string | null;
   ticker: string;
   direction: "LONG" | "SHORT";
   verdict: string | null;
@@ -46,6 +46,7 @@ function buildReadyTradeView(row: {
 
   return {
     id: row.id,
+    strategyId: row.strategy_id,
     ticker: typeof workbench.ticker === "string" ? workbench.ticker.toUpperCase() : row.ticker,
     direction: workbench.direction === "SHORT" || workbench.direction === "LONG" ? workbench.direction : row.direction,
     verdict,
@@ -89,45 +90,21 @@ function readyTradeSort(
 
 export default async function DashboardPage() {
   const { userId, profile } = await getProtectedAppContext();
-  if (!profile.mode) {
-    return (
-      <WorkspaceSetupPanel
-        kicker="Mode Setup Required"
-        title="Choose a trading mode to unlock the operating dashboard."
-        description="This workspace does not assume a default lane anymore. Pick the trading mode that matches your holding period and execution pace first."
-        hint="The mode selector opens automatically in the shell. Once you choose a mode, the app seeds a starter metric stack for that lane and the dashboard becomes fully operational."
-      />
-    );
-  }
 
   const supabase = await createServerSupabase();
-  const mode = profile.mode as TradeMode;
 
-  const { strategies, defaultStrategyId, schemaReady } = await ensureStrategyWorkspaceForMode(supabase, userId, mode);
-  if (!schemaReady) {
-    return (
-      <WorkspaceSetupPanel
-        kicker="Database Update Required"
-        title="Apply the first-class strategies database migration before loading the dashboard."
-        description="This workspace now reads saved strategies from the new strategy tables, but your Supabase schema does not have them yet."
-        hint="Run the SQL in supabase/migrations/010_first_class_strategies.sql against the connected database, then reload the app. Until that migration exists, strategy-first pages cannot render safely."
-      />
-    );
-  }
+  const mode = (profile.mode as TradeMode) || null;
+  let activeStrategy: { id: string; name: string; description: string; versionNumber: number; metrics: Metric[] } | null = null;
 
-  const activeStrategy = strategies.find((strategy) => strategy.id === defaultStrategyId) ?? strategies[0] ?? null;
-  const enabledMetrics = activeStrategy?.metrics.filter((metric) => metric.enabled) ?? [];
-  if (!activeStrategy || enabledMetrics.length === 0) {
-    return (
-      <WorkspaceSetupPanel
-        kicker="Strategy Setup Required"
-        title="Save a default strategy before using the dashboard."
-        description="The dashboard now runs off the named default strategy for this mode instead of a bare mode stack."
-        hint="Open Strategy Metrics to create or clone a strategy, enable the checks you want, and mark one strategy as the default operating lane."
-        ctaHref="/settings/metrics"
-        ctaLabel="Open Strategy Studio"
-      />
-    );
+  if (mode) {
+    const { strategies, defaultStrategyId, schemaReady } = await ensureStrategyWorkspaceForMode(supabase, userId, mode);
+    if (schemaReady) {
+      const found = strategies.find((strategy) => strategy.id === defaultStrategyId) ?? strategies[0] ?? null;
+      const enabledMetrics = found?.metrics.filter((metric) => metric.enabled) ?? [];
+      if (found && enabledMetrics.length > 0) {
+        activeStrategy = { ...found, metrics: enabledMetrics };
+      }
+    }
   }
 
   const [{ data: activeTrades }, { data: watchlistTrades }, { data: closedTrades }, { data: watchlistItems }] = await Promise.all([
@@ -154,7 +131,7 @@ export default async function DashboardPage() {
       .limit(5),
     supabase
       .from("watchlist_items")
-      .select("id, ticker, direction, mode, verdict, note, source, last_scored_at, scores, strategy_name, strategy_snapshot")
+      .select("id, strategy_id, ticker, direction, mode, verdict, note, source, last_scored_at, scores, strategy_name, strategy_snapshot")
       .eq("user_id", userId)
       .order("flagged_at", { ascending: false })
       .limit(16),
@@ -170,20 +147,21 @@ export default async function DashboardPage() {
         return readyTrade ? [readyTrade] : [];
       })
       .sort(readyTradeSort)
-      .slice(0, 4) ?? [];
+      .slice(0, 12) ?? [];
 
   return (
     <DashboardClient
       profile={{
         equity: profile.equity,
-        mode,
+        mode: mode,
       }}
-      activeStrategy={{
+      activeStrategy={activeStrategy ? {
+        id: activeStrategy.id,
         name: activeStrategy.name,
         description: activeStrategy.description,
         versionNumber: activeStrategy.versionNumber,
-        metrics: enabledMetrics,
-      }}
+        metrics: activeStrategy.metrics,
+      } : null}
       activeTrades={
         activeTrades?.map((trade) => {
           const liveQuote = liveQuotes[trade.ticker];

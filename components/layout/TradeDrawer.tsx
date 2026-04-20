@@ -87,13 +87,13 @@ export default function TradeDrawer({ trades, open, loading = false, error = nul
 
       <aside
         className={cn(
-          "fixed right-3 top-3 z-50 h-[calc(100vh-1.5rem)] w-[340px] fin-shell p-4 transition-transform duration-300 sm:w-[380px]",
+          "fixed right-3 top-3 z-50 flex h-[calc(100vh-1.5rem)] w-[340px] flex-col surface-panel p-4 transition-transform duration-300 sm:w-[380px]",
           open ? "translate-x-0" : "translate-x-full",
         )}
       >
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <p className="fin-kicker">Trade Drawer</p>
+            <p className="meta-label">Trade Drawer</p>
             <h2 className="mt-1 text-2xl font-semibold tracking-[-0.04em] text-tds-text">Open positions and watchlist</h2>
           </div>
           <button
@@ -157,7 +157,7 @@ export default function TradeDrawer({ trades, open, loading = false, error = nul
                   onSelectTrade(trade.id);
                   onClose();
                 }}
-                className="fin-card w-full px-4 py-4 text-left hover:-translate-y-0.5"
+                className="w-full rounded-[20px] border border-slate-200/80 bg-white/78 px-4 py-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:bg-white"
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-mono text-base font-semibold text-tds-text">{trade.ticker}</span>

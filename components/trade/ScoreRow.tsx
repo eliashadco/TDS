@@ -12,27 +12,22 @@ type ScoreRowProps = {
 };
 
 export default function ScoreRow({ name, description, note, value, onChange }: ScoreRowProps) {
-  const bgClass =
-    value === 1
-      ? "border-tds-green/20 bg-tds-green/10"
-      : value === 0
-        ? "border-tds-red/20 bg-tds-red/10"
-        : "border-white/75 bg-white/82";
+  const stateClass = value === 1 ? "is-pass" : value === 0 ? "is-fail" : "is-pending";
 
   return (
-    <div className={cn("rounded-[24px] border p-4", bgClass)}>
+    <div className={cn("trade-score-row", stateClass)}>
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1">
-          <p className="text-sm font-semibold text-tds-text">{name}</p>
-          <p className="text-xs text-tds-dim">{description}</p>
-          {note ? <p className="text-xs italic text-tds-dim">{note}</p> : null}
+          <p className="trade-score-title">{name}</p>
+          <p className="trade-score-copy">{description}</p>
+          {note ? <p className="trade-score-note">{note}</p> : null}
         </div>
         <div className="flex items-center gap-2">
           <Button
             type="button"
             size="sm"
             variant={value === 1 ? "default" : "secondary"}
-            className={cn(value === 1 ? "bg-tds-green text-white hover:bg-emerald-700" : "")}
+            className={cn("trade-score-action", value === 1 && "is-pass")}
             onClick={() => onChange(1)}
           >
             ✓
@@ -41,7 +36,7 @@ export default function ScoreRow({ name, description, note, value, onChange }: S
             type="button"
             size="sm"
             variant={value === 0 ? "default" : "secondary"}
-            className={cn(value === 0 ? "bg-tds-red text-white hover:bg-red-700" : "")}
+            className={cn("trade-score-action", value === 0 && "is-fail")}
             onClick={() => onChange(0)}
           >
             ✗

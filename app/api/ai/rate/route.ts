@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+
+export const maxDuration = 60;
 import { buildRatingPrompt } from "@/lib/ai/prompts";
 import { parseAIResponse } from "@/lib/ai/parser";
 import { aiErrorResponse, createAIJsonCompletion } from "@/lib/ai/provider";

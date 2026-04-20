@@ -462,17 +462,17 @@ export default function TradeDetailClient({ trade, metricMap, availableStrategie
   }
 
   return (
-    <main className="space-y-8 p-4 md:p-6">
+    <main className="trade-detail-terminal">
       <Link
         href="/dashboard"
-        className="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/86 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-tds-dim shadow-sm hover:bg-white hover:text-tds-text"
+        className="secondary-button"
       >
         Back to dashboard
       </Link>
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
-        <div className="fin-panel p-6 sm:p-8">
-          <p className="fin-kicker">Trade Snapshot</p>
+        <div className="surface-panel p-6 sm:p-8">
+          <p className="meta-label">Trade Snapshot</p>
           <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
             <div className="max-w-3xl">
               <h1 className="text-3xl font-semibold tracking-[-0.05em] text-tds-text sm:text-4xl">
@@ -484,39 +484,39 @@ export default function TradeDetailClient({ trade, metricMap, availableStrategie
             </div>
 
             <div className="flex flex-wrap gap-2">
-              <span className="fin-chip">{formatModeLabel(localTrade.mode)}</span>
-              {localTrade.conviction ? <span className="fin-chip">{localTrade.conviction}</span> : null}
-              <span className="fin-chip">{formatTradeState(localTrade)}</span>
-              <span className="fin-chip">{formatSourceLabel(localTrade.source)}</span>
+              <span className="inline-tag neutral">{formatModeLabel(localTrade.mode)}</span>
+              {localTrade.conviction ? <span className="inline-tag neutral">{localTrade.conviction}</span> : null}
+              <span className="inline-tag neutral">{formatTradeState(localTrade)}</span>
+              <span className="inline-tag neutral">{formatSourceLabel(localTrade.source)}</span>
             </div>
           </div>
 
           <div className="mt-6 grid gap-4 md:grid-cols-3">
-            <div className="fin-card p-5">
-              <p className="fin-kicker">Identity</p>
+            <div className="trade-review-card trade-compact-card p-5">
+              <p className="meta-label">Identity</p>
               <p className="mt-3 text-lg font-semibold text-tds-text">{localTrade.asset_class}</p>
               <p className="mt-2 text-sm text-tds-dim">{localTrade.direction} bias with {formatTradeState(localTrade).toLowerCase()} execution state.</p>
             </div>
-            <div className="fin-card p-5">
-              <p className="fin-kicker">Risk Unit</p>
+            <div className="trade-review-card trade-compact-card p-5">
+              <p className="meta-label">Risk Unit</p>
               <p className="mt-3 text-lg font-semibold text-tds-text">{pct(localTrade.risk_pct, 100)}</p>
               <p className="mt-2 text-sm text-tds-dim">{localTrade.shares} shares planned across two tranches.</p>
             </div>
-            <div className="fin-card p-5">
-              <p className="fin-kicker">Timing</p>
+            <div className="trade-review-card trade-compact-card p-5">
+              <p className="meta-label">Timing</p>
               <p className="mt-3 text-lg font-semibold text-tds-text">{localTrade.catalyst_window || "Open window"}</p>
               <p className="mt-2 text-sm text-tds-dim">Invalidation stays at {localTrade.invalidation.toLowerCase()}.</p>
             </div>
           </div>
 
           <div className="mt-6 grid gap-4 xl:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
-            <div className="fin-card p-5">
-              <p className="fin-kicker">Thesis</p>
+            <div className="trade-review-card p-5">
+              <p className="meta-label">Thesis</p>
               <p className="mt-3 text-sm leading-7 text-tds-text">{localTrade.thesis}</p>
             </div>
 
-            <div className="fin-card p-5">
-              <p className="fin-kicker">Strategy Frame</p>
+            <div className="trade-review-card p-5">
+              <p className="meta-label">Strategy Frame</p>
               <p className="mt-3 text-sm leading-7 text-tds-text">{strategyLabel}</p>
               <p className="mt-2 text-sm leading-6 text-tds-dim">{strategyDescription}</p>
               <div className="mt-4 space-y-2 text-sm text-tds-dim">
@@ -535,14 +535,14 @@ export default function TradeDetailClient({ trade, metricMap, availableStrategie
           <div className="mt-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="fin-kicker">Assessment Matrix</p>
+                <p className="meta-label">Assessment Matrix</p>
                 <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-tds-text">Stored strategy checks</h2>
               </div>
-              <span className="fin-chip">{passedMetrics.length}/{Math.max(totalMetrics, 1)} aligned</span>
+              <span className="inline-tag neutral">{passedMetrics.length}/{Math.max(totalMetrics, 1)} aligned</span>
             </div>
 
             {totalMetrics === 0 ? (
-              <div className="fin-card mt-5 p-5 text-sm text-tds-dim">No assessment metrics were stored for this trade.</div>
+              <div className="trade-review-card trade-compact-card mt-5 p-5 text-sm text-tds-dim">No assessment metrics were stored for this trade.</div>
             ) : (
               <div className="mt-5">
                 <AssessmentMatrix
@@ -567,76 +567,76 @@ export default function TradeDetailClient({ trade, metricMap, availableStrategie
           </div>
         </div>
 
-        <aside className="overflow-hidden rounded-[34px] border border-white/10 bg-[linear-gradient(180deg,#0D1528_0%,#11203A_55%,#14394C_100%)] p-6 text-white shadow-[0_38px_86px_-44px_rgba(13,21,40,0.68)]">
-          <p className="text-[0.7rem] font-semibold uppercase tracking-[0.24em] text-slate-300">Live Summary</p>
+        <aside className="surface-panel trade-detail-rail">
+          <p className="text-[0.7rem] font-semibold uppercase tracking-[0.24em] text-tds-dim">Live Summary</p>
           <h2 className="mt-3 text-4xl font-semibold tracking-[-0.05em]">{convictionHeading}</h2>
-          <p className="mt-3 text-sm leading-7 text-slate-300">
+          <p className="mt-3 text-sm leading-7 text-tds-dim">
             {passedMetrics.length} of {Math.max(totalMetrics, 1)} enabled checks are aligned for {localTrade.ticker}. The right rail now carries conviction, sizing, and execution so the main page stays readable.
           </p>
 
           <div className="mt-6 space-y-4">
-            <div className="rounded-[26px] border border-white/10 bg-white/6 p-5 backdrop-blur">
-              <p className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-slate-300">Conviction Score</p>
+            <div className="trade-review-card p-5">
+              <p className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-tds-dim">Conviction Score</p>
               <div className="mt-3 flex items-end justify-between gap-4">
                 <p className="text-5xl font-semibold">{convictionScore}</p>
-                <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-200">
+                <span className="rounded-full border border-slate-200 bg-white/86 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-tds-text">
                   {localTrade.conviction ?? "Pending"}
                 </span>
               </div>
-              <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
+              <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-200/80">
                 <div className={`h-full rounded-full ${getConvictionBarClass(convictionScore)} ${getConvictionWidthClass(convictionScore)}`} />
               </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <div>
-                  <p className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-slate-400">Fundamentals</p>
-                  <p className="mt-1 text-sm text-slate-200">{fPassCount}/{fMetrics.length || 0}</p>
+                  <p className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-tds-dim">Fundamentals</p>
+                  <p className="mt-1 text-sm text-tds-text">{fPassCount}/{fMetrics.length || 0}</p>
                 </div>
                 <div>
-                  <p className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-slate-400">Technicals</p>
-                  <p className="mt-1 text-sm text-slate-200">{tPassCount}/{tMetrics.length || 0}</p>
+                  <p className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-tds-dim">Technicals</p>
+                  <p className="mt-1 text-sm text-tds-text">{tPassCount}/{tMetrics.length || 0}</p>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-[26px] border border-white/10 bg-white/6 p-5 backdrop-blur">
-              <p className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-slate-300">Position Sizing</p>
+            <div className="trade-review-card p-5">
+              <p className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-tds-dim">Position Sizing</p>
               <p className="mt-3 text-4xl font-semibold">{money(executionValue)}</p>
-              <p className="mt-2 text-sm leading-6 text-slate-300">
+              <p className="mt-2 text-sm leading-6 text-tds-dim">
                 {localTrade.risk_pct != null
                   ? `${pct(localTrade.risk_pct, 100)} risk unit, ${localTrade.shares} shares, ${localTrade.tranche1_shares} / ${localTrade.tranche2_shares} tranche split.`
                   : "Sizing has not been locked yet for this instrument."}
               </p>
             </div>
 
-            <div className="rounded-[26px] border border-white/10 bg-white/6 p-5 backdrop-blur">
-              <p className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-slate-300">Position Health</p>
+            <div className="trade-review-card p-5">
+              <p className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-tds-dim">Position Health</p>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <div>
-                  <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-slate-400">Current P&amp;L</p>
-                  <p className="mt-2 text-lg font-semibold text-white">{signedMoney(livePnl)}</p>
-                  <p className="mt-1 text-xs text-slate-400">{signedPct(livePnlPct)}</p>
+                  <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-tds-dim">Current P&amp;L</p>
+                  <p className="mt-2 text-lg font-semibold text-tds-text">{signedMoney(livePnl)}</p>
+                  <p className="mt-1 text-xs text-tds-dim">{signedPct(livePnlPct)}</p>
                 </div>
                 <div>
-                  <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-slate-400">Deployed</p>
-                  <p className="mt-2 text-lg font-semibold text-white">{money(executionValue)}</p>
-                  <p className="mt-1 text-xs text-slate-400">Book size {money(portfolioContext.equity)}</p>
+                  <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-tds-dim">Deployed</p>
+                  <p className="mt-2 text-lg font-semibold text-tds-text">{money(executionValue)}</p>
+                  <p className="mt-1 text-xs text-tds-dim">Book size {money(portfolioContext.equity)}</p>
                 </div>
                 <div>
-                  <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-slate-400">Trade Heat</p>
-                  <p className="mt-2 text-lg font-semibold text-white">{pct(tradeHeat)}</p>
-                  <p className="mt-1 text-xs text-slate-400">Portfolio heat {portfolioContext.portfolioHeat.toFixed(1)}%</p>
+                  <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-tds-dim">Trade Heat</p>
+                  <p className="mt-2 text-lg font-semibold text-tds-text">{pct(tradeHeat)}</p>
+                  <p className="mt-1 text-xs text-tds-dim">Portfolio heat {portfolioContext.portfolioHeat.toFixed(1)}%</p>
                 </div>
                 <div>
-                  <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-slate-400">Book Share</p>
-                  <p className="mt-2 text-lg font-semibold text-white">{pct(bookShare)}</p>
-                  <p className="mt-1 text-xs text-slate-400">Across {portfolioContext.activeTradeCount} active trade{portfolioContext.activeTradeCount === 1 ? "" : "s"}</p>
+                  <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-tds-dim">Book Share</p>
+                  <p className="mt-2 text-lg font-semibold text-tds-text">{pct(bookShare)}</p>
+                  <p className="mt-1 text-xs text-tds-dim">Across {portfolioContext.activeTradeCount} active trade{portfolioContext.activeTradeCount === 1 ? "" : "s"}</p>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-[26px] border border-white/10 bg-white/6 p-5 backdrop-blur">
-              <p className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-slate-300">Execution</p>
-              <div className="mt-3 grid gap-2 text-sm text-slate-300 sm:grid-cols-2">
+            <div className="trade-review-card p-5">
+              <p className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-tds-dim">Execution</p>
+              <div className="mt-3 grid gap-2 text-sm text-tds-dim sm:grid-cols-2">
                 <p>Current {money(currentPrice)}</p>
                 <p>Entry {money(localTrade.entry_price)}</p>
                 <p>Stop {money(localTrade.stop_loss)}</p>
@@ -645,25 +645,25 @@ export default function TradeDetailClient({ trade, metricMap, availableStrategie
               </div>
             </div>
 
-            <div className="rounded-[26px] border border-white/10 bg-white/6 p-5 backdrop-blur">
-              <p className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-slate-300">Live Risk Distance</p>
+            <div className="trade-review-card p-5">
+              <p className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-tds-dim">Live Risk Distance</p>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <div>
-                  <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-slate-400">Distance to stop</p>
-                  <p className="mt-2 text-lg font-semibold text-white">{signedPct(distanceToStopPct)}</p>
+                  <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-tds-dim">Distance to stop</p>
+                  <p className="mt-2 text-lg font-semibold text-tds-text">{signedPct(distanceToStopPct)}</p>
                 </div>
                 <div>
-                  <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-slate-400">Distance to 2R</p>
-                  <p className="mt-2 text-lg font-semibold text-white">{signedPct(distanceTo2RPct)}</p>
+                  <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-tds-dim">Distance to 2R</p>
+                  <p className="mt-2 text-lg font-semibold text-tds-text">{signedPct(distanceTo2RPct)}</p>
                 </div>
                 <div>
-                  <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-slate-400">Distance to 4R</p>
-                  <p className="mt-2 text-lg font-semibold text-white">{signedPct(distanceTo4RPct)}</p>
+                  <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-tds-dim">Distance to 4R</p>
+                  <p className="mt-2 text-lg font-semibold text-tds-text">{signedPct(distanceTo4RPct)}</p>
                 </div>
                 <div>
-                  <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-slate-400">Live price context</p>
-                  <p className="mt-2 text-lg font-semibold text-white">{money(currentPrice)}</p>
-                  <p className="mt-1 text-xs text-slate-400">{liveQuote ? signedPct(liveQuote.changePct) : "Latest stored market price"}</p>
+                  <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-tds-dim">Live price context</p>
+                  <p className="mt-2 text-lg font-semibold text-tds-text">{money(currentPrice)}</p>
+                  <p className="mt-1 text-xs text-tds-dim">{liveQuote ? signedPct(liveQuote.changePct) : "Latest stored market price"}</p>
                   <QuoteStatusBadge
                     status={liveQuote?.dataStatus ?? null}
                     provider={liveQuote?.provider ?? null}
@@ -674,16 +674,16 @@ export default function TradeDetailClient({ trade, metricMap, availableStrategie
               </div>
             </div>
 
-            <div className="rounded-[26px] border border-white/10 bg-white/6 p-5 backdrop-blur">
-              <p className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-slate-300">AI Note</p>
-              <p className="mt-3 text-sm leading-6 text-slate-300">{aiSummary}</p>
-              {typeof insight?.edge === "string" ? <p className="mt-3 text-sm text-slate-400">Edge: {insight.edge}</p> : null}
-              {typeof insight?.risks === "string" ? <p className="mt-2 text-sm text-slate-400">Risk: {insight.risks}</p> : null}
+            <div className="trade-review-card p-5">
+              <p className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-tds-dim">AI Note</p>
+              <p className="mt-3 text-sm leading-6 text-tds-dim">{aiSummary}</p>
+              {typeof insight?.edge === "string" ? <p className="mt-3 text-sm text-tds-dim">Edge: {insight.edge}</p> : null}
+              {typeof insight?.risks === "string" ? <p className="mt-2 text-sm text-tds-dim">Risk: {insight.risks}</p> : null}
             </div>
 
-            <div className="rounded-[26px] border border-white/10 bg-white/6 p-5 backdrop-blur">
-              <p className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-slate-300">Strategy Alignment</p>
-              <div className="mt-3 space-y-3 text-sm leading-6 text-slate-300">
+            <div className="trade-review-card p-5">
+              <p className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-tds-dim">Strategy Alignment</p>
+              <div className="mt-3 space-y-3 text-sm leading-6 text-tds-dim">
                 <p>Passing now: {passedHighlightText}</p>
                 <p>Needs attention: {flaggedHighlightText}</p>
                 <p>Invalidation line: {localTrade.invalidation}</p>
@@ -691,8 +691,8 @@ export default function TradeDetailClient({ trade, metricMap, availableStrategie
             </div>
 
             {localTrade.confirmed && !localTrade.closed ? (
-              <div className="rounded-[26px] border border-white/10 bg-white/6 p-5 backdrop-blur">
-                <p className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-slate-300">Position Controls</p>
+              <div className="trade-review-card p-5">
+                <p className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-tds-dim">Position Controls</p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   {([
                     ["exit_t1", localTrade.exit_t1, "T1"],
@@ -704,7 +704,7 @@ export default function TradeDetailClient({ trade, metricMap, availableStrategie
                       type="button"
                       variant="secondary"
                       onClick={() => void toggleTranche(key)}
-                      className={value ? "border-transparent bg-emerald-400 text-slate-950 hover:bg-emerald-300" : "border-white/10 bg-white/8 text-white hover:bg-white/12"}
+                      className={value ? "border-emerald-300 bg-emerald-100 text-emerald-800 hover:bg-emerald-200" : "border-slate-200 bg-white text-tds-text hover:bg-slate-50"}
                     >
                       {label}
                     </Button>
@@ -712,7 +712,7 @@ export default function TradeDetailClient({ trade, metricMap, availableStrategie
                 </div>
 
                 {!localTrade.tranche2_filled ? (
-                  <p className="mt-4 rounded-[20px] border border-amber-300/15 bg-amber-300/10 px-4 py-3 text-xs leading-5 text-amber-100">
+                  <p className="mt-4 rounded-[20px] border border-amber-300/35 bg-amber-100 px-4 py-3 text-xs leading-5 text-amber-800">
                     Tranche 2 deadline: {localTrade.tranche2_deadline ? new Date(localTrade.tranche2_deadline).toLocaleString() : "Pending"}
                   </p>
                 ) : null}
@@ -721,7 +721,7 @@ export default function TradeDetailClient({ trade, metricMap, availableStrategie
                   type="button"
                   variant="secondary"
                   onClick={() => void closePosition()}
-                  className="mt-4 w-full border-red-300/20 bg-red-400/12 text-red-100 hover:bg-red-400/18"
+                  className="mt-4 w-full border-red-300/40 bg-red-50 text-red-700 hover:bg-red-100"
                 >
                   Close Position
                 </Button>
@@ -732,10 +732,10 @@ export default function TradeDetailClient({ trade, metricMap, availableStrategie
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
-        <div className="fin-panel p-6 sm:p-7">
+        <div className="surface-panel p-6 sm:p-7">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="fin-kicker">Price Context</p>
+              <p className="meta-label">Price Context</p>
               <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-tds-text">Entry, stop, and target map</h2>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -751,7 +751,7 @@ export default function TradeDetailClient({ trade, metricMap, availableStrategie
                   {value}
                 </button>
               ))}
-              <span className="fin-chip">{formatTradeState(localTrade)}</span>
+              <span className="inline-tag neutral">{formatTradeState(localTrade)}</span>
             </div>
           </div>
 
@@ -768,13 +768,13 @@ export default function TradeDetailClient({ trade, metricMap, availableStrategie
           </div>
         </div>
 
-        <div className="fin-panel p-6 sm:p-7">
+        <div className="surface-panel p-6 sm:p-7">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="fin-kicker">Structured Journal</p>
+              <p className="meta-label">Structured Journal</p>
               <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-tds-text">Execution notes and review trail</h2>
             </div>
-            {status ? <span className="fin-chip">{status}</span> : null}
+            {status ? <span className="inline-tag neutral">{status}</span> : null}
           </div>
 
           <div className="mt-6 space-y-5">
@@ -826,3 +826,4 @@ export default function TradeDetailClient({ trade, metricMap, availableStrategie
     </main>
   );
 }
+

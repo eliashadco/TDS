@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Classical Terminal Redesign Prototype</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="terminal-shell">
+      <aside class="left-rail">
+        <div class="rail-brand">
+          <div class="rail-mark">II</div>
+          <div>
+            <p class="rail-title">Intelligent Investors</p>
+            <p class="rail-subtitle">Terminal Concept</p>
+          </div>
+        </div>
+
+        <div class="rail-divider"></div>
+
+        <nav class="rail-nav">
+          <button class="rail-nav-item active" data-page="dashboard">Dashboard</button>
+          <button class="rail-nav-item" data-page="market-board">Market Board</button>
+          <button class="rail-nav-item" data-page="trade-blotter">Trade Blotter</button>
+          <button class="rail-nav-item" data-page="analytics">Analytics</button>
+          <button class="rail-nav-item" data-page="settings">Settings</button>
+        </nav>
+
+        <div class="rail-note">
+          <p class="code-label">STYLE THESIS</p>
+          <p>Classical terminal discipline, modern page separation, and high-contrast operational scan speed.</p>
+        </div>
+      </aside>
+
+      <div class="terminal-workspace">
+        <header class="command-bar">
+          <div class="command-block">
+            <p class="code-label">WORKSPACE</p>
+            <h1>Classical terminal redesign study</h1>
+          </div>
+
+          <div class="command-metrics">
+            <span class="command-pill">MODE SWING</span>
+            <span class="command-pill">SESSION LIVE</span>
+            <span class="command-pill">SEPARATE PROTOTYPE</span>
+          </div>
+        </header>
+
+        <main class="page-deck">
+          <section class="page active" data-page="dashboard">
+            <div class="page-title-block">
+              <p class="code-label">DASHBOARD / OPERATING DESK</p>
+              <h2>Portfolio state, positions, and next actions</h2>
+            </div>
+
+            <section class="metric-strip">
+              <article class="metric-cell positive">
+                <p class="code-label">LIVE PNL</p>
+                <strong>+4,280</strong>
+                <span>+2.88% DEPLOYED</span>
+              </article>
+              <article class="metric-cell">
+                <p class="code-label">DEPLOYED</p>
+                <strong>148,400</strong>
+                <span>BOOK 300,000</span>
+              </article>
+              <article class="metric-cell warn">
+                <p class="code-label">HEAT</p>
+                <strong>6.2%</strong>
+                <span>LIMIT 12.0%</span>
+              </article>
+              <article class="metric-cell">
+                <p class="code-label">OPEN TRADES</p>
+                <strong>06</strong>
+                <span>ACTIVE MANAGEMENT</span>
+              </article>
+              <article class="metric-cell signal">
+                <p class="code-label">READY BOARD</p>
+                <strong>04</strong>
+                <span>NAMES AT GO</span>
+              </article>
+            </section>
+
+            <section class="dashboard-grid">
+              <section class="panel panel-positions">
+                <div class="panel-header">
+                  <div>
+                    <p class="code-label">ACTIVE POSITIONS</p>
+                    <h3>Capital at work</h3>
+                  </div>
+                  <span class="status-tag">LIVE</span>
+                </div>
+
+                <div class="terminal-table">
+                  <div class="terminal-table-head">
+                    <span>TICKER</span>
+                    <span>DIR</span>
+                    <span>ENTRY</span>
+                    <span>LAST</span>
+                    <span>RISK</span>
+                    <span>P&amp;L</span>
+                  </div>
+                  <div class="terminal-table-row">
+                    <span>NVDA</span>
+                    <span class="positive">LONG</span>
+                    <span>918.40</span>
+                    <span>941.20</span>
+                    <span>1.8%</span>
+                    <span class="positive">+1,640</span>
+                  </div>
+                  <div class="terminal-table-row">
+                    <span>MSFT</span>
+                    <span class="positive">LONG</span>
+                    <span>428.10</span>
+                    <span>433.70</span>
+                    <span>1.0%</span>
+                    <span class="positive">+510</span>
+                  </div>
+                  <div class="terminal-table-row">
+                    <span>TSLA</span>
+                    <span class="negative">SHORT</span>
+                    <span>189.60</span>
+                    <span>185.20</span>
+                    <span>1.2%</span>
+                    <span class="positive">+890</span>
+                  </div>
+                  <div class="terminal-table-row muted-row">
+                    <span>AMZN</span>
+                    <span class="positive">LONG</span>
+                    <span>184.20</span>
+                    <span>183.80</span>
+                    <span>0.9%</span>
+                    <span class="negative">-60</span>
+                  </div>
+                </div>
+              </section>
+
+              <aside class="stack-column">
+                <section class="panel">
+                  <div class="panel-header compact">
+                    <div>
+                      <p class="code-label">READY BOARD</p>
+                      <h3>Names staged</h3>
+                    </div>
+                  </div>
+
+                  <div class="ticket-card">
+                    <div>
+                      <p class="code-label">PRIMARY</p>
+                      <strong>NVDA LONG</strong>
+                    </div>
+                    <span class="ticket-score">8.7</span>
+                  </div>
+                  <div class="ticket-card">
+                    <div>
+                      <p class="code-label">SECONDARY</p>
+                      <strong>SNOW LONG</strong>
+                    </div>
+                    <span class="ticket-score">8.2</span>
+                  </div>
+                  <button class="cta-button">OPEN MARKET BOARD</button>
+                </section>
+
+                <section class="panel">
+                  <div class="panel-header compact">
+                    <div>
+                      <p class="code-label">ALERT STACK</p>
+                      <h3>Operator focus</h3>
+                    </div>
+                  </div>
+
+                  <div class="alert-stack">
+                    <article class="alert-card warn">
+                      <p class="code-label">TARGET</p>
+                      <strong>NVDA THROUGH 2R</strong>
+                      <p>Review partials and stop movement.</p>
+                    </article>
+                    <article class="alert-card signal">
+                      <p class="code-label">WORKFLOW</p>
+                      <strong>4 NAMES READY</strong>
+                      <p>Review staged names before scanning further.</p>
+                    </article>
+                    <article class="alert-card">
+                      <p class="code-label">HEAT</p>
+                      <strong>WITHIN LIMIT</strong>
+                      <p>Capacity remains for only top-tier entries.</p>
+                    </article>
+                  </div>
+                </section>
+              </aside>
+            </section>
+
+            <section class="bottom-strip">
+              <article class="bottom-card">
+                <p class="code-label">ACTIVE LANE</p>
+                <strong>Swing Momentum</strong>
+              </article>
+              <article class="bottom-card">
+                <p class="code-label">STRATEGY VERSION</p>
+                <strong>V8 / 14 METRICS</strong>
+              </article>
+              <article class="bottom-card">
+                <p class="code-label">QUOTE STATUS</p>
+                <strong>PRIMARY LIVE</strong>
+              </article>
+            </section>
+          </section>
+
+          <section class="page" data-page="market-board">
+            <div class="page-title-block">
+              <p class="code-label">MARKET BOARD / SCAN DESK</p>
+              <h2>Screen, rank, and qualify candidates</h2>
+            </div>
+
+            <section class="market-board-grid">
+              <aside class="panel slim-panel">
+                <p class="code-label">FILTER STACK</p>
+                <h3>Context</h3>
+                <div class="filter-list">
+                  <span class="filter-pill active-filter">PREMARKET</span>
+                  <span class="filter-pill">RVOL &gt; 2.0</span>
+                  <span class="filter-pill">EARNINGS</span>
+                  <span class="filter-pill">TREND ALIGNMENT</span>
+                </div>
+              </aside>
+
+              <section class="panel">
+                <div class="panel-header">
+                  <div>
+                    <p class="code-label">RANKED BOARD</p>
+                    <h3>Qualified names</h3>
+                  </div>
+                  <span class="status-tag">12 RESULTS</span>
+                </div>
+
+                <div class="terminal-table">
+                  <div class="terminal-table-head">
+                    <span>TICKER</span>
+                    <span>DIR</span>
+                    <span>SECTOR</span>
+                    <span>SCORE</span>
+                    <span>STATE</span>
+                  </div>
+                  <div class="terminal-table-row">
+                    <span>NVDA</span>
+                    <span class="positive">LONG</span>
+                    <span>TECH</span>
+                    <span>8.7</span>
+                    <span class="positive">GO</span>
+                  </div>
+                  <div class="terminal-table-row">
+                    <span>SNOW</span>
+                    <span class="positive">LONG</span>
+                    <span>TECH</span>
+                    <span>8.2</span>
+                    <span class="positive">GO</span>
+                  </div>
+                  <div class="terminal-table-row">
+                    <span>TSLA</span>
+                    <span class="negative">SHORT</span>
+                    <span>AUTO</span>
+                    <span>7.4</span>
+                    <span class="warn">CAUTION</span>
+                  </div>
+                </div>
+              </section>
+
+              <aside class="panel slim-panel">
+                <p class="code-label">INSTRUMENT MONITOR</p>
+                <h3>NVDA</h3>
+                <div class="monitor-metrics">
+                  <article>
+                    <span>LAST</span>
+                    <strong>941.20</strong>
+                  </article>
+                  <article>
+                    <span>ATR</span>
+                    <strong>18.4</strong>
+                  </article>
+                </div>
+                <button class="cta-button">RUN STRATEGY SCORE</button>
+              </aside>
+            </section>
+          </section>
+
+          <section class="page" data-page="trade-blotter">
+            <div class="page-title-block">
+              <p class="code-label">TRADE BLOTTER / BUILD DESK</p>
+              <h2>Structured thesis and execution flow</h2>
+            </div>
+
+            <section class="panel blotter-panel">
+              <div class="blotter-toolbar">
+                <span class="command-pill">STEP 1 THESIS</span>
+                <span class="command-pill">STEP 2 ASSESSMENT</span>
+                <span class="command-pill">STEP 3 SIZING</span>
+                <span class="command-pill">STEP 4 CONFIRM</span>
+              </div>
+              <div class="blotter-grid">
+                <div class="blotter-box large"></div>
+                <div class="blotter-box"></div>
+                <div class="blotter-box"></div>
+                <div class="blotter-box"></div>
+              </div>
+            </section>
+          </section>
+
+          <section class="page" data-page="analytics">
+            <div class="page-title-block">
+              <p class="code-label">ANALYTICS / REVIEW DESK</p>
+              <h2>Closed-trade truth and performance attribution</h2>
+            </div>
+
+            <section class="metric-strip compact-strip">
+              <article class="metric-cell">
+                <p class="code-label">WIN RATE</p>
+                <strong>58%</strong>
+              </article>
+              <article class="metric-cell positive">
+                <p class="code-label">AVG R</p>
+                <strong>1.42</strong>
+              </article>
+              <article class="metric-cell signal">
+                <p class="code-label">PROFIT FACTOR</p>
+                <strong>1.88</strong>
+              </article>
+            </section>
+
+            <section class="analytics-panels">
+              <div class="panel tall-panel">
+                <p class="code-label">EQUITY CURVE</p>
+                <div class="chart-area chart-bars"></div>
+              </div>
+              <div class="panel tall-panel">
+                <p class="code-label">R DISTRIBUTION</p>
+                <div class="chart-area chart-grid"></div>
+              </div>
+            </section>
+          </section>
+
+          <section class="page" data-page="settings">
+            <div class="page-title-block">
+              <p class="code-label">SETTINGS / CONTROL DESK</p>
+              <h2>Workspace controls in a restrained terminal format</h2>
+            </div>
+
+            <section class="settings-grid">
+              <div class="panel">
+                <p class="code-label">PROFILE</p>
+                <div class="settings-fields">
+                  <div class="field-line"></div>
+                  <div class="field-line"></div>
+                  <div class="field-line"></div>
+                </div>
+              </div>
+              <div class="panel">
+                <p class="code-label">STRATEGY LIBRARY</p>
+                <div class="terminal-table">
+                  <div class="terminal-table-head">
+                    <span>NAME</span>
+                    <span>VERSION</span>
+                    <span>STATE</span>
+                  </div>
+                  <div class="terminal-table-row">
+                    <span>Swing Momentum</span>
+                    <span>V8</span>
+                    <span>DEFAULT</span>
+                  </div>
+                  <div class="terminal-table-row">
+                    <span>Earnings Continuation</span>
+                    <span>V3</span>
+                    <span>SECONDARY</span>
+                  </div>
+                </div>
+              </div>
+              <div class="panel danger-panel">
+                <p class="code-label">DANGER ZONE</p>
+                <h3>Reset controls stay isolated</h3>
+                <p>Destructive workspace actions should never compete with normal configuration actions.</p>
+              </div>
+            </section>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <script src="./script.js"></script>
+  </body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "name": "TDS - Intelligent Investors",
+  "short_name": "TDS",
+  "description": "Trading Decision System - Discipline Enforcement Platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#141414",
+  "icons": [
+    {
+      "src": "https://picsum.photos/seed/tds/192/192",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://picsum.photos/seed/tds/512/512",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

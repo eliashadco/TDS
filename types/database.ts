@@ -11,6 +11,8 @@ export interface Database {
           mode: "investment" | "swing" | "daytrade" | "scalp" | null;
           equity: number;
           learn_mode: boolean;
+          discipline_profile: "strict" | "balanced" | "expert";
+          peak_equity: number;
           created_at: string;
           updated_at: string;
         };
@@ -21,6 +23,8 @@ export interface Database {
           mode?: "investment" | "swing" | "daytrade" | "scalp" | null;
           equity?: number;
           learn_mode?: boolean;
+          discipline_profile?: "strict" | "balanced" | "expert";
+          peak_equity?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -30,6 +34,8 @@ export interface Database {
           mode?: "investment" | "swing" | "daytrade" | "scalp" | null;
           equity?: number;
           learn_mode?: boolean;
+          discipline_profile?: "strict" | "balanced" | "expert";
+          peak_equity?: number;
           updated_at?: string;
         };
         Relationships: [];
@@ -75,6 +81,8 @@ export interface Database {
           r4_target: number | null;
           market_price: number | null;
           source: "thesis" | "marketwatch";
+          state: "initiated" | "evaluated" | "blocked" | "deployed" | "overridden" | "closed";
+          classification: "in_policy" | "override" | "out_of_bounds";
           confirmed: boolean;
           closed: boolean;
           closed_at: string | null;
@@ -126,6 +134,8 @@ export interface Database {
           r4_target?: number | null;
           market_price?: number | null;
           source?: "thesis" | "marketwatch";
+          state?: "initiated" | "evaluated" | "blocked" | "deployed" | "overridden" | "closed";
+          classification?: "in_policy" | "override" | "out_of_bounds";
           confirmed?: boolean;
           closed?: boolean;
           closed_at?: string | null;
@@ -175,6 +185,8 @@ export interface Database {
           r4_target?: number | null;
           market_price?: number | null;
           source?: "thesis" | "marketwatch";
+          state?: "initiated" | "evaluated" | "blocked" | "deployed" | "overridden" | "closed";
+          classification?: "in_policy" | "override" | "out_of_bounds";
           confirmed?: boolean;
           closed?: boolean;
           closed_at?: string | null;
@@ -184,6 +196,79 @@ export interface Database {
           journal_post?: string;
           insight?: Json | null;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      overrides: {
+        Row: {
+          id: string;
+          trade_id: string;
+          user_id: string;
+          rules_broken: string[];
+          justification: string;
+          quality_flag: "valid" | "low_quality" | "high_risk";
+          ai_audit: Json | null;
+          timer_duration_sec: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          trade_id: string;
+          user_id: string;
+          rules_broken?: string[];
+          justification: string;
+          quality_flag?: "valid" | "low_quality" | "high_risk";
+          ai_audit?: Json | null;
+          timer_duration_sec?: number;
+          created_at?: string;
+        };
+        Update: {
+          rules_broken?: string[];
+          justification?: string;
+          quality_flag?: "valid" | "low_quality" | "high_risk";
+          ai_audit?: Json | null;
+        };
+        Relationships: [];
+      };
+      discipline_metrics: {
+        Row: {
+          id: string;
+          user_id: string;
+          strategy_id: string | null;
+          score: number;
+          period: string;
+          in_policy_count: number;
+          override_count: number;
+          oob_count: number;
+          pnl_in_policy: number;
+          pnl_override: number;
+          pnl_oob: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          strategy_id?: string | null;
+          score?: number;
+          period: string;
+          in_policy_count?: number;
+          override_count?: number;
+          oob_count?: number;
+          pnl_in_policy?: number;
+          pnl_override?: number;
+          pnl_oob?: number;
+          created_at?: string;
+        };
+        Update: {
+          strategy_id?: string | null;
+          score?: number;
+          period?: string;
+          in_policy_count?: number;
+          override_count?: number;
+          oob_count?: number;
+          pnl_in_policy?: number;
+          pnl_override?: number;
+          pnl_oob?: number;
         };
         Relationships: [];
       };

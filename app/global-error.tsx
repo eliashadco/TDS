@@ -5,8 +5,8 @@ export default function GlobalError({ reset }: { error: Error & { digest?: strin
     <html lang="en">
       <body className="bg-tds-bg text-tds-text">
         <main className="mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center gap-4 p-6 text-center">
-          <div className="fin-panel w-full p-8">
-            <p className="fin-kicker">Fatal Error</p>
+          <div className="surface-panel w-full p-8">
+            <p className="meta-label">Fatal Error</p>
             <h1 className="mt-2 text-4xl font-semibold tracking-[-0.05em]">Something went wrong</h1>
             <p className="mt-3 text-sm leading-6 text-tds-dim">A fatal error occurred while rendering this page.</p>
             <button

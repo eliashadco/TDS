@@ -100,3 +100,76 @@ Return JSON only:
 {"score":0-100,"assessment":"short paragraph","missing":"comma-separated missing ideas","redundant":"comma-separated redundant ideas"}
 No markdown.`;
 }
+
+export function buildThesisDraftPrompt(input: {
+  ticker: string;
+  direction: "LONG" | "SHORT";
+  mode: string;
+  strategyName: string;
+  strategyInstruction?: string | null;
+  setupTypes: string[];
+  conditions: string[];
+  chartPattern: string;
+  invalidationStyle: string;
+  assetClass: string;
+  quotePrice: number | null;
+}): string {
+  const setups = input.setupTypes.length > 0 ? input.setupTypes.join(", ") : "No explicit setup types provided";
+  const conditions = input.conditions.length > 0 ? input.conditions.join(", ") : "No explicit conditions provided";
+  const pattern = input.chartPattern && input.chartPattern !== "None" ? input.chartPattern : "No dominant chart pattern";
+  const strategyInstruction = input.strategyInstruction?.trim()
+    ? `Strategy instruction: "${input.strategyInstruction.trim()}".`
+    : "";
+  const priceLine = input.quotePrice && Number.isFinite(input.quotePrice)
+    ? `Current reference price: ${input.quotePrice.toFixed(2)}.`
+    : "Current reference price unavailable; infer a reasonable stop framework from structure + volatility context.";
+
+  return `Draft a concise ${input.direction} trade thesis for ${input.ticker} (${input.assetClass}).
+Mode: ${input.mode}.
+Strategy lane: ${input.strategyName}.
+${strategyInstruction}
+Preferred setup types: ${setups}.
+Preferred conditions: ${conditions}.
+Chart pattern: ${pattern}.
+Invalidation style guidance: ${input.invalidationStyle || "Use clear structural invalidation."}.
+${priceLine}
+
+Return ONLY valid JSON:
+{"thesis":"2-3 sentence thesis","catalystWindow":"short timing/catalyst phrase","invalidation":"explicit invalidation statement","suggestedStop":123.45,"stopReason":"one sentence explanation"}
+
+Rules:
+- suggestedStop must be numeric if feasible; otherwise use null.
+- For LONG, suggestedStop should be below reference price when available.
+- For SHORT, suggestedStop should be above reference price when available.
+- No markdown, no extra keys.`;
+}
+
+export function buildOverrideAuditPrompt(input: {
+  ticker: string;
+  direction: "LONG" | "SHORT";
+  strategyName: string;
+  rulesBroken: string[];
+  justification: string;
+  overrideQuality: string;
+}): string {
+  const rules = input.rulesBroken.length > 0 ? input.rulesBroken.join("; ") : "General override";
+
+  return `Audit this trading override justification for quality and coherence.
+
+Ticker: ${input.ticker} (${input.direction})
+Strategy: ${input.strategyName}
+Rules broken: ${rules}
+Override quality classification: ${input.overrideQuality}
+
+Justification provided by the trader:
+"${input.justification}"
+
+Evaluate:
+1. Does the justification address the specific broken rules?
+2. Is the reasoning coherent and specific to this trade?
+3. Does it show awareness of the risks being taken?
+
+Return ONLY valid JSON:
+{"quality":"valid|low_quality|high_risk","reasoning":"1-2 sentence assessment","flags":["optional array of concern tags"]}
+No markdown.`;
+}

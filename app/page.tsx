@@ -2,19 +2,47 @@ import Link from "next/link";
 import LandingWalkthrough from "@/components/onboarding/LandingWalkthrough";
 
 export default function Home() {
+  const proofCards = [
+    { label: "Focus", value: "Risk before noise" },
+    { label: "Cadence", value: "Mode-aware workflows" },
+    { label: "Output", value: "Cleaner execution logs" },
+  ];
+
+  const summaryCards = [
+    {
+      kicker: "What Changed",
+      title: "The interface now behaves like an investor platform, not a scaffold.",
+      body: [
+        "Breathable spacing replaces dense panel stacking.",
+        "Shared paper surfaces and restrained contrast improve focus.",
+        "Risk, conviction, and next action now read as primary signals.",
+      ],
+    },
+    {
+      kicker: "Portfolio Language",
+      metric: "$100K",
+      body: ["Sharper typography and calmer numeric hierarchy."],
+    },
+    {
+      kicker: "Decision Surface",
+      metric: "4 steps",
+      body: ["A clearer path through thesis, assessment, sizing, and confirm."],
+    },
+  ];
+
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col justify-center gap-6 px-6 py-12 sm:px-10 lg:py-16">
-      <section className="grid gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.75fr)]">
-        <div className="fin-hero px-7 py-8 sm:px-10 sm:py-10">
+    <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col justify-center gap-6 px-6 py-10 sm:px-10 lg:py-14 xl:px-12">
+      <section className="grid gap-6 lg:grid-cols-[minmax(0,1.22fr)_minmax(340px,0.78fr)] xl:gap-8">
+        <div className="fin-hero px-7 py-8 sm:px-10 sm:py-10 xl:px-12 xl:py-12">
           <p className="fin-chip fin-chip-strong">Intelligent Investors</p>
-          <h1 className="mt-6 max-w-3xl text-4xl font-semibold tracking-[-0.06em] text-white sm:text-5xl lg:text-6xl">
+          <h1 className="font-display mt-6 max-w-3xl text-[3.15rem] font-semibold leading-[0.92] text-white sm:text-[4rem] lg:text-[4.7rem] xl:text-[5.25rem]">
             Intelligent Trading System, rebuilt as a calmer operating surface for Intelligent Investors.
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-7 text-white/76">
             Move from cluttered trader-terminal visuals to a cleaner decision flow built around risk, conviction, and execution clarity.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/login" className="inline-flex h-12 items-center rounded-2xl bg-white px-5 text-sm font-semibold text-tds-slate shadow-[0_20px_44px_-28px_rgba(15,23,42,0.45)] hover:-translate-y-0.5">
+            <Link href="/login" className="inline-flex h-12 items-center rounded-2xl bg-white px-5 text-sm font-semibold text-tds-slate shadow-[0_20px_44px_-28px_rgba(42,31,24,0.45)] hover:-translate-y-0.5">
               Sign in
             </Link>
             <Link href="/signup" className="inline-flex h-12 items-center rounded-2xl border border-white/20 bg-white/10 px-5 text-sm font-semibold text-white hover:bg-white/16">
@@ -23,43 +51,34 @@ export default function Home() {
           </div>
           <LandingWalkthrough />
           <div className="mt-8 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-[24px] border border-white/14 bg-white/10 p-4 backdrop-blur">
-              <p className="text-xs uppercase tracking-[0.18em] text-white/60">Focus</p>
-              <p className="mt-2 text-lg font-semibold text-white">Risk before noise</p>
-            </div>
-            <div className="rounded-[24px] border border-white/14 bg-white/10 p-4 backdrop-blur">
-              <p className="text-xs uppercase tracking-[0.18em] text-white/60">Cadence</p>
-              <p className="mt-2 text-lg font-semibold text-white">Mode-aware workflows</p>
-            </div>
-            <div className="rounded-[24px] border border-white/14 bg-white/10 p-4 backdrop-blur">
-              <p className="text-xs uppercase tracking-[0.18em] text-white/60">Output</p>
-              <p className="mt-2 text-lg font-semibold text-white">Cleaner execution logs</p>
-            </div>
+            {proofCards.map((card) => (
+              <div key={card.label} className="auth-spotlight-card">
+                <p className="text-xs uppercase tracking-[0.18em] text-white/58">{card.label}</p>
+                <p className="mt-2 text-lg font-semibold text-white">{card.value}</p>
+              </div>
+            ))}
           </div>
         </div>
 
         <div className="space-y-6">
-          <section className="fin-panel p-6">
-            <p className="fin-kicker">What Changed</p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-tds-text">The interface now behaves like an investor platform, not a scaffold.</h2>
+          <section className="fin-panel p-6 xl:p-7">
+            <p className="fin-kicker">{summaryCards[0].kicker}</p>
+            <h2 className="font-display mt-3 text-[2.1rem] font-semibold leading-[0.95] text-tds-text xl:text-[2.45rem]">{summaryCards[0].title}</h2>
             <div className="mt-5 space-y-4 text-sm leading-6 text-tds-dim">
-              <p>Breathable spacing replaces dense panel stacking.</p>
-              <p>Shared white surfaces and restrained gradients improve resolution and focus.</p>
-              <p>Risk, conviction, and next action are now treated as primary navigation signals.</p>
+              {summaryCards[0].body.map((item) => (
+                <p key={item}>{item}</p>
+              ))}
             </div>
           </section>
 
           <section className="grid gap-4 sm:grid-cols-2">
-            <div className="fin-card p-5">
-              <p className="fin-kicker">Portfolio Language</p>
-              <p className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-tds-text">$100K</p>
-              <p className="mt-2 text-sm text-tds-dim">Sharper typography and calmer numeric hierarchy.</p>
-            </div>
-            <div className="fin-card p-5">
-              <p className="fin-kicker">Decision Surface</p>
-              <p className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-tds-text">4 steps</p>
-              <p className="mt-2 text-sm text-tds-dim">A more obvious path through thesis, assessment, sizing, and confirm.</p>
-            </div>
+            {summaryCards.slice(1).map((card) => (
+              <div key={card.kicker} className="fin-card p-5">
+                <p className="fin-kicker">{card.kicker}</p>
+                <p className="font-display mt-3 text-[2.7rem] font-semibold leading-none text-tds-text">{card.metric}</p>
+                <p className="mt-2 text-sm text-tds-dim">{card.body[0]}</p>
+              </div>
+            ))}
           </section>
         </div>
       </section>

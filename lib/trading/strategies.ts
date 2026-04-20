@@ -85,6 +85,7 @@ export function metricToSnapshot(metric: Metric): StrategyMetricSnapshot {
     category: metric.category,
     type: metric.type,
     enabled: metric.enabled,
+    ...(metric.isHard !== undefined ? { isHard: metric.isHard } : {}),
   };
 }
 
@@ -215,6 +216,7 @@ export function metricsFromStrategySnapshot(snapshot: StrategySnapshot | null): 
     category: metric.category,
     type: metric.type,
     enabled: metric.enabled,
+    ...(metric.isHard !== undefined ? { isHard: metric.isHard } : {}),
   }));
 }
 

@@ -34,6 +34,7 @@ type MetricRow = {
   category: string;
   enabled: boolean;
   sortOrder: number;
+  isHard?: boolean;
 };
 
 type StrategyView = {
@@ -115,6 +116,7 @@ function mapSavedStrategies(strategies: SavedStrategy[]): StrategyView[] {
       category: metric.category,
       enabled: metric.enabled,
       sortOrder: index,
+      ...(metric.isHard !== undefined ? { isHard: metric.isHard } : {}),
     })),
   }));
 }
@@ -144,6 +146,7 @@ function buildMetricJsonRows(metrics: MetricRow[]) {
     category: metric.category as "val" | "quality" | "mom" | "risk" | "macro" | "trend" | "vol" | "intra" | "struct",
     type: metric.metricType,
     enabled: metric.enabled,
+    ...(metric.isHard !== undefined ? { isHard: metric.isHard } : {}),
   }));
 }
 
@@ -174,6 +177,7 @@ export default function MetricsEditorClient({
   const [libraryFilter, setLibraryFilter] = useState<LibraryFilter>("all");
   const [customName, setCustomName] = useState("");
   const [customDescription, setCustomDescription] = useState("");
+  const [customIsHard, setCustomIsHard] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
   const [busyMetricId, setBusyMetricId] = useState<string | null>(null);
 
@@ -281,6 +285,10 @@ export default function MetricsEditorClient({
     setStrategies((previous) => previous.map((strategy) => (strategy.id === nextStrategy.id ? nextStrategy : strategy)));
   }
 
+  function notifyStrategyAnchorRefresh() {
+    window.dispatchEvent(new Event("tds:strategy-anchor-refresh"));
+  }
+
   async function publishStrategyVersion(strategy: StrategyView, nextMetrics: MetricRow[], nextStructure: StrategyStructureSnapshot, nextMeta?: {
     name?: string;
     description?: string;
@@ -369,6 +377,7 @@ export default function MetricsEditorClient({
     };
 
     replaceStrategy(updated);
+    notifyStrategyAnchorRefresh();
     return updated;
   }
 
@@ -606,6 +615,7 @@ export default function MetricsEditorClient({
         category: data.category ?? category,
         enabled: data.enabled,
         sortOrder: data.sort_order,
+        ...(customIsHard ? { isHard: true } : {}),
       },
     ];
 
@@ -616,6 +626,7 @@ export default function MetricsEditorClient({
       setStrategyMessage(`${trimmedName} added to ${selectedStrategy.name}.`);
       setCustomName("");
       setCustomDescription("");
+      setCustomIsHard(false);
     } catch {
       setModalError("Custom metric created, but the strategy revision could not be published.");
     }
@@ -825,6 +836,7 @@ export default function MetricsEditorClient({
 
     setStrategies((previous) => previous.map((strategy) => ({ ...strategy, isDefault: strategy.id === targetStrategy.id })));
     setStrategyMessage(`${targetStrategy.name} is now the default strategy for ${mode}.`);
+    notifyStrategyAnchorRefresh();
     setStrategyBusyId(null);
   }
 
@@ -989,6 +1001,112 @@ export default function MetricsEditorClient({
     }
   }
 
+  async function branchStrategy() {
+    if (!selectedStrategy) return;
+    setStrategyBusyId(selectedStrategy.id);
+    setActionError(null);
+    setStrategyMessage(null);
+
+    const branchName = `${selectedStrategy.name} (branch)`;
+
+    const { data: strategy, error } = await supabase
+      .from("user_strategies")
+      .insert({
+        user_id: userId,
+        mode,
+        name: branchName,
+        description: selectedStrategy.description,
+        learning_goal: selectedStrategy.learningGoal || null,
+        ai_instruction: selectedStrategy.aiInstruction || null,
+        status: "draft" as const,
+        preset_key: selectedStrategy.presetKey,
+        is_preset_clone: selectedStrategy.isPresetClone,
+        is_default: false,
+      })
+      .select("*")
+      .single();
+
+    if (error || !strategy) {
+      setActionError("Failed to branch strategy.");
+      setStrategyBusyId(null);
+      return;
+    }
+
+    // Copy metrics to the new strategy
+    const metricInserts = selectedStrategy.metrics.map((m) => ({
+      user_id: userId,
+      mode,
+      strategy_id: strategy.id,
+      metric_id: m.metricId,
+      metric_type: m.metricType as "fundamental" | "technical",
+      name: m.name,
+      description: m.description,
+      category: m.category,
+      enabled: m.enabled,
+      sort_order: m.sortOrder,
+    }));
+
+    let copiedMetrics: MetricRow[] = [];
+    if (metricInserts.length > 0) {
+      const { data: insertedRows, error: metricError } = await supabase
+        .from("user_metrics")
+        .insert(metricInserts)
+        .select("id, strategy_id, metric_id, metric_type, name, description, category, enabled, sort_order");
+
+      if (metricError) {
+        setActionError("Strategy branched, but metrics could not be copied.");
+        setStrategyBusyId(null);
+        return;
+      }
+
+      copiedMetrics = (insertedRows ?? []).map((row) => ({
+        id: row.id,
+        strategyId: strategy.id,
+        metricId: row.metric_id,
+        metricType: row.metric_type,
+        name: row.name,
+        description: row.description ?? row.name,
+        category: row.category ?? "macro",
+        enabled: row.enabled,
+        sortOrder: row.sort_order,
+      }));
+    }
+
+    const branchedStrategy: StrategyView = {
+      id: strategy.id,
+      name: branchName,
+      description: selectedStrategy.description,
+      learningGoal: selectedStrategy.learningGoal,
+      aiInstruction: selectedStrategy.aiInstruction,
+      status: "draft",
+      isDefault: false,
+      isPresetClone: selectedStrategy.isPresetClone,
+      presetKey: selectedStrategy.presetKey,
+      activeVersionId: null,
+      versionNumber: 0,
+      structure: { ...selectedStrategy.structure },
+      metrics: copiedMetrics,
+    };
+
+    setStrategies((prev) => [...prev, branchedStrategy]);
+    setSelectedStrategyId(branchedStrategy.id);
+
+    try {
+      await publishStrategyVersion(branchedStrategy, copiedMetrics, branchedStrategy.structure, {
+        name: branchName,
+        description: branchedStrategy.description,
+        learningGoal: branchedStrategy.learningGoal,
+        aiInstruction: branchedStrategy.aiInstruction,
+        status: "draft",
+      });
+      setStrategyMessage(`Branched from ${selectedStrategy.name}. Edit this variant independently.`);
+    } catch {
+      setActionError("Strategy branched, but the initial revision could not be published.");
+    } finally {
+      setStrategyBusyId(null);
+    }
+  }
+
   function openModal(type: MetricType) {
     setModalType(type);
     setLibraryFilter("all");
@@ -1000,12 +1118,13 @@ export default function MetricsEditorClient({
     setLibraryFilter("all");
     setCustomName("");
     setCustomDescription("");
+    setCustomIsHard(false);
     setModalError(null);
   }
 
   function renderMetricSection(type: MetricType, title: string, sectionMetrics: MetricRow[]) {
     return (
-      <section className="rounded-xl border border-tds-border bg-tds-card p-4">
+      <section className="surface-panel p-6">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="font-mono text-sm text-tds-text">{title}</h2>
           <span className="rounded-full bg-tds-input px-2 py-1 font-mono text-xs text-tds-dim">
@@ -1088,18 +1207,19 @@ export default function MetricsEditorClient({
   }
 
   return (
-    <main className="space-y-6 p-4 md:p-6">
-      <section className="flex flex-wrap items-center justify-between gap-2">
+    <main className="terminal-page-shell">
+      <section className="dashboard-action-row">
         <div>
-          <h1 className="font-mono text-xl text-tds-text">Strategy Studio</h1>
-          <p className="text-xs text-tds-dim">Mode: {mode}</p>
+          <p className="meta-label">Settings</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-tds-text sm:text-[2.8rem]">Strategy Studio</h1>
+          <p className="mt-4 max-w-3xl text-sm leading-7 text-tds-dim sm:text-base">Build, score, and publish strategy revisions with shared structure and versioned metric stacks.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
             disabled={strategyBusyId === "blank"}
             onClick={() => void createBlankStrategy()}
-            className="rounded-lg border border-tds-border bg-tds-card px-3 py-2 text-sm text-tds-text hover:bg-tds-hover disabled:opacity-50"
+            className="rounded-full border border-slate-200 bg-white/90 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-tds-text transition hover:border-slate-300 disabled:opacity-50"
           >
             {strategyBusyId === "blank" ? "Creating..." : "+ Blank Strategy"}
           </button>
@@ -1107,14 +1227,33 @@ export default function MetricsEditorClient({
             type="button"
             disabled={ratingLoading || !selectedStrategy}
             onClick={() => void runRating()}
-            className="rounded-lg border border-tds-amber/60 bg-tds-amber/20 px-3 py-2 font-mono text-sm text-tds-text hover:bg-tds-amber/30 disabled:opacity-50"
+            className="rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-amber-700 transition hover:border-amber-300 disabled:opacity-50"
           >
             {ratingLoading ? "Rating..." : "Rate Strategy"}
           </button>
         </div>
       </section>
 
-      <section className="rounded-xl border border-tds-border bg-tds-card p-4">
+      <section className="analytics-kpi-strip">
+        <article className="trade-review-card trade-compact-card p-5">
+          <p className="meta-label">Mode</p>
+          <p className="mt-3 text-xl font-semibold tracking-[-0.03em] text-tds-text">{mode}</p>
+        </article>
+        <article className="trade-review-card trade-compact-card p-5">
+          <p className="meta-label">Strategies</p>
+          <p className="mt-3 font-mono text-3xl text-tds-text">{strategies.length}</p>
+        </article>
+        <article className="trade-review-card trade-compact-card p-5">
+          <p className="meta-label">Enabled Checks</p>
+          <p className="mt-3 font-mono text-3xl text-tds-text">{metrics.filter((metric) => metric.enabled).length}</p>
+        </article>
+        <article className="trade-review-card trade-compact-card p-5">
+          <p className="meta-label">Shared Structure</p>
+          <p className="mt-3 font-mono text-3xl text-tds-text">{structureLibrary.length}</p>
+        </article>
+      </section>
+
+      <section className="surface-panel p-6">
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_auto_auto] lg:items-end">
           <div>
             <label htmlFor="strategy-select" className="font-mono text-sm text-tds-text">Saved strategies</label>
@@ -1139,6 +1278,14 @@ export default function MetricsEditorClient({
             className="rounded-lg border border-tds-border bg-tds-input px-3 py-2 text-sm text-tds-text hover:bg-tds-hover disabled:opacity-50"
           >
             Set default
+          </button>
+          <button
+            type="button"
+            disabled={!selectedStrategy || strategyBusyId === selectedStrategy?.id}
+            onClick={() => void branchStrategy()}
+            className="rounded-lg border border-tds-border bg-tds-input px-3 py-2 text-sm text-tds-text hover:bg-tds-hover disabled:opacity-50"
+          >
+            Branch
           </button>
           <div className="rounded-lg bg-tds-input px-3 py-2 text-xs text-tds-dim">
             {selectedStrategy ? `Revision ${selectedStrategy.versionNumber}` : "No strategy selected"}
@@ -1168,7 +1315,7 @@ export default function MetricsEditorClient({
       </section>
 
       {selectedStrategy ? (
-        <section className="rounded-xl border border-tds-border bg-tds-card p-4">
+        <section className="surface-panel p-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className="font-mono text-sm text-tds-text">Strategy Details</h2>
@@ -1263,7 +1410,7 @@ export default function MetricsEditorClient({
         </section>
       ) : null}
 
-      <section className="rounded-xl border border-tds-border bg-tds-card p-4">
+      <section className="surface-panel p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="font-mono text-sm text-tds-text">Shared Structure Library</h2>
@@ -1378,7 +1525,7 @@ export default function MetricsEditorClient({
       ) : null}
 
       {rating ? (
-        <section className="rounded-xl border border-tds-border bg-tds-card p-4">
+        <section className="surface-panel p-6">
           <div className="mb-3 flex items-center justify-between gap-3">
             <h2 className="font-mono text-sm text-tds-text">AI Strategy Rating</h2>
             {ratingMeta ? <AIProviderBadge meta={ratingMeta} /> : null}
@@ -1412,7 +1559,7 @@ export default function MetricsEditorClient({
         </>
       ) : null}
 
-      <section className="rounded-xl border border-tds-border bg-tds-card p-4">
+      <section className="surface-panel p-6">
         <h2 className="font-mono text-sm text-tds-text">Portfolio Equity</h2>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <input
@@ -1519,7 +1666,7 @@ export default function MetricsEditorClient({
               </div>
             </div>
 
-            <section className="mt-4 rounded-xl border border-tds-border bg-tds-card p-4">
+            <section className="mt-4 surface-panel p-6">
               <h3 className="font-mono text-sm text-tds-text">Custom Metric</h3>
               <div className="mt-3 grid gap-2 md:grid-cols-2">
                 <input
@@ -1536,6 +1683,18 @@ export default function MetricsEditorClient({
                   placeholder="Metric description"
                   className="rounded-lg border border-tds-border bg-tds-input px-3 py-2 text-sm text-tds-text focus:border-tds-focus focus:outline-none"
                 />
+              </div>
+              <div className="mt-3 flex items-center gap-4">
+                <label className="flex items-center gap-2 text-sm text-tds-text cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={customIsHard}
+                    onChange={(event) => setCustomIsHard(event.target.checked)}
+                    className="h-4 w-4 rounded border-tds-border accent-tds-red"
+                  />
+                  Hard rule
+                  <span className="text-xs text-tds-dim">(blocks execution when failed)</span>
+                </label>
               </div>
               <div className="mt-3 flex items-center justify-between">
                 <p className="text-xs text-tds-dim">Creates metric id format: custom_[uuid]</p>

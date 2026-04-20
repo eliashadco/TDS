@@ -1,13 +1,12 @@
-"use client";
+﻿"use client";
 
-import { type DragEvent, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type DragEvent } from "react";
 import { useRouter } from "next/navigation";
-import { BellRing, ListChecks, Radar, ShieldCheck, Sparkles, X } from "lucide-react";
-import { QuoteStatusLegend } from "@/components/market/QuoteStatusBadge";
+import { X } from "lucide-react";
 import InstrumentPreviewDrawer, { type StrategySelectionOption } from "@/components/marketwatch/InstrumentPreviewDrawer";
 import MoversTable from "@/components/marketwatch/MoversTable";
 import ScoredList, { type ScoredMover } from "@/components/marketwatch/ScoredList";
-import { broadcastMarketDataRefresh, formatMarketDataRefreshTime, getStoredMarketDataRefreshToken } from "@/lib/market/refresh";
+import { broadcastMarketDataRefresh, getStoredMarketDataRefreshToken } from "@/lib/market/refresh";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -29,7 +28,7 @@ type FilterTab = "all" | "gainers" | "losers";
 
 type MarketWatchClientProps = {
   userId: string;
-  mode: TradeMode;
+  mode: TradeMode | null;
   equity: number;
   strategies: SavedStrategy[];
   defaultStrategyId: string | null;
@@ -58,6 +57,13 @@ type WatchlistItemView = {
   workbench: ScoredMover | null;
 };
 
+type SavedWatchlistProfile = {
+  id: string;
+  name: string;
+  strategyId: string;
+  itemKeys: string[];
+};
+
 type HistoricalStrategyRow = {
   id: string;
   strategy_id: string | null;
@@ -78,6 +84,33 @@ type FeedQuality = {
   label: string;
   detail: string;
 };
+
+type DroppedMoverPayload = {
+  mover: Mover;
+  direction?: "LONG" | "SHORT";
+};
+
+const MOVERS_PAGE_SIZE = 10;
+const WATCHLIST_PAGE_SIZE = 10;
+
+function buildWatchlistProfileId(name: string): string {
+  const normalized = name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return normalized || "my-watchlist";
+}
+
+function buildDefaultWatchlistProfile(strategyId: string): SavedWatchlistProfile {
+  return {
+    id: "my-watchlist",
+    name: "My Watchlist",
+    strategyId,
+    itemKeys: [],
+  };
+}
 
 function calculateActivityScore(price: number, changePct: number, volumeValue: number): number {
   const dollarFlowScore = Math.log10(Math.max(price * volumeValue, 1));
@@ -159,7 +192,11 @@ function formatMetricFallbackLabel(metricId: string): string {
     .join(" ");
 }
 
-function formatModeLabel(mode: TradeMode): string {
+function formatModeLabel(mode: TradeMode | null): string {
+  if (!mode) {
+    return "No lane selected";
+  }
+
   if (mode === "daytrade") {
     return "Day Trade";
   }
@@ -177,7 +214,23 @@ function formatCompactVolume(volume: number): string {
   }).format(volume);
 }
 
-function buildTriggerLevel(price: number | null, direction: "LONG" | "SHORT", mode: TradeMode): number | null {
+function formatWatchlistDate(value?: string | null): string {
+  if (!value) {
+    return "-";
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "2-digit",
+    day: "2-digit",
+    year: "numeric",
+  }).format(new Date(value));
+}
+
+function buildTriggerLevel(price: number | null, direction: "LONG" | "SHORT", mode: TradeMode | null): number | null {
+  if (!mode) {
+    return null;
+  }
+
   if (price == null || !Number.isFinite(price) || price <= 0) {
     return null;
   }
@@ -204,6 +257,43 @@ function normalizeMover(input: unknown): Mover {
     reason: String(value.reason ?? "No reason provided"),
     sourceLabel: typeof value.sourceLabel === "string" ? value.sourceLabel : undefined,
     activityScore: toNumber(value.activityScore ?? value.activity_score, calculateActivityScore(price, changePct, volumeValue)),
+  };
+}
+
+function readDroppedMoverFromEvent(event: DragEvent<HTMLElement>): DroppedMoverPayload | null {
+  const rawMover = event.dataTransfer.getData("application/x-tds-mover");
+  const ticker = event.dataTransfer.getData("text/plain").trim().toUpperCase();
+  const rawDirection = event.dataTransfer.getData("application/x-tds-direction");
+  const direction = rawDirection === "LONG" || rawDirection === "SHORT" ? rawDirection : undefined;
+
+  if (rawMover) {
+    try {
+      const parsed = normalizeMover(JSON.parse(rawMover) as unknown);
+      if (parsed.ticker) {
+        return { mover: parsed, direction };
+      }
+    } catch {
+      // Fall back to plain ticker handling below.
+    }
+  }
+
+  if (!ticker) {
+    return null;
+  }
+
+  return {
+    mover: normalizeMover({
+      ticker,
+      name: ticker,
+      price: 0,
+      change: 0,
+      changePct: 0,
+      volume: "-",
+      volumeValue: 0,
+      reason: "Dragged from marketwatch board.",
+      sourceLabel: "drag-drop",
+    }),
+    direction,
   };
 }
 
@@ -325,6 +415,10 @@ function buildStrategyScopedKey(strategyId: string | null | undefined, ticker: s
   return `${strategyId ?? "unassigned"}:${ticker}:${direction}`;
 }
 
+function buildWatchlistItemKey(item: Pick<WatchlistItemView, "strategyId" | "ticker" | "direction">): string {
+  return buildStrategyScopedKey(item.strategyId, item.ticker, item.direction);
+}
+
 function mergeWatchlistItems(existing: WatchlistItemView[], incoming: WatchlistItemView[]): WatchlistItemView[] {
   const byKey = new Map<string, WatchlistItemView>();
 
@@ -364,6 +458,13 @@ function verdictByPassRate(passRate: number): "GO" | "CAUTION" | "SKIP" {
     return "CAUTION";
   }
   return "SKIP";
+}
+
+function serializeTradePrefill(values: string[]): string {
+  return values
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .join(",");
 }
 
 function buildFeedQuality(feedState: FeedState): FeedQuality {
@@ -445,11 +546,12 @@ function buildSavedStrategyOptions(strategies: SavedStrategy[]): StrategySelecti
   });
 }
 
-function buildHistoricalStrategyOptions(rows: HistoricalStrategyRow[], strategies: SavedStrategy[], mode: TradeMode): StrategySelectionOption[] {
+function buildHistoricalStrategyOptions(rows: HistoricalStrategyRow[], strategies: SavedStrategy[], mode: TradeMode | null): StrategySelectionOption[] {
   const metricPool = strategies.flatMap((strategy) => strategy.metrics);
+  const effectiveMode = mode ?? "swing";
 
   return rows.flatMap((row) => {
-    const storedSnapshot = parseStrategySnapshot(row.strategy_snapshot, mode);
+    const storedSnapshot = parseStrategySnapshot(row.strategy_snapshot, effectiveMode);
     const legacyMetricIds = Object.keys(asNumberMap(row.scores));
     const snapshotMetrics = storedSnapshot ? metricsFromStrategySnapshot(storedSnapshot).filter((metric) => metric.enabled) : [];
     const metrics = snapshotMetrics.length > 0 ? snapshotMetrics : legacyMetricIds.map((metricId) => resolveMetric(metricId, metricPool));
@@ -470,7 +572,7 @@ function buildHistoricalStrategyOptions(rows: HistoricalStrategyRow[], strategie
       description: `Historical snapshot reused from ${dateLabel}.`,
       learningGoal: null,
       aiInstruction: null,
-      mode,
+      mode: effectiveMode,
       metrics,
       structure: {
         setupTypes,
@@ -565,19 +667,34 @@ export default function MarketWatchClient({ userId, mode, equity, strategies, de
   const [manualInput, setManualInput] = useState("");
   const [importing, setImporting] = useState(false);
   const [watchlistMessage, setWatchlistMessage] = useState<string | null>(null);
-  const [showFeedPopup, setShowFeedPopup] = useState(false);
   const [selectedMover, setSelectedMover] = useState<Mover | null>(null);
   const [previewQuote, setPreviewQuote] = useState<Quote | null>(null);
   const [previewQuoteLoading, setPreviewQuoteLoading] = useState(false);
   const [refreshingFeed, setRefreshingFeed] = useState(false);
-  const [lastRefreshToken, setLastRefreshToken] = useState<number | null>(null);
+  const [, setLastRefreshToken] = useState<number | null>(null);
   const [previewStrategies, setPreviewStrategies] = useState<StrategySelectionOption[]>([]);
   const [selectedStrategyId, setSelectedStrategyId] = useState(defaultStrategyId ?? strategies[0]?.id ?? "");
   const [previewDirection, setPreviewDirection] = useState<"LONG" | "SHORT">("LONG");
-  const [dragStrategyId, setDragStrategyId] = useState<string | null>(null);
+  const [watchlistName, setWatchlistName] = useState("My Watchlist");
+  const [watchlistStrategyId, setWatchlistStrategyId] = useState(defaultStrategyId ?? strategies[0]?.id ?? "");
+  const [watchlistProfiles, setWatchlistProfiles] = useState<SavedWatchlistProfile[]>([]);
+  const [activeWatchlistId, setActiveWatchlistId] = useState("my-watchlist");
+  const [workbenchStrategyId, setWorkbenchStrategyId] = useState(defaultStrategyId ?? strategies[0]?.id ?? "");
+  const [watchlistProfileInitialized, setWatchlistProfileInitialized] = useState(false);
   const [moverRefreshToken, setMoverRefreshToken] = useState(0);
+  const [moversPage, setMoversPage] = useState(1);
+  const [watchlistPage, setWatchlistPage] = useState(1);
+  const [watchlistDropActive, setWatchlistDropActive] = useState(false);
+  const [workbenchDropActive, setWorkbenchDropActive] = useState(false);
+  const [circuitBreakerTripped, setCircuitBreakerTripped] = useState(false);
+  const laneSelected = Boolean(mode);
 
   const savedStrategyOptions = useMemo(() => buildSavedStrategyOptions(strategies), [strategies]);
+  const strategyConfigured = savedStrategyOptions.length > 0;
+  const marketWatchActionsEnabled = laneSelected && strategyConfigured;
+  const marketWatchDisabledReason = !laneSelected
+    ? "Choose a lane configuration to save, score, and deploy from MarketWatch."
+    : "Create or enable a strategy with at least one check to score and deploy from MarketWatch.";
 
   const defaultStrategy = useMemo(
     () => strategies.find((strategy) => strategy.id === defaultStrategyId) ?? strategies[0] ?? null,
@@ -589,17 +706,77 @@ export default function MarketWatchClient({ userId, mode, equity, strategies, de
     [defaultStrategy?.id, savedStrategyOptions],
   );
 
+  const modeStorageKey = mode ?? "account";
+  const watchlistProfilesStorageKey = useMemo(() => `tds:marketwatch:watchlist-profiles:${userId}:${modeStorageKey}`, [modeStorageKey, userId]);
+  const legacyWatchlistProfileStorageKey = useMemo(() => `tds:marketwatch:watchlist-profile:${userId}:${modeStorageKey}`, [modeStorageKey, userId]);
+  const activeWatchlistStorageKey = useMemo(() => `tds:marketwatch:watchlist-active:${userId}:${modeStorageKey}`, [modeStorageKey, userId]);
+
+  const activeWatchlistProfile = useMemo(
+    () => watchlistProfiles.find((profile) => profile.id === activeWatchlistId) ?? null,
+    [activeWatchlistId, watchlistProfiles],
+  );
+
+  const selectedWatchlistStrategy = useMemo(
+    () => savedStrategyOptions.find((option) => option.strategyId === watchlistStrategyId) ?? defaultStrategyOption ?? null,
+    [defaultStrategyOption, savedStrategyOptions, watchlistStrategyId],
+  );
+
+  const visibleWatchlistItems = useMemo(() => {
+    if (!activeWatchlistProfile) {
+      return [];
+    }
+
+    const itemKeySet = new Set(activeWatchlistProfile.itemKeys);
+    return watchlistItems.filter((item) => itemKeySet.has(buildWatchlistItemKey(item)));
+  }, [activeWatchlistProfile, watchlistItems]);
+
+  const selectedWorkbenchStrategy = useMemo(
+    () => savedStrategyOptions.find((option) => option.id === workbenchStrategyId || option.strategyId === workbenchStrategyId) ?? defaultStrategyOption ?? null,
+    [defaultStrategyOption, savedStrategyOptions, workbenchStrategyId],
+  );
+
   const scored = useMemo(
-    () => mergeScoredItems([], watchlistItems.flatMap((item) => (item.workbench ? [item.workbench] : []))),
-    [watchlistItems],
+    () => mergeScoredItems([], visibleWatchlistItems.flatMap((item) => (item.workbench ? [item.workbench] : []))),
+    [visibleWatchlistItems],
   );
 
   const feedQuality = useMemo(() => buildFeedQuality(feedState), [feedState]);
+
+  const visibleMovers = useMemo(
+    () =>
+      movers.filter((mover) => {
+        if (filter === "gainers") {
+          return mover.changePct >= 0;
+        }
+        if (filter === "losers") {
+          return mover.changePct < 0;
+        }
+        return true;
+      }),
+    [filter, movers],
+  );
+
+  const moverTotalPages = Math.max(1, Math.ceil(visibleMovers.length / MOVERS_PAGE_SIZE));
+  const watchlistTotalPages = Math.max(1, Math.ceil(visibleWatchlistItems.length / WATCHLIST_PAGE_SIZE));
+
+  const pagedMovers = useMemo(() => {
+    const startIndex = (moversPage - 1) * MOVERS_PAGE_SIZE;
+    return visibleMovers.slice(startIndex, startIndex + MOVERS_PAGE_SIZE);
+  }, [moversPage, visibleMovers]);
+
+  const pagedWatchlistItems = useMemo(() => {
+    const startIndex = (watchlistPage - 1) * WATCHLIST_PAGE_SIZE;
+    return visibleWatchlistItems.slice(startIndex, startIndex + WATCHLIST_PAGE_SIZE);
+  }, [visibleWatchlistItems, watchlistPage]);
 
   const selectedStrategy = previewStrategies.find((strategy) => strategy.id === selectedStrategyId) ?? previewStrategies[0] ?? null;
 
   useEffect(() => {
     setLastRefreshToken(getStoredMarketDataRefreshToken());
+    fetch("/api/circuit-breaker")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d?.tripped) setCircuitBreakerTripped(true); })
+      .catch(() => {});
   }, []);
 
   const previewWorkbench = useMemo(() => {
@@ -608,8 +785,44 @@ export default function MarketWatchClient({ userId, mode, equity, strategies, de
     }
 
     const strategyId = selectedStrategy?.strategyId ?? defaultStrategy?.id ?? null;
-    return watchlistItems.find((item) => buildStrategyScopedKey(item.strategyId, item.ticker, item.direction) === buildStrategyScopedKey(strategyId, selectedMover.ticker, previewDirection))?.workbench ?? null;
-  }, [defaultStrategy?.id, previewDirection, selectedMover, selectedStrategy?.strategyId, watchlistItems]);
+    return visibleWatchlistItems.find((item) => buildStrategyScopedKey(item.strategyId, item.ticker, item.direction) === buildStrategyScopedKey(strategyId, selectedMover.ticker, previewDirection))?.workbench ?? null;
+  }, [defaultStrategy?.id, previewDirection, selectedMover, selectedStrategy?.strategyId, visibleWatchlistItems]);
+
+  const previewPlanTradeHref = useMemo(() => {
+    if (!selectedMover || !selectedStrategy || previewWorkbench?.verdict !== "GO") {
+      return null;
+    }
+
+    const params = new URLSearchParams({
+      ticker: selectedMover.ticker,
+      direction: previewDirection,
+      strategyId: selectedStrategy.strategyId ?? "",
+      thesis: selectedStrategy.strategyThesis ? `${selectedMover.reason} Historical anchor: ${selectedStrategy.strategyThesis}` : selectedMover.reason,
+      setupTypes: serializeTradePrefill(selectedStrategy.setupTypes),
+      conditions: serializeTradePrefill(selectedStrategy.conditions),
+      chartPattern: selectedStrategy.chartPattern,
+      assetClass: "Equity",
+      source: "marketwatch",
+    });
+
+    if (!selectedStrategy.strategyId) {
+      params.delete("strategyId");
+    }
+
+    if (!selectedStrategy.chartPattern || selectedStrategy.chartPattern === "None") {
+      params.delete("chartPattern");
+    }
+
+    if (selectedStrategy.setupTypes.length === 0) {
+      params.delete("setupTypes");
+    }
+
+    if (selectedStrategy.conditions.length === 0) {
+      params.delete("conditions");
+    }
+
+    return `/trade/new?${params.toString()}`;
+  }, [previewDirection, previewWorkbench?.verdict, selectedMover, selectedStrategy]);
 
   useEffect(() => {
     let isActive = true;
@@ -678,6 +891,12 @@ export default function MarketWatchClient({ userId, mode, equity, strategies, de
     let isActive = true;
 
     async function loadWatchlist() {
+      if (!mode) {
+        setWatchlistItems([]);
+        setWatchlistLoading(false);
+        return;
+      }
+
       setWatchlistLoading(true);
 
       const { data, error: watchlistError } = await supabase
@@ -710,10 +929,149 @@ export default function MarketWatchClient({ userId, mode, equity, strategies, de
   }, [mode, supabase, userId]);
 
   useEffect(() => {
-    if (error || (feedState && feedState.status !== "live")) {
-      setShowFeedPopup(true);
+    setWatchlistProfileInitialized(false);
+  }, [watchlistProfilesStorageKey]);
+
+  useEffect(() => {
+    if (watchlistProfileInitialized) {
+      return;
     }
-  }, [error, feedState]);
+
+    const fallbackStrategyId = defaultStrategyOption?.strategyId ?? savedStrategyOptions[0]?.strategyId ?? "";
+    let nextProfiles = [buildDefaultWatchlistProfile(fallbackStrategyId)];
+    let nextActiveId = nextProfiles[0]?.id ?? "my-watchlist";
+
+    try {
+      const rawProfiles = window.localStorage.getItem(watchlistProfilesStorageKey);
+      if (rawProfiles) {
+        const parsedProfiles = JSON.parse(rawProfiles) as SavedWatchlistProfile[];
+        if (Array.isArray(parsedProfiles) && parsedProfiles.length > 0) {
+          nextProfiles = parsedProfiles
+            .filter((profile) => typeof profile?.name === "string" && profile.name.trim())
+            .map((profile) => ({
+              id: typeof profile.id === "string" && profile.id.trim() ? profile.id : buildWatchlistProfileId(profile.name),
+              name: profile.name.trim(),
+              strategyId: typeof profile.strategyId === "string" ? profile.strategyId.trim() : fallbackStrategyId,
+              itemKeys: Array.isArray(profile.itemKeys) ? profile.itemKeys.filter((itemKey): itemKey is string => typeof itemKey === "string") : [],
+            }));
+        }
+      } else {
+        const rawLegacyProfile = window.localStorage.getItem(legacyWatchlistProfileStorageKey);
+        if (rawLegacyProfile) {
+          const parsedLegacyProfile = JSON.parse(rawLegacyProfile) as { name?: string; strategyId?: string };
+          const legacyName = typeof parsedLegacyProfile.name === "string" && parsedLegacyProfile.name.trim() ? parsedLegacyProfile.name.trim() : "My Watchlist";
+          const legacyStrategyId = typeof parsedLegacyProfile.strategyId === "string" && parsedLegacyProfile.strategyId.trim()
+            ? parsedLegacyProfile.strategyId.trim()
+            : fallbackStrategyId;
+          nextProfiles = [{ id: buildWatchlistProfileId(legacyName), name: legacyName, strategyId: legacyStrategyId, itemKeys: [] }];
+        }
+      }
+
+      const storedActiveId = window.localStorage.getItem(activeWatchlistStorageKey);
+      if (storedActiveId && nextProfiles.some((profile) => profile.id === storedActiveId)) {
+        nextActiveId = storedActiveId;
+      }
+    } catch {
+      nextProfiles = [buildDefaultWatchlistProfile(fallbackStrategyId)];
+      nextActiveId = nextProfiles[0]?.id ?? "my-watchlist";
+    }
+
+    const normalizedProfiles = nextProfiles.map((profile, index) => ({
+      ...profile,
+      strategyId:
+        profile.strategyId && savedStrategyOptions.some((option) => option.strategyId === profile.strategyId)
+          ? profile.strategyId
+          : fallbackStrategyId,
+      id: profile.id || `${buildWatchlistProfileId(profile.name)}-${index}`,
+    }));
+
+    const resolvedActiveProfile = normalizedProfiles.find((profile) => profile.id === nextActiveId) ?? normalizedProfiles[0] ?? buildDefaultWatchlistProfile(fallbackStrategyId);
+
+    setWatchlistProfiles(normalizedProfiles);
+    setActiveWatchlistId(resolvedActiveProfile.id);
+    setWatchlistName(resolvedActiveProfile.name);
+    setWatchlistStrategyId(resolvedActiveProfile.strategyId);
+    setWatchlistProfileInitialized(true);
+  }, [activeWatchlistStorageKey, defaultStrategyOption?.strategyId, legacyWatchlistProfileStorageKey, savedStrategyOptions, watchlistProfileInitialized, watchlistProfilesStorageKey]);
+
+  useEffect(() => {
+    if (!watchlistProfileInitialized) {
+      return;
+    }
+
+    try {
+      window.localStorage.setItem(watchlistProfilesStorageKey, JSON.stringify(watchlistProfiles));
+      window.localStorage.setItem(activeWatchlistStorageKey, activeWatchlistId);
+    } catch {
+      // Ignore local persistence failures.
+    }
+  }, [activeWatchlistId, activeWatchlistStorageKey, watchlistProfileInitialized, watchlistProfiles, watchlistProfilesStorageKey]);
+
+  useEffect(() => {
+    if (!activeWatchlistProfile) {
+      return;
+    }
+
+    setWatchlistName(activeWatchlistProfile.name);
+    setWatchlistStrategyId(activeWatchlistProfile.strategyId);
+    setWatchlistPage(1);
+  }, [activeWatchlistProfile]);
+
+  useEffect(() => {
+    if (!watchlistStrategyId) {
+      const fallbackStrategyId = defaultStrategyOption?.strategyId ?? savedStrategyOptions[0]?.strategyId ?? "";
+      if (fallbackStrategyId) {
+        setWatchlistStrategyId(fallbackStrategyId);
+      }
+      return;
+    }
+
+    if (!savedStrategyOptions.some((option) => option.strategyId === watchlistStrategyId)) {
+      const fallbackStrategyId = defaultStrategyOption?.strategyId ?? savedStrategyOptions[0]?.strategyId ?? "";
+      setWatchlistStrategyId(fallbackStrategyId);
+    }
+  }, [defaultStrategyOption?.strategyId, savedStrategyOptions, watchlistStrategyId]);
+
+  useEffect(() => {
+    if (!workbenchStrategyId) {
+      const fallbackStrategyId = defaultStrategyOption?.id ?? savedStrategyOptions[0]?.id ?? "";
+      if (fallbackStrategyId) {
+        setWorkbenchStrategyId(fallbackStrategyId);
+      }
+      return;
+    }
+
+    if (!savedStrategyOptions.some((option) => option.id === workbenchStrategyId || option.strategyId === workbenchStrategyId)) {
+      const fallbackStrategyId = defaultStrategyOption?.id ?? savedStrategyOptions[0]?.id ?? "";
+      setWorkbenchStrategyId(fallbackStrategyId);
+    }
+  }, [defaultStrategyOption?.id, savedStrategyOptions, workbenchStrategyId]);
+
+  useEffect(() => {
+    setMoversPage(1);
+  }, [filter]);
+
+  useEffect(() => {
+    if (moversPage > moverTotalPages) {
+      setMoversPage(moverTotalPages);
+    }
+  }, [moverTotalPages, moversPage]);
+
+  useEffect(() => {
+    if (watchlistPage > watchlistTotalPages) {
+      setWatchlistPage(watchlistTotalPages);
+    }
+  }, [watchlistPage, watchlistTotalPages]);
+
+  function syncWatchlistMembership(itemKeys: string[], profileId = activeWatchlistId) {
+    setWatchlistProfiles((previous) =>
+      previous.map((profile) =>
+        profile.id === profileId
+          ? { ...profile, itemKeys: Array.from(new Set([...profile.itemKeys, ...itemKeys])) }
+          : profile,
+      ),
+    );
+  }
 
   useEffect(() => {
     if (!selectedMover) {
@@ -745,14 +1103,16 @@ export default function MarketWatchClient({ userId, mode, equity, strategies, de
             return null;
           }
         })(),
-        supabase
-          .from("trades")
-          .select("id, strategy_id, strategy_version_id, strategy_name, strategy_snapshot, direction, setup_types, conditions, chart_pattern, thesis, scores, conviction, created_at")
-          .eq("user_id", userId)
-          .eq("ticker", mover.ticker)
-          .eq("mode", mode)
-          .order("created_at", { ascending: false })
-          .limit(4),
+        mode
+          ? supabase
+              .from("trades")
+              .select("id, strategy_id, strategy_version_id, strategy_name, strategy_snapshot, direction, setup_types, conditions, chart_pattern, thesis, scores, conviction, created_at")
+              .eq("user_id", userId)
+              .eq("ticker", mover.ticker)
+              .eq("mode", mode)
+              .order("created_at", { ascending: false })
+              .limit(4)
+          : Promise.resolve({ data: [], error: null }),
       ]);
 
       if (!isActive) {
@@ -783,75 +1143,6 @@ export default function MarketWatchClient({ userId, mode, equity, strategies, de
     };
   }, [defaultStrategyId, mode, previewWorkbench?.strategyId, savedStrategyOptions, selectedMover, strategies, supabase, userId]);
 
-  const visibleMovers = movers.filter((mover) => {
-    if (filter === "gainers") {
-      return mover.changePct >= 0;
-    }
-    if (filter === "losers") {
-      return mover.changePct < 0;
-    }
-    return true;
-  });
-
-  const strategyBuckets = useMemo(() => {
-    const buckets = savedStrategyOptions.map((option) => ({
-      id: option.strategyId ?? option.id,
-      strategyId: option.strategyId,
-      label: option.label,
-      detail: option.detail,
-      setupLabel: option.setupLabel,
-      metricCount: option.metricIds.length,
-      droppable: Boolean(option.strategyId),
-      items: [] as WatchlistItemView[],
-    }));
-
-    const byStrategyId = new Map<string, (typeof buckets)[number]>();
-    buckets.forEach((bucket) => {
-      if (bucket.strategyId) {
-        byStrategyId.set(bucket.strategyId, bucket);
-      }
-    });
-
-    for (const item of watchlistItems) {
-      const existingBucket = item.strategyId ? byStrategyId.get(item.strategyId) ?? null : null;
-      if (existingBucket) {
-        existingBucket.items.push(item);
-        continue;
-      }
-
-      const fallbackId = item.strategyId ?? "unassigned";
-      let fallbackBucket = buckets.find((bucket) => bucket.id === fallbackId) ?? null;
-      if (!fallbackBucket) {
-        fallbackBucket = {
-          id: fallbackId,
-          strategyId: item.strategyId,
-          label: item.strategyName ?? item.workbench?.strategyLabel ?? "Unassigned lane",
-          detail: item.workbench?.strategyDetail ?? "Legacy or manually saved rows that do not currently map to an active strategy lane.",
-          setupLabel: item.workbench?.setupTypes[0] ?? "Manual queue",
-          metricCount: item.workbench?.strategyMetricIds.length ?? 0,
-          droppable: false,
-          items: [],
-        };
-        buckets.push(fallbackBucket);
-      }
-
-      fallbackBucket.items.push(item);
-    }
-
-    buckets.forEach((bucket) => {
-      bucket.items.sort((left, right) => {
-        const leftWorkbench = left.workbench?.updatedAt ? new Date(left.workbench.updatedAt).getTime() : 0;
-        const rightWorkbench = right.workbench?.updatedAt ? new Date(right.workbench.updatedAt).getTime() : 0;
-        const leftTime = left.lastScoredAt ? new Date(left.lastScoredAt).getTime() : 0;
-        const rightTime = right.lastScoredAt ? new Date(right.lastScoredAt).getTime() : 0;
-
-        return rightWorkbench - leftWorkbench || rightTime - leftTime || left.ticker.localeCompare(right.ticker);
-      });
-    });
-
-    return buckets.filter((bucket) => bucket.droppable || bucket.items.length > 0);
-  }, [savedStrategyOptions, watchlistItems]);
-
   async function persistWatchlistRow(params: {
     mover: Mover;
     direction: "LONG" | "SHORT";
@@ -864,6 +1155,10 @@ export default function MarketWatchClient({ userId, mode, equity, strategies, de
     strategySnapshot?: StrategySnapshot | null;
     lastScoredAt?: string | null;
   }): Promise<WatchlistItemView> {
+    if (!mode) {
+      throw new Error("MarketWatch requires a selected lane before saving watchlist items.");
+    }
+
     const lookupStrategyId = params.strategyId ?? defaultStrategyOption?.strategyId ?? null;
     const existing = watchlistItems.find((item) => buildStrategyScopedKey(item.strategyId, item.ticker, item.direction) === buildStrategyScopedKey(lookupStrategyId, params.mover.ticker, params.direction))
       ?? watchlistItems.find((item) => item.strategyId == null && item.ticker === params.mover.ticker && item.direction === params.direction)
@@ -919,18 +1214,33 @@ export default function MarketWatchClient({ userId, mode, equity, strategies, de
     return normalizeWatchlistRow(data);
   }
 
-  async function addToWatchlist(mover: Mover, direction: "LONG" | "SHORT", note: string) {
+  async function addToWatchlist(mover: Mover, direction: "LONG" | "SHORT", note: string, strategyOverride?: StrategySelectionOption | null) {
+    if (!marketWatchActionsEnabled) {
+      setWatchlistMessage(marketWatchDisabledReason);
+      return;
+    }
+
     const normalized = await persistWatchlistRow({
       mover,
       direction,
       verdict: "WATCH",
       note,
+      strategyId: strategyOverride?.strategyId ?? undefined,
+      strategyVersionId: strategyOverride?.strategyVersionId ?? undefined,
+      strategyName: strategyOverride?.label ?? undefined,
+      strategySnapshot: strategyOverride?.strategySnapshot ?? undefined,
     });
 
     setWatchlistItems((previous) => mergeWatchlistItems(previous, [normalized]));
+    syncWatchlistMembership([buildWatchlistItemKey(normalized)]);
   }
 
   async function persistWorkbenchItem(item: ScoredMover) {
+    if (!marketWatchActionsEnabled) {
+      setWatchlistMessage(marketWatchDisabledReason);
+      return;
+    }
+
     const existing = watchlistItems.find((entry) => buildStrategyScopedKey(entry.strategyId, entry.ticker, entry.direction) === buildStrategyScopedKey(item.strategyId, item.ticker, item.direction)) ?? null;
     const mover = buildMoverFromWorkbench(item, existing);
     const normalized = await persistWatchlistRow({
@@ -947,6 +1257,7 @@ export default function MarketWatchClient({ userId, mode, equity, strategies, de
     });
 
     setWatchlistItems((previous) => mergeWatchlistItems(previous, [normalized]));
+    syncWatchlistMembership([buildWatchlistItemKey(normalized)]);
   }
 
   async function scoreMoverAgainstStrategy(params: {
@@ -957,6 +1268,11 @@ export default function MarketWatchClient({ userId, mode, equity, strategies, de
     successMessage: string;
     closePreview?: boolean;
   }) {
+    if (!marketWatchActionsEnabled || !mode) {
+      setError(marketWatchDisabledReason);
+      return;
+    }
+
     const selectedMetrics = params.strategy.metrics;
     if (selectedMetrics.length === 0) {
       setError(`No metrics are available for ${params.strategy.label}.`);
@@ -1090,12 +1406,12 @@ export default function MarketWatchClient({ userId, mode, equity, strategies, de
       direction: previewDirection,
       quote: previewQuote,
       successMessage: `${selectedMover.ticker} moved into the custom watchlist workbench using ${selectedStrategy.label}.`,
-      closePreview: true,
+      closePreview: false,
     });
   }
 
   function updateWorkbenchField(strategyId: string, ticker: string, direction: "LONG" | "SHORT", field: "entry" | "stop", value: number | null) {
-    const targetItem = watchlistItems.find((item) => buildStrategyScopedKey(item.strategyId, item.ticker, item.direction) === buildStrategyScopedKey(strategyId, ticker, direction))?.workbench;
+    const targetItem = visibleWatchlistItems.find((item) => buildStrategyScopedKey(item.strategyId, item.ticker, item.direction) === buildStrategyScopedKey(strategyId, ticker, direction))?.workbench;
     if (!targetItem) {
       return;
     }
@@ -1121,15 +1437,23 @@ export default function MarketWatchClient({ userId, mode, equity, strategies, de
   }
 
   async function watchMover(mover: Mover) {
+    if (!marketWatchActionsEnabled) {
+      setWatchlistMessage(marketWatchDisabledReason);
+      return;
+    }
+
     setWatchingTicker(mover.ticker);
+    const watchlistStrategy = selectedWatchlistStrategy;
+    const watchlistLabel = watchlistName.trim() || "My Watchlist";
 
     try {
       await addToWatchlist(
         mover,
         mover.changePct >= 0 ? "LONG" : "SHORT",
-        `Added manually from MarketWatch for later review in ${defaultStrategyOption?.label ?? "the default lane"}. ${mover.reason}`,
+        `Added to ${watchlistLabel} for ${watchlistStrategy?.label ?? "the assigned strategy lane"}. ${mover.reason}`,
+        watchlistStrategy,
       );
-      setWatchlistMessage(`${mover.ticker} was added to ${defaultStrategyOption?.label ?? "the default strategy lane"}.`);
+      setWatchlistMessage(`${mover.ticker} was added to ${watchlistLabel} (${watchlistStrategy?.label ?? "assigned strategy"}).`);
       setError(null);
     } catch {
       setError(`Unable to add ${mover.ticker} to the custom watchlist.`);
@@ -1138,63 +1462,125 @@ export default function MarketWatchClient({ userId, mode, equity, strategies, de
     }
   }
 
-  function readDraggedMover(event: DragEvent<HTMLDivElement>): Mover | null {
-    const rawMover = event.dataTransfer.getData("application/x-tds-mover");
-    if (rawMover) {
-      try {
-        return normalizeMover(JSON.parse(rawMover) as unknown);
-      } catch {
-        return null;
-      }
+  async function scoreWatchlistTicker(item: WatchlistItemView) {
+    if (!marketWatchActionsEnabled) {
+      setWatchlistMessage(marketWatchDisabledReason);
+      return;
     }
 
-    const ticker = event.dataTransfer.getData("text/plain").trim().toUpperCase();
-    if (!ticker) {
-      return null;
-    }
-
-    return movers.find((mover) => mover.ticker === ticker) ?? null;
-  }
-
-  async function dropMoverIntoStrategy(event: DragEvent<HTMLDivElement>, strategy: StrategySelectionOption) {
-    event.preventDefault();
-    setDragStrategyId(null);
-
-    const mover = readDraggedMover(event);
-    if (!mover) {
-      setWatchlistMessage("The dropped symbol could not be read from the active tape.");
+    const strategy = selectedWorkbenchStrategy;
+    if (!strategy) {
+      setWatchlistMessage("Select a strategy for the scored workbench first.");
       return;
     }
 
     await scoreMoverAgainstStrategy({
-      mover,
+      mover: buildMoverFromWatchlist(item),
       strategy,
-      direction: mover.changePct >= 0 ? "LONG" : "SHORT",
-      successMessage: `${mover.ticker} was added to ${strategy.label} and scored automatically.`,
+      direction: item.direction,
+      successMessage: `${item.ticker} scored with ${strategy.label} and moved to the scored workbench.`,
+    });
+  }
+
+  async function handleDropToWatchlist(event: DragEvent<HTMLElement>) {
+    event.preventDefault();
+    setWatchlistDropActive(false);
+
+    if (!marketWatchActionsEnabled) {
+      setWatchlistMessage(marketWatchDisabledReason);
+      return;
+    }
+
+    const dropped = readDroppedMoverFromEvent(event);
+    if (!dropped) {
+      return;
+    }
+
+    setWatchingTicker(dropped.mover.ticker);
+    try {
+      const watchlistStrategy = selectedWatchlistStrategy;
+      const watchlistLabel = watchlistName.trim() || "My Watchlist";
+      await addToWatchlist(
+        dropped.mover,
+        dropped.direction ?? (dropped.mover.changePct >= 0 ? "LONG" : "SHORT"),
+        `Added via drag and drop into ${watchlistLabel} for ${watchlistStrategy?.label ?? "the assigned strategy lane"}.`,
+        watchlistStrategy,
+      );
+      setWatchlistMessage(`${dropped.mover.ticker} was added to ${watchlistLabel} (${watchlistStrategy?.label ?? "assigned strategy"}).`);
+      setError(null);
+    } catch {
+      setError(`Unable to add ${dropped.mover.ticker} to the custom watchlist.`);
+    } finally {
+      setWatchingTicker(null);
+    }
+  }
+
+  async function handleDropToWorkbench(event: DragEvent<HTMLElement>) {
+    event.preventDefault();
+    setWorkbenchDropActive(false);
+
+    if (!marketWatchActionsEnabled) {
+      setWatchlistMessage(marketWatchDisabledReason);
+      return;
+    }
+
+    const dropped = readDroppedMoverFromEvent(event);
+    if (!dropped) {
+      return;
+    }
+
+    const strategy = selectedWorkbenchStrategy;
+    if (!strategy) {
+      setWatchlistMessage("Select a strategy before dropping a ticker into the scored workbench.");
+      return;
+    }
+
+    await scoreMoverAgainstStrategy({
+      mover: dropped.mover,
+      strategy,
+      direction: dropped.direction ?? (dropped.mover.changePct >= 0 ? "LONG" : "SHORT"),
+      successMessage: `${dropped.mover.ticker} scored with ${strategy.label} and saved to the scored workbench.`,
     });
   }
 
   async function removeWatchlistItem(item: WatchlistItemView) {
     setWatchingTicker(item.ticker);
 
-    try {
-      const { error: deleteError } = await supabase.from("watchlist_items").delete().eq("id", item.id);
+    const itemKey = buildWatchlistItemKey(item);
+    const existsInOtherWatchlists = watchlistProfiles.some((profile) => profile.id !== activeWatchlistId && profile.itemKeys.includes(itemKey));
 
-      if (deleteError) {
-        throw deleteError;
+    try {
+      setWatchlistProfiles((previous) =>
+        previous.map((profile) =>
+          profile.id === activeWatchlistId ? { ...profile, itemKeys: profile.itemKeys.filter((entry) => entry !== itemKey) } : profile,
+        ),
+      );
+
+      if (!existsInOtherWatchlists) {
+        const { error: deleteError } = await supabase.from("watchlist_items").delete().eq("id", item.id);
+
+        if (deleteError) {
+          throw deleteError;
+        }
+
+        setWatchlistItems((previous) => previous.filter((entry) => entry.id !== item.id));
       }
 
-      setWatchlistItems((previous) => previous.filter((entry) => entry.id !== item.id));
-      setWatchlistMessage(`${item.ticker} was removed from the custom watchlist.`);
+      setWatchlistMessage(`${item.ticker} was removed from ${activeWatchlistProfile?.name ?? "the current watchlist"}.`);
       setError(null);
     } catch {
-      setError(`Unable to remove ${item.ticker} from the custom watchlist.`);
+      setError(`Unable to remove ${item.ticker} from the current watchlist.`);
     } finally {
       setWatchingTicker(null);
     }
   }
 
   async function importTickers() {
+    if (!marketWatchActionsEnabled) {
+      setWatchlistMessage(marketWatchDisabledReason);
+      return;
+    }
+
     if (!manualInput.trim()) {
       setWatchlistMessage("Paste one or more ticker symbols to add to the custom watchlist.");
       return;
@@ -1226,30 +1612,82 @@ export default function MarketWatchClient({ userId, mode, equity, strategies, de
         return;
       }
 
+      const watchlistStrategy = selectedWatchlistStrategy;
+      const watchlistLabel = watchlistName.trim() || "My Watchlist";
+
       const persistedRows = await Promise.all(
         importedMovers.map((mover) =>
           persistWatchlistRow({
             mover,
             direction: (mover.changePct >= 0 ? "LONG" : "SHORT") as "LONG" | "SHORT",
             verdict: "WATCH",
-            note: `Added manually from the MarketWatch custom watchlist into ${defaultStrategyOption?.label ?? "the default lane"}.`,
+            note: `Added manually into ${watchlistLabel} for ${watchlistStrategy?.label ?? "the assigned strategy lane"}.`,
+            strategyId: watchlistStrategy?.strategyId ?? undefined,
+            strategyVersionId: watchlistStrategy?.strategyVersionId ?? undefined,
+            strategyName: watchlistStrategy?.label ?? undefined,
+            strategySnapshot: watchlistStrategy?.strategySnapshot ?? undefined,
           }),
         ),
       );
 
       setMovers((previous) => mergeMovers(previous, importedMovers));
       setWatchlistItems((previous) => mergeWatchlistItems(previous, persistedRows));
+      syncWatchlistMembership(persistedRows.map((item) => buildWatchlistItemKey(item)));
       setManualInput("");
       setError(null);
 
       const unresolved = Array.isArray(payload.unresolvedTickers) && payload.unresolvedTickers.length > 0
         ? ` Unavailable: ${payload.unresolvedTickers.join(", ")}.`
         : "";
-      setWatchlistMessage(`Added ${importedMovers.length} ticker${importedMovers.length === 1 ? "" : "s"} to ${defaultStrategyOption?.label ?? "the default strategy lane"}.${unresolved}`);
+      setWatchlistMessage(`Added ${importedMovers.length} ticker${importedMovers.length === 1 ? "" : "s"} to ${watchlistLabel} (${watchlistStrategy?.label ?? "assigned strategy"}).${unresolved}`);
     } catch (importError) {
       setWatchlistMessage(importError instanceof Error ? importError.message : "Ticker import failed.");
     } finally {
       setImporting(false);
+    }
+  }
+
+  function saveWatchlistProfile() {
+    if (!marketWatchActionsEnabled) {
+      setWatchlistMessage(marketWatchDisabledReason);
+      return;
+    }
+
+    const nextName = watchlistName.trim();
+    if (!nextName) {
+      setWatchlistMessage("Enter a custom watchlist name before saving.");
+      return;
+    }
+
+    const strategy = selectedWatchlistStrategy;
+    if (!strategy?.strategyId) {
+      setWatchlistMessage("Pick a strategy before saving this watchlist profile.");
+      return;
+    }
+
+    const matchingProfile = watchlistProfiles.find((profile) => profile.name.trim().toLowerCase() === nextName.toLowerCase()) ?? null;
+    const nextProfileId = matchingProfile?.id ?? buildWatchlistProfileId(nextName);
+
+    const safeStrategyId = strategy.strategyId!;
+
+    try {
+      setWatchlistProfiles((previous) => {
+        if (previous.some((profile) => profile.id === nextProfileId)) {
+          return previous.map((profile) =>
+            profile.id === nextProfileId
+              ? { ...profile, name: nextName, strategyId: safeStrategyId, itemKeys: profile.itemKeys }
+              : profile,
+          );
+        }
+
+        return [...previous, { id: nextProfileId, name: nextName, strategyId: safeStrategyId, itemKeys: [] }];
+      });
+      setActiveWatchlistId(nextProfileId);
+      setWatchlistName(nextName);
+      setWatchlistStrategyId(strategy.strategyId);
+      setWatchlistMessage(`Saved \"${nextName}\" and mapped it to ${strategy.label}.`);
+    } catch {
+      setWatchlistMessage("Unable to save the custom watchlist profile locally.");
     }
   }
 
@@ -1260,7 +1698,17 @@ export default function MarketWatchClient({ userId, mode, equity, strategies, de
   }
 
   async function deploy(item: ScoredMover) {
+    if (!marketWatchActionsEnabled || !mode) {
+      setError(marketWatchDisabledReason);
+      return;
+    }
+
     if (!userId || !item.conviction || item.entry == null || item.stop == null) {
+      return;
+    }
+
+    if (circuitBreakerTripped) {
+      setError("Circuit breaker is active. Use the full trade wizard to override.");
       return;
     }
 
@@ -1314,6 +1762,8 @@ export default function MarketWatchClient({ userId, mode, equity, strategies, de
         confirmed: true,
         closed: false,
         source: "marketwatch",
+        state: "deployed",
+        classification: "in_policy",
       });
 
       if (insertError) {
@@ -1325,6 +1775,8 @@ export default function MarketWatchClient({ userId, mode, equity, strategies, de
         const { error: deleteError } = await supabase.from("watchlist_items").delete().eq("id", watchlistRow.id);
         if (!deleteError) {
           setWatchlistItems((previous) => previous.filter((entry) => entry.id !== watchlistRow.id));
+          const itemKey = buildWatchlistItemKey(watchlistRow);
+          setWatchlistProfiles((previous) => previous.map((profile) => ({ ...profile, itemKeys: profile.itemKeys.filter((entry) => entry !== itemKey) })));
         }
       }
       router.push("/dashboard");
@@ -1336,323 +1788,342 @@ export default function MarketWatchClient({ userId, mode, equity, strategies, de
   }
 
   return (
-    <main className="space-y-8">
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_320px]">
-        <div className="fin-hero px-7 py-8 sm:px-8 sm:py-9">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="fin-chip fin-chip-strong">MarketWatch</p>
-            <span className="rounded-full border border-white/16 bg-white/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-white">
-              {feedQuality.label}
-            </span>
-          </div>
-          <h1 className="mt-6 max-w-3xl text-3xl font-semibold tracking-[-0.05em] text-white sm:text-5xl">
-            Scan movers, preview fast, and stage ideas.
-          </h1>
-          <p className="mt-4 max-w-2xl text-sm leading-7 text-white/76 sm:text-base">
-            Score each symbol with your strategy and keep plans saved in the workbench.
-          </p>
-          <p className="mt-4 max-w-2xl text-xs uppercase tracking-[0.16em] text-white/60">{feedQuality.detail}</p>
-          <div className="mt-4 inline-flex rounded-full border border-white/16 bg-white/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/76">
-            Market Sync {formatMarketDataRefreshTime(lastRefreshToken)}
-          </div>
-
-          <div className="mt-8 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-[24px] border border-white/14 bg-white/10 p-4 backdrop-blur">
-              <p className="text-xs uppercase tracking-[0.18em] text-white/60">Mode</p>
-              <p className="mt-2 text-2xl font-semibold text-white">{formatModeLabel(mode)}</p>
-            </div>
-            <div className="rounded-[24px] border border-white/14 bg-white/10 p-4 backdrop-blur">
-              <p className="text-xs uppercase tracking-[0.18em] text-white/60">Custom Watchlist</p>
-              <p className="mt-2 font-mono text-3xl text-white">{watchlistItems.length}</p>
-            </div>
-            <div className="rounded-[24px] border border-white/14 bg-white/10 p-4 backdrop-blur">
-              <p className="text-xs uppercase tracking-[0.18em] text-white/60">Workbench Queue</p>
-              <p className="mt-2 font-mono text-3xl text-white">{scored.length}</p>
-            </div>
-          </div>
-
-          <div className="mt-8 flex flex-wrap gap-2">
-            {[
-              { key: "all", label: "All Movers" },
-              { key: "gainers", label: "Gainers" },
-              { key: "losers", label: "Losers" },
-            ].map((item) => (
-              <button
-                key={item.key}
-                type="button"
-                onClick={() => setFilter(item.key as FilterTab)}
-                className={`rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] ${filter === item.key ? "border-white/20 bg-white/18 text-white" : "border-white/14 bg-white/8 text-white/76 hover:bg-white/14"}`}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
+    <main className="terminal-page-shell marketwatch-terminal">
+      <section className="surface-panel marketwatch-toolbar">
+        <div className="terminal-page-header">
+          <p className="meta-label">MarketWatch</p>
+          <h2>MarketWatch</h2>
+          <p className="page-intro">Discovery stays visible at the account level. The {formatModeLabel(mode)} configuration only changes scoring, watchlists, and deploy defaults.</p>
         </div>
-
-        <aside className="fin-panel p-6">
-          <p className="fin-kicker">Scanner State</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-tds-text">Status</h2>
-          <div className="mt-5 space-y-3">
-            <div className="fin-card flex items-start gap-3 p-4">
-              <Radar className="mt-0.5 h-5 w-5 text-tds-blue" />
-              <div>
-                <p className="fin-kicker">Metric Stack</p>
-                <p className="mt-1 text-sm text-tds-text">{savedStrategyOptions.length} saved strateg{savedStrategyOptions.length === 1 ? "y" : "ies"} available.</p>
-              </div>
-            </div>
-            <div className="fin-card flex items-start gap-3 p-4">
-              <Sparkles className="mt-0.5 h-5 w-5 text-tds-teal" />
-              <div>
-                <p className="fin-kicker">Feed Quality</p>
-                <p className="mt-1 text-sm text-tds-text">{feedQuality.label}. {feedQuality.detail}</p>
-              </div>
-            </div>
-            <div className="fin-card p-4">
-              <p className="fin-kicker">Quote Status</p>
-              <p className="mt-1 text-sm text-tds-text">Shared quote labels across preview, sizing, and trade screens.</p>
-              <QuoteStatusLegend className="mt-4" />
-            </div>
-            <div className="fin-card flex items-start gap-3 p-4">
-              <ListChecks className="mt-0.5 h-5 w-5 text-tds-amber" />
-              <div>
-                <p className="fin-kicker">Watchlist Desk</p>
-                <p className="mt-1 text-sm text-tds-text">{watchlistItems.length} staged name{watchlistItems.length === 1 ? "" : "s"}, {scored.length} workbench item{scored.length === 1 ? "" : "s"}.</p>
-              </div>
-            </div>
-            <div className="fin-card flex items-start gap-3 p-4">
-              <ShieldCheck className="mt-0.5 h-5 w-5 text-tds-green" />
-              <div>
-                <p className="fin-kicker">Execution Queue</p>
-                <p className="mt-1 text-sm text-tds-text">Deploy after preview, score, and planning.</p>
-              </div>
-            </div>
+        <div className="marketwatch-actions">
+          <div className="import-shell">
+            <input
+              value={manualInput}
+              onChange={(event) => setManualInput(event.target.value.toUpperCase())}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  void importTickers();
+                }
+              }}
+              placeholder="Import Tickers (e.g. NVDA, AAPL)"
+              aria-label="Import tickers"
+              disabled={!marketWatchActionsEnabled}
+              className="import-input"
+            />
+            <button
+              type="button"
+              onClick={() => void importTickers()}
+              disabled={importing || !marketWatchActionsEnabled}
+              aria-label="Import tickers to watchlist"
+              className="square-action primary-square disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {importing ? "…" : "+"}
+            </button>
+            <button
+              type="button"
+              onClick={refreshMarketFeed}
+              disabled={refreshingFeed}
+              aria-label="Refresh movers feed"
+              className="square-action disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {refreshingFeed ? "…" : "↻"}
+            </button>
           </div>
-        </aside>
+          <span className="tag">{watchlistName.trim() || "My Watchlist"}</span>
+        </div>
       </section>
 
-      {error ? <div className="rounded-[22px] border border-tds-red/25 bg-tds-red/10 px-4 py-3 text-sm text-tds-red">{error}</div> : null}
-
-      {loading && movers.length === 0 ? (
-        <div className="fin-panel p-6 text-sm text-tds-dim">Loading movers...</div>
+      {!marketWatchActionsEnabled ? (
+        <section className="priority-card warn">
+          <p className="meta-label">MarketWatch Configuration</p>
+          <p className="mt-2 text-sm text-tds-text">{marketWatchDisabledReason}</p>
+        </section>
       ) : null}
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="fin-panel p-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="fin-kicker">Active Tape</p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-tds-text">Most active movers</h2>
+      <section className="marketwatch-terminal-grid">
+        <section className="market-column">
+          <div className="section-heading-row">
+            <div className="heading-with-tabs">
+              <h3>Active Movers</h3>
+              <div className="segmented-mini-tabs">
+                {[
+                  { key: "all", label: "All" },
+                  { key: "gainers", label: "Gainers" },
+                  { key: "losers", label: "Losers" },
+                ].map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => setFilter(item.key as FilterTab)}
+                    className={cn("mini-tab", filter === item.key ? "active" : "")}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
             </div>
-            <span className="fin-chip">{visibleMovers.length} visible</span>
+            <span className="tag">{visibleMovers.length} visible</span>
           </div>
 
-          {visibleMovers.length === 0 && !loading ? (
-            <div className="fin-card mt-6 p-6 text-sm leading-6 text-tds-dim">No movers match the active filter right now.</div>
+          {error ? <div className="movers-status-error">{error}</div> : null}
+
+          {loading && movers.length === 0 ? (
+            <div className="movers-status-note">Loading movers...</div>
           ) : null}
 
-          <div className="mt-6">
-            <MoversTable
-              movers={visibleMovers}
-              asOf={feedState?.asOf ?? null}
-              loadingTicker={scoringTicker}
-              watchingTicker={watchingTicker}
-              refreshingFeed={refreshingFeed}
-              feedQualityLabel={feedQuality.label}
-              onRefresh={refreshMarketFeed}
-              onPreview={(mover) => setSelectedMover(mover)}
-              onWatch={(mover) => void watchMover(mover)}
-            />
-          </div>
-        </div>
+          {visibleMovers.length === 0 && !loading ? (
+            <div className="movers-status-note">No movers match the active filter right now.</div>
+          ) : null}
 
-        <aside className="fin-panel p-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="fin-kicker">Custom Watchlist</p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-tds-text">Saved symbols</h2>
-            </div>
-            <span className="fin-chip">{watchlistItems.length}</span>
-          </div>
-          <p className="mt-3 text-sm leading-7 text-tds-dim">
-            Add symbols here or from the tape. Scored and planned items stay saved until you deploy or remove them.
-          </p>
-
-          <textarea
-            value={manualInput}
-            onChange={(event) => setManualInput(event.target.value.toUpperCase())}
-            placeholder="AAPL, NVDA, TSLA"
-            className="mt-5 min-h-[132px] w-full rounded-[24px] border border-white/80 bg-white/88 px-4 py-3 text-sm text-tds-text shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_10px_24px_-18px_rgba(15,23,42,0.35)] placeholder:text-tds-dim"
+          <MoversTable
+            movers={pagedMovers}
+            asOf={feedState?.asOf ?? null}
+            loadingTicker={scoringTicker}
+            watchingTicker={watchingTicker}
+            watchEnabled={marketWatchActionsEnabled}
+            watchDisabledLabel={!laneSelected ? "Lane" : "Config"}
+            refreshingFeed={refreshingFeed}
+            feedQualityLabel={feedQuality.label}
+            currentPage={moversPage}
+            totalPages={moverTotalPages}
+            onPageChange={setMoversPage}
+            onRefresh={refreshMarketFeed}
+            onPreview={(mover) => setSelectedMover(mover)}
+            onWatch={(mover) => void watchMover(mover)}
           />
+        </section>
 
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <Button type="button" disabled={importing} onClick={() => void importTickers()}>
-              {importing ? "Adding..." : "Add to watchlist"}
-            </Button>
-            <p className="text-xs uppercase tracking-[0.16em] text-tds-dim">Validated before save</p>
-          </div>
-
-          {watchlistMessage ? <p className="mt-4 text-sm text-tds-dim">{watchlistMessage}</p> : null}
-
-          <div className="mt-6 space-y-3">
-            {watchlistLoading ? <div className="fin-card p-4 text-sm text-tds-dim">Loading custom watchlist...</div> : null}
-            {!watchlistLoading && watchlistItems.length === 0 ? <div className="fin-card p-4 text-sm text-tds-dim">No symbols yet. Add from MarketWatch or paste above.</div> : null}
-            {watchlistItems.slice(0, 8).map((item) => (
-              <div key={item.id} className="fin-card flex items-start justify-between gap-3 p-4">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-sm font-semibold text-tds-text">{item.ticker}</span>
-                    <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${item.direction === "LONG" ? "bg-tds-green/10 text-tds-green" : "bg-tds-red/10 text-tds-red"}`}>{item.direction}</span>
-                    <span className="fin-chip">{item.verdict ?? "WATCH"}</span>
-                    {item.workbench ? <span className="fin-chip">Workbench</span> : null}
-                  </div>
-                  <p className="mt-2 text-sm leading-6 text-tds-dim">{item.workbench ? `${item.workbench.strategyLabel} · ${Math.round(item.workbench.passRate * 100)}% saved.` : item.note ?? "Queued for review."}</p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => void removeWatchlistItem(item)}
-                  disabled={watchingTicker === item.ticker}
-                  aria-label={`Remove ${item.ticker} from watchlist`}
-                  title={`Remove ${item.ticker} from watchlist`}
-                  className="rounded-2xl border border-white/75 bg-white/80 p-2 text-tds-dim shadow-sm hover:bg-white hover:text-tds-text disabled:opacity-50"
-                >
-                  <X className="h-4 w-4" />
-                </button>
+        <section className="workbench-column">
+          <section className="surface-panel p-6">
+            <div className="section-heading-row">
+              <div>
+                <p className="meta-label">Custom Watchlist</p>
+                <h3>{watchlistName.trim() || "My Watchlist"}</h3>
               </div>
-            ))}
-          </div>
-        </aside>
-      </section>
+              <span className="tag">{visibleWatchlistItems.length} staged</span>
+            </div>
 
-      <section className="fin-panel p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="fin-kicker">Strategy Watchlists</p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-tds-text">Strategy lanes</h2>
-          </div>
-          <span className="fin-chip">{strategyBuckets.reduce((sum, bucket) => sum + bucket.items.length, 0)} staged</span>
-        </div>
-        <p className="mt-3 text-sm leading-6 text-tds-dim">Drop a ticker on a lane to score and save it there.</p>
+            <div className="watchlist-tabs mt-4">
+              {watchlistProfiles.map((profile) => (
+                <button
+                  key={profile.id}
+                  type="button"
+                  onClick={() => setActiveWatchlistId(profile.id)}
+                  className={cn("watchlist-tab", profile.id === activeWatchlistId ? "active" : "")}
+                >
+                  {profile.name}
+                </button>
+              ))}
+            </div>
 
-        <div className="mt-6 grid gap-4 xl:grid-cols-2">
-          {strategyBuckets.map((bucket) => {
-            const bucketStrategy = bucket.strategyId
-              ? savedStrategyOptions.find((option) => option.strategyId === bucket.strategyId) ?? null
-              : null;
-
-            return (
-              <div
-                key={bucket.id}
-                onDragOver={(event) => {
-                  if (!bucket.droppable) {
-                    return;
-                  }
-                  event.preventDefault();
-                  event.dataTransfer.dropEffect = "copy";
-                  setDragStrategyId(bucket.strategyId ?? null);
-                }}
-                onDragLeave={() => {
-                  if (dragStrategyId === bucket.strategyId) {
-                    setDragStrategyId(null);
-                  }
-                }}
-                onDrop={(event) => {
-                  if (!bucket.droppable || !bucketStrategy) {
-                    return;
-                  }
-                  void dropMoverIntoStrategy(event, bucketStrategy);
-                }}
-                className={cn(
-                  "rounded-[28px] border p-5 transition-colors",
-                  bucket.droppable ? "border-white/75 bg-white/90 shadow-[0_20px_50px_-30px_rgba(15,23,42,0.24)]" : "border-slate-200/80 bg-slate-50/80",
-                  dragStrategyId && dragStrategyId === bucket.strategyId ? "border-tds-blue bg-sky-50/90 shadow-[0_24px_56px_-30px_rgba(14,116,244,0.28)]" : "",
-                )}
+            <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+              <input
+                id="watchlist-name-input"
+                value={watchlistName}
+                onChange={(event) => setWatchlistName(event.target.value)}
+                placeholder="Watchlist name"
+                disabled={!marketWatchActionsEnabled}
+                className="h-11 w-full rounded-2xl border border-white/80 bg-white px-4 text-sm text-tds-text shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tds-focus"
+              />
+              <select
+                id="watchlist-strategy-select"
+                value={watchlistStrategyId}
+                onChange={(event) => setWatchlistStrategyId(event.target.value)}
+                disabled={!marketWatchActionsEnabled || !savedStrategyOptions.length}
+                title="Watchlist strategy"
+                className="h-11 w-full rounded-2xl border border-white/80 bg-white px-4 text-sm text-tds-text shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tds-focus"
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold uppercase tracking-[0.16em] text-tds-dim">{bucket.setupLabel}</p>
-                    <h3 className="mt-2 text-xl font-semibold tracking-[-0.04em] text-tds-text">{bucket.label}</h3>
-                    <p className="mt-2 text-sm leading-6 text-tds-dim">{bucket.detail}</p>
-                  </div>
-                  <span className="fin-chip">{bucket.items.length}</span>
+                {savedStrategyOptions.length === 0 ? <option value="">No strategies available</option> : null}
+                {savedStrategyOptions.map((option) => (
+                  <option key={option.id} value={option.strategyId ?? ""}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <Button type="button" variant="secondary" onClick={saveWatchlistProfile} disabled={!marketWatchActionsEnabled || !savedStrategyOptions.length}>
+                Save
+              </Button>
+            </div>
+
+            <p className="drop-hint mt-4">{marketWatchActionsEnabled ? "Drop a ticker here to stage it into the watchlist lane." : marketWatchDisabledReason}</p>
+
+            <section
+              className={cn("terminal-table-shell watchlist-shell mt-4", watchlistDropActive ? "drag-active" : "")}
+              onDragOver={(event) => {
+                event.preventDefault();
+                setWatchlistDropActive(true);
+              }}
+              onDragLeave={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                  setWatchlistDropActive(false);
+                }
+              }}
+              onDrop={(event) => void handleDropToWatchlist(event)}
+            >
+              <div className="terminal-table-header four-col-header">
+                <span>Ticker</span>
+                <span>Status</span>
+                <span>Added</span>
+                <span>Action</span>
+              </div>
+
+              {watchlistLoading ? (
+                <div className="empty-state-panel">
+                  <p>Loading custom watchlist...</p>
                 </div>
+              ) : null}
 
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <span className="fin-chip">{bucket.metricCount} checks</span>
-                  {bucket.droppable ? <span className="fin-chip">Drop zone</span> : <span className="fin-chip">Read only</span>}
+              {!watchlistLoading && pagedWatchlistItems.length === 0 ? (
+                <div className="empty-state-panel">
+                  <p>No symbols yet. Drag from Active Movers or import tickers above.</p>
                 </div>
+              ) : null}
 
-                <div className="mt-5 space-y-3">
-                  {bucket.items.length === 0 ? (
-                    <div className="rounded-[22px] border border-dashed border-slate-200 bg-slate-50/88 px-4 py-5 text-sm leading-6 text-tds-dim">
-                      {bucket.droppable ? "Drop a ticker here to score and save it in this lane." : "No items in this lane."}
-                    </div>
-                  ) : null}
+              {!watchlistLoading && pagedWatchlistItems.length > 0 ? (
+                <div className="terminal-row-list">
+                  {pagedWatchlistItems.map((item, index) => {
+                    const rowMover = buildMoverFromWatchlist(item);
+                    const busy = watchingTicker === item.ticker || scoringTicker === item.ticker;
 
-                  {bucket.items.map((item) => (
-                    <div key={item.id} className="rounded-[22px] border border-slate-200/80 bg-white/92 p-4 shadow-[0_14px_34px_-28px_rgba(15,23,42,0.26)]">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setPreviewDirection(item.direction);
-                                setSelectedMover(buildMoverFromWatchlist(item));
-                              }}
-                              className="font-mono text-sm font-semibold text-tds-blue hover:text-sky-700"
-                            >
-                              {item.ticker}
-                            </button>
-                            <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${item.direction === "LONG" ? "bg-tds-green/10 text-tds-green" : "bg-tds-red/10 text-tds-red"}`}>{item.direction}</span>
-                            <span className="fin-chip">{item.verdict ?? "WATCH"}</span>
-                            {item.workbench ? <span className="fin-chip">Workbench</span> : null}
-                          </div>
-                          <p className="mt-2 text-sm leading-6 text-tds-dim">{item.workbench ? `${item.workbench.strategyLabel} · ${Math.round(item.workbench.passRate * 100)}% saved.` : item.note ?? "Queued for review."}</p>
-                        </div>
-
+                    return (
+                      <article
+                        key={item.id}
+                        draggable
+                        onDragStart={(event) => {
+                          event.dataTransfer.setData("text/plain", rowMover.ticker);
+                          event.dataTransfer.setData("application/x-tds-mover", JSON.stringify(rowMover));
+                          event.dataTransfer.setData("application/x-tds-direction", item.direction);
+                          event.dataTransfer.effectAllowed = "copy";
+                        }}
+                        className={cn("terminal-table-row four-col-row", index % 2 === 0 ? "bg-white/70" : "bg-slate-50/60")}
+                      >
                         <button
                           type="button"
-                          onClick={() => void removeWatchlistItem(item)}
-                          disabled={watchingTicker === item.ticker}
-                          aria-label={`Remove ${item.ticker} from watchlist`}
-                          title={`Remove ${item.ticker} from watchlist`}
-                          className="rounded-2xl border border-white/75 bg-white/80 p-2 text-tds-dim shadow-sm hover:bg-white hover:text-tds-text disabled:opacity-50"
+                          onClick={() => setSelectedMover(rowMover)}
+                          className="ticker-cell w-fit text-left font-mono text-sm font-semibold"
                         >
-                          <X className="h-4 w-4" />
+                          {item.ticker}
                         </button>
-                      </div>
-                    </div>
-                  ))}
+
+                        <span>
+                          <span className={cn("inline-tag neutral", item.workbench ? "scored" : "")}> 
+                            {item.workbench ? `${Math.round(item.workbench.passRate * 100)}% Scored` : item.verdict ?? "Staged"}
+                          </span>
+                        </span>
+
+                        <span className="font-mono text-xs text-tds-dim">{formatWatchlistDate(item.lastScoredAt)}</span>
+
+                        <span className="row-actions">
+                          <button
+                            type="button"
+                            onClick={() => void scoreWatchlistTicker(item)}
+                            disabled={busy || !marketWatchActionsEnabled}
+                            title={`Score ${item.ticker}`}
+                            aria-label={`Score ${item.ticker}`}
+                            className="square-action h-8 w-8 rounded-lg border border-slate-200 text-sm leading-none"
+                          >
+                            ⚡
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void removeWatchlistItem(item)}
+                            disabled={watchingTicker === item.ticker}
+                            aria-label={`Remove ${item.ticker} from watchlist`}
+                            title={`Remove ${item.ticker} from watchlist`}
+                            className="square-action h-8 w-8 rounded-lg border border-slate-200 text-sm leading-none"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </span>
+                      </article>
+                    );
+                  })}
                 </div>
+              ) : null}
+
+              {watchlistTotalPages > 1 ? (
+                <div className="marketwatch-pagination border-t border-slate-200/80 px-5 py-4">
+                  <Button type="button" size="sm" variant="secondary" disabled={watchlistPage <= 1} onClick={() => setWatchlistPage((previous) => Math.max(1, previous - 1))}>
+                    Previous
+                  </Button>
+                  <span className="tag">Page {watchlistPage} of {watchlistTotalPages}</span>
+                  <Button type="button" size="sm" variant="secondary" disabled={watchlistPage >= watchlistTotalPages} onClick={() => setWatchlistPage((previous) => Math.min(watchlistTotalPages, previous + 1))}>
+                    Next
+                  </Button>
+                </div>
+              ) : null}
+            </section>
+
+            {watchlistMessage ? <p className="mt-4 text-sm text-tds-dim">{watchlistMessage}</p> : null}
+          </section>
+
+          <section className="surface-panel p-6">
+            <div className="section-heading-row">
+              <div>
+                <p className="meta-label">Scored Workbench</p>
+                <h3>Strategy-scored queue</h3>
               </div>
-            );
-          })}
-        </div>
-      </section>
+              <span className="tag">{scored.length} items ready</span>
+            </div>
 
-      <section className="fin-panel p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="fin-kicker">Custom Watchlist Workbench</p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-tds-text">Saved planning queue</h2>
-          </div>
-          <span className="fin-chip">{scored.length} saved</span>
-        </div>
-        <p className="mt-3 text-sm leading-6 text-tds-dim">Scores and planner fields stay here across refreshes until deployed.</p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+              <div className="grid gap-2">
+                <label htmlFor="workbench-strategy-select" className="text-xs font-semibold uppercase tracking-[0.16em] text-tds-dim">
+                  Score Strategy
+                </label>
+                <select
+                  id="workbench-strategy-select"
+                  value={workbenchStrategyId}
+                  onChange={(event) => setWorkbenchStrategyId(event.target.value)}
+                  disabled={!marketWatchActionsEnabled || !savedStrategyOptions.length}
+                  className="h-11 w-full rounded-2xl border border-white/80 bg-white px-4 text-sm text-tds-text shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tds-focus"
+                >
+                  {savedStrategyOptions.length === 0 ? <option value="">No strategies available</option> : null}
+                  {savedStrategyOptions.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <span className="tag">{selectedWorkbenchStrategy?.label ?? "No strategy selected"}</span>
+            </div>
 
-        {scored.length === 0 ? <p className="mt-6 text-sm text-tds-dim">Preview and score a mover to add it here.</p> : null}
+            <p className="drop-hint mt-4">{marketWatchActionsEnabled ? "Select a strategy first, then drag a ticker from Active Movers or Watchlist into this workbench to score it." : marketWatchDisabledReason}</p>
 
-        <div className="mt-6">
-          <ScoredList
-            items={scored}
-            equity={equity}
-            loadingKey={deployingKey}
-            onEntryChange={(strategyId, ticker, direction, value) => updateWorkbenchField(strategyId, ticker, direction, "entry", value)}
-            onStopChange={(strategyId, ticker, direction, value) => updateWorkbenchField(strategyId, ticker, direction, "stop", value)}
-            onDeploy={(item) => void deploy(item)}
-          />
-        </div>
+            <section
+              className={cn("workbench-dropzone mt-4", workbenchDropActive ? "drag-active" : "")}
+              onDragOver={(event) => {
+                event.preventDefault();
+                setWorkbenchDropActive(true);
+              }}
+              onDragLeave={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                  setWorkbenchDropActive(false);
+                }
+              }}
+              onDrop={(event) => void handleDropToWorkbench(event)}
+            >
+              {scored.length === 0 ? (
+                <section className="surface-panel empty-workbench-card">
+                  <div className="empty-state-panel">
+                    <p>No scored items in workbench. Drag a ticker here to calculate a strategy-specific score.</p>
+                  </div>
+                </section>
+              ) : (
+                <ScoredList
+                  items={scored}
+                  equity={equity}
+                  loadingKey={deployingKey}
+                  onEntryChange={(strategyId, ticker, direction, value) => updateWorkbenchField(strategyId, ticker, direction, "entry", value)}
+                  onStopChange={(strategyId, ticker, direction, value) => updateWorkbenchField(strategyId, ticker, direction, "stop", value)}
+                  onDeploy={(item) => void deploy(item)}
+                />
+              )}
+            </section>
+          </section>
+        </section>
       </section>
 
       <InstrumentPreviewDrawer
@@ -1667,36 +2138,14 @@ export default function MarketWatchClient({ userId, mode, equity, strategies, de
         selectedStrategyId={selectedStrategyId}
         onStrategyChange={setSelectedStrategyId}
         scoring={scoringTicker === selectedMover?.ticker}
+        scoringEnabled={marketWatchActionsEnabled}
+        scoringDisabledReason={marketWatchDisabledReason}
         onScore={() => void scoreSelectedPreview()}
         onClose={() => setSelectedMover(null)}
         existingConvictionLabel={previewWorkbench?.conviction?.tier ?? selectedStrategy?.previousConviction ?? null}
         feedQualityLabel={feedQuality.label}
+        planTradeHref={previewPlanTradeHref}
       />
-
-      {showFeedPopup && (error || (feedState && feedState.status !== "live")) ? (
-        <div className="fixed bottom-6 left-4 z-50 max-w-sm rounded-[24px] border border-white/75 bg-white/92 p-5 shadow-[0_28px_70px_-32px_rgba(15,23,42,0.38)] backdrop-blur md:left-[292px]">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2">
-                <BellRing className="h-4 w-4 text-tds-amber" />
-                <p className="fin-kicker">Market Feed Attention</p>
-              </div>
-              <p className="mt-3 text-sm leading-6 text-tds-text">{error ?? feedState?.message}</p>
-              {feedState ? <p className="mt-3 text-xs uppercase tracking-[0.16em] text-tds-dim">{feedQuality.label} · {feedState.source}</p> : null}
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setShowFeedPopup(false)}
-              aria-label="Dismiss market feed alert"
-              title="Dismiss market feed alert"
-              className="rounded-2xl border border-white/75 bg-white/80 p-2 text-tds-dim shadow-sm hover:bg-white hover:text-tds-text"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      ) : null}
     </main>
   );
 }

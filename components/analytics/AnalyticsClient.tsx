@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, XAxis, YAxis } from "recharts";
-import { Activity, ArrowUpRight, Scale, TrendingUp } from "lucide-react";
+import { Activity, Scale, TrendingUp } from "lucide-react";
 import {
   analyticsBySetup,
   analyticsBySource,
@@ -73,17 +73,20 @@ export default function AnalyticsClient({ closedTrades, showHero = true }: Analy
           : "Stable";
 
   const equityCurve = buildCumulativeRSeries(closedTrades, reviewLane);
+  const reviewLaneLabel = reviewLane === "modeled" ? "Modeled System" : "Realized Execution";
 
   if (modeledAnalytics.tradeCount < 5) {
     return (
-      <main className="space-y-6">
-        <section className="fin-panel p-6 sm:p-8">
-          <p className="fin-kicker">{showHero ? "Performance Analytics" : "Historical Analytics"}</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-tds-text">Not enough closed trades yet.</h1>
-          <p className="mt-4 max-w-2xl text-sm leading-7 text-tds-dim">
+      <main className="analytics-terminal">
+        <section className="surface-panel p-6 sm:p-8">
+          <p className="meta-label">{showHero ? "Performance Analytics" : "Historical Analytics"}</p>
+          <h2 className="mt-3 font-[Iowan_Old_Style,Palatino_Linotype,Georgia,serif] text-[clamp(2rem,3vw,3rem)] font-semibold leading-[0.98] text-[#162331]">
+            Not enough closed trades yet.
+          </h2>
+          <p className="mt-4 max-w-2xl text-sm leading-7 text-[#4e6273]">
             Analytics unlock after 5 or more closed trades. You currently have {modeledAnalytics.tradeCount} of 5 closed trades available for statistical review.
           </p>
-          <p className="mt-3 max-w-2xl text-sm leading-7 text-tds-dim">
+          <p className="mt-3 max-w-2xl text-sm leading-7 text-[#4e6273]">
             Realized execution analytics currently have {realizedAnalytics.capturedTradeCount} trade{realizedAnalytics.capturedTradeCount === 1 ? "" : "s"} with full exit capture.
           </p>
         </section>
@@ -92,67 +95,78 @@ export default function AnalyticsClient({ closedTrades, showHero = true }: Analy
   }
 
   return (
-    <main className="space-y-8">
+    <main className="analytics-terminal">
+      <section className="analytics-header-row">
+        <div>
+          <h2>Portfolio Analytics</h2>
+          <p className="page-intro">Performance attribution and mechanical discipline review.</p>
+        </div>
+        <div className="analytics-summary-strip">
+          <article className="override-budget-card">
+            <p className="meta-label">Review Lane</p>
+            <strong>
+              {reviewLane === "modeled" ? "M" : "R"}
+              <span>{reviewLaneLabel}</span>
+            </strong>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setReviewLane("modeled")}
+                className={reviewLane === "modeled" ? "primary-button h-10 min-h-10 px-4 text-[11px]" : "secondary-button h-10 min-h-10 px-4 text-[11px]"}
+              >
+                Modeled
+              </button>
+              <button
+                type="button"
+                onClick={() => setReviewLane("realized")}
+                className={reviewLane === "realized" ? "primary-button h-10 min-h-10 px-4 text-[11px]" : "secondary-button h-10 min-h-10 px-4 text-[11px]"}
+              >
+                Realized
+              </button>
+            </div>
+          </article>
+          <article className="analytics-top-stat">
+            <p className="meta-label">Expectancy</p>
+            <strong>{formatR(selectedAnalytics.expectancy)}</strong>
+          </article>
+          <article className="analytics-top-stat">
+            <p className="meta-label">Total P&amp;L</p>
+            <strong className={reviewLane === "modeled" || realizedAnalytics.totalPnl >= 0 ? "positive" : "negative"}>
+              {reviewLane === "modeled" ? formatR(selectedAnalytics.expectancy * selectedOutcomeCount) : formatMoney(realizedAnalytics.totalPnl)}
+            </strong>
+          </article>
+        </div>
+      </section>
+
       {showHero ? (
-        <section className="grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_340px]">
-          <div className="fin-hero px-7 py-8 sm:px-8 sm:py-9">
-            <p className="fin-chip fin-chip-strong">Performance Analytics</p>
-            <h1 className="mt-6 max-w-3xl text-3xl font-semibold tracking-[-0.05em] text-white sm:text-5xl">
-              Separate system edge from execution capture before you decide what needs work.
-            </h1>
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-white/76 sm:text-base">
-              Modeled analytics show how the playbook behaved in normalized R terms, while realized analytics only speak for trades with full exit capture. Keeping those lanes separate prevents misleading conclusions.
-            </p>
-
-            <div className="mt-8 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-[24px] border border-white/14 bg-white/10 p-4 backdrop-blur">
-                <p className="text-xs uppercase tracking-[0.18em] text-white/60">Modeled Expectancy</p>
-                <p className="mt-2 font-mono text-3xl text-white">{formatR(modeledAnalytics.expectancy)}</p>
-              </div>
-              <div className="rounded-[24px] border border-white/14 bg-white/10 p-4 backdrop-blur">
-                <p className="text-xs uppercase tracking-[0.18em] text-white/60">Realized P&amp;L</p>
-                <p className="mt-2 font-mono text-3xl text-white">{formatMoney(realizedAnalytics.totalPnl)}</p>
-              </div>
-              <div className="rounded-[24px] border border-white/14 bg-white/10 p-4 backdrop-blur">
-                <p className="text-xs uppercase tracking-[0.18em] text-white/60">Realized Coverage</p>
-                <p className="mt-2 text-2xl font-semibold text-white">{(captureRate * 100).toFixed(0)}%</p>
-              </div>
-            </div>
-          </div>
-
-          <aside className="fin-panel p-6">
-            <p className="fin-kicker">Review Notes</p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-tds-text">System health</h2>
-            <div className="mt-5 space-y-3">
-              <div className="fin-card flex items-start gap-3 p-4">
-                <Activity className="mt-0.5 h-5 w-5 text-tds-blue" />
-                <div>
-                  <p className="fin-kicker">Modeled Sample</p>
-                  <p className="mt-1 text-sm text-tds-text">{modeledAnalytics.tradeCount} closed trades are contributing to the normalized system review.</p>
-                </div>
-              </div>
-              <div className="fin-card flex items-start gap-3 p-4">
-                <Scale className="mt-0.5 h-5 w-5 text-tds-amber" />
-                <div>
-                  <p className="fin-kicker">Realized Coverage</p>
-                  <p className="mt-1 text-sm text-tds-text">{realizedAnalytics.capturedTradeCount} of {realizedAnalytics.tradeCount} closed trades have entry, stop, exit, and share capture.</p>
-                </div>
-              </div>
-              <div className="fin-card flex items-start gap-3 p-4">
-                <TrendingUp className="mt-0.5 h-5 w-5 text-tds-green" />
-                <div>
-                  <p className="fin-kicker">Lane Split</p>
-                  <p className="mt-1 text-sm text-tds-text">Modeling uses T1, T2, and T3 milestone outcomes. Realized review only uses actual captured exit math.</p>
-                </div>
-              </div>
-            </div>
-          </aside>
+        <section className="analytics-kpi-grid">
+          <article className="surface-panel analytics-kpi-card">
+            <p className="meta-label">Modeled Expectancy</p>
+            <strong>{formatR(modeledAnalytics.expectancy)}</strong>
+            <span>{modeledAnalytics.tradeCount} trades in model sample</span>
+          </article>
+          <article className="surface-panel analytics-kpi-card">
+            <p className="meta-label">Realized P&amp;L</p>
+            <strong className={realizedAnalytics.totalPnl >= 0 ? "positive" : "negative"}>{formatMoney(realizedAnalytics.totalPnl)}</strong>
+            <span>Captured exit math only</span>
+          </article>
+          <article className="surface-panel analytics-kpi-card">
+            <p className="meta-label">Realized Coverage</p>
+            <strong>{(captureRate * 100).toFixed(0)}%</strong>
+            <span>{realizedAnalytics.capturedTradeCount}/{realizedAnalytics.tradeCount} trades captured</span>
+          </article>
+          <article className="surface-panel analytics-kpi-card">
+            <p className="meta-label">Trend</p>
+            <strong>{trendLabel}</strong>
+            <span>Rolling vs overall expectancy</span>
+          </article>
         </section>
       ) : null}
 
       {learnMode ? (
-        <section className="fin-panel p-6 text-sm leading-7 text-tds-dim">
-          <p className="fin-kicker">How To Read This View</p>
+        <section className="surface-panel analytics-insight-card">
+          <p className="meta-label">How To Read This View</p>
+          <h3>Mechanical review notes</h3>
           <p className="mt-4">Win Rate: {ANALYTICS_GUIDE.winRate}</p>
           <p className="mt-2">Expectancy: {ANALYTICS_GUIDE.expectancy}</p>
           <p className="mt-2">Profit Factor: {ANALYTICS_GUIDE.profitFactor}</p>
@@ -161,221 +175,181 @@ export default function AnalyticsClient({ closedTrades, showHero = true }: Analy
         </section>
       ) : null}
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <div className="fin-card p-5">
-          <p className="fin-kicker">Modeled Expectancy</p>
-          <p className="mt-3 font-mono text-3xl text-tds-text">{formatR(modeledAnalytics.expectancy)}</p>
+      {reviewLane === "realized" && realizedAnalytics.capturedTradeCount < realizedAnalytics.tradeCount ? (
+        <div className="priority-card warn">
+          {realizedAnalytics.tradeCount - realizedAnalytics.capturedTradeCount} closed trade{realizedAnalytics.tradeCount - realizedAnalytics.capturedTradeCount === 1 ? " is" : "s are"} missing full exit capture and are excluded from realized analytics.
         </div>
-        <div className="fin-card p-5">
-          <p className="fin-kicker">Modeled Total R</p>
-          <p className="mt-3 font-mono text-3xl text-tds-text">{formatR(modeledAnalytics.totalR)}</p>
-        </div>
-        <div className="fin-card p-5">
-          <p className="fin-kicker">Realized Expectancy</p>
-          <p className="mt-3 font-mono text-3xl text-tds-text">{formatR(realizedAnalytics.expectancy)}</p>
-        </div>
-        <div className="fin-card p-5">
-          <p className="fin-kicker">Realized Total P&amp;L</p>
-          <p className="mt-3 font-mono text-3xl text-tds-text">{formatMoney(realizedAnalytics.totalPnl)}</p>
-        </div>
-        <div className="fin-card p-5">
-          <p className="fin-kicker">Realized Coverage</p>
-          <p className="mt-3 font-mono text-3xl text-tds-text">{(captureRate * 100).toFixed(0)}%</p>
-          <p className="mt-2 text-sm text-tds-dim">{realizedAnalytics.capturedTradeCount}/{realizedAnalytics.tradeCount} closed trades captured</p>
-        </div>
+      ) : null}
+
+      <section className="analytics-kpi-grid">
+        <article className="surface-panel analytics-kpi-card">
+          <p className="meta-label">Win Rate</p>
+          <strong>{(selectedAnalytics.winRate * 100).toFixed(1)}%</strong>
+          <span>{selectedOutcomeCount} outcome{selectedOutcomeCount === 1 ? "" : "s"} in sample</span>
+        </article>
+        <article className="surface-panel analytics-kpi-card">
+          <p className="meta-label">Expectancy</p>
+          <strong>{formatR(selectedAnalytics.expectancy)}</strong>
+          <span>Per-trade normalized edge</span>
+        </article>
+        <article className="surface-panel analytics-kpi-card">
+          <p className="meta-label">Avg R-Multiple</p>
+          <strong>{formatR(selectedAnalytics.avgWinR)}</strong>
+          <span>Avg loss {formatR(selectedAnalytics.avgLossR)}</span>
+        </article>
+        <article className="surface-panel analytics-kpi-card">
+          <p className="meta-label">Profit Factor</p>
+          <strong>{Number.isFinite(selectedAnalytics.profitFactor) ? selectedAnalytics.profitFactor.toFixed(2) : "∞"}</strong>
+          <span>Rolling {formatR(selectedAnalytics.rollingExpectancy)}</span>
+        </article>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-2">
-        <div className="fin-panel p-6">
-          <div className="flex items-center justify-between gap-3">
+      <section className="analytics-chart-grid">
+        <section className="surface-panel analytics-chart-panel wide-chart-panel">
+          <div className="analytics-panel-header">
             <div>
-              <p className="fin-kicker">Modeled Source Breakdown</p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-tds-text">Normalized expectancy by entry source</h2>
+              <p className="meta-label">Equity Curve</p>
+              <h3>Cumulative {reviewLane === "modeled" ? "R progression" : "captured R progression"}</h3>
             </div>
-            <ArrowUpRight className="h-5 w-5 text-tds-dim" />
-          </div>
-
-          <div className="mt-5 grid gap-4 sm:grid-cols-2">
-            <div className="fin-card p-5">
-              <p className="fin-kicker">Thesis Trades</p>
-              <p className="mt-3 font-mono text-3xl text-tds-text">{formatR(modeledBySource.thesis.expectancy)}</p>
-              <p className="mt-2 text-sm text-tds-dim">Count {modeledBySource.thesis.tradeCount}</p>
-            </div>
-            <div className="fin-card p-5">
-              <p className="fin-kicker">MarketWatch Trades</p>
-              <p className="mt-3 font-mono text-3xl text-tds-text">{formatR(modeledBySource.marketwatch.expectancy)}</p>
-              <p className="mt-2 text-sm text-tds-dim">Count {modeledBySource.marketwatch.tradeCount}</p>
+            <div className="analytics-legend-row">
+              <span className="tag">Equity</span>
+              <span className="tag">Rolling Expectancy</span>
             </div>
           </div>
-        </div>
+          {equityCurve.length === 0 ? (
+            <p className="mt-5 text-sm text-[#4e6273]">No {reviewLane} outcome series available yet.</p>
+          ) : (
+            <div className="analytics-frame large-analytics-frame">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={equityCurve}>
+                  <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" />
+                  <XAxis dataKey="idx" tick={{ fill: "#6b7b8f", fontSize: 10 }} axisLine={{ stroke: "#d8e2ec" }} tickLine={false} />
+                  <YAxis tick={{ fill: "#6b7b8f", fontSize: 10 }} axisLine={{ stroke: "#d8e2ec" }} tickLine={false} />
+                  <Bar dataKey="cumulativeR" radius={[4, 4, 0, 0]}>
+                    {equityCurve.map((entry) => (
+                      <Cell key={`bar-${entry.idx}`} fill={entry.fill} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </section>
 
-        <div className="fin-panel p-6">
-          <div className="flex items-center justify-between gap-3">
+        <section className="surface-panel analytics-chart-panel narrow-analytics-panel">
+          <div className="analytics-panel-header">
             <div>
-              <p className="fin-kicker">Realized Source Breakdown</p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-tds-text">Captured execution by entry source</h2>
-            </div>
-            <ArrowUpRight className="h-5 w-5 text-tds-dim" />
-          </div>
-
-          <div className="mt-5 grid gap-4 sm:grid-cols-2">
-            <div className="fin-card p-5">
-              <p className="fin-kicker">Thesis Trades</p>
-              <p className="mt-3 font-mono text-3xl text-tds-text">{formatR(realizedBySource.thesis.expectancy)}</p>
-              <p className="mt-2 text-sm text-tds-dim">Captured {realizedBySource.thesis.capturedTradeCount} of {realizedBySource.thesis.tradeCount}</p>
-            </div>
-            <div className="fin-card p-5">
-              <p className="fin-kicker">MarketWatch Trades</p>
-              <p className="mt-3 font-mono text-3xl text-tds-text">{formatR(realizedBySource.marketwatch.expectancy)}</p>
-              <p className="mt-2 text-sm text-tds-dim">Captured {realizedBySource.marketwatch.capturedTradeCount} of {realizedBySource.marketwatch.tradeCount}</p>
+              <p className="meta-label">Source Breakdown</p>
+              <h3>Edge by entry source</h3>
             </div>
           </div>
-        </div>
-      </section>
-
-      <section className="fin-panel p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="fin-kicker">Review Lane</p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-tds-text">Choose which evidence lane to inspect</h2>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => setReviewLane("modeled")}
-              className={`rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] ${reviewLane === "modeled" ? "border-blue-200 bg-blue-50 text-tds-blue" : "border-white/80 bg-white text-tds-dim hover:bg-tds-wash"}`}
-            >
-              Modeled System
-            </button>
-            <button
-              type="button"
-              onClick={() => setReviewLane("realized")}
-              className={`rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] ${reviewLane === "realized" ? "border-blue-200 bg-blue-50 text-tds-blue" : "border-white/80 bg-white text-tds-dim hover:bg-tds-wash"}`}
-            >
-              Realized Execution
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div>
-            <p className="text-sm leading-7 text-tds-dim">
-              {reviewLane === "modeled"
-                ? "Modeled review normalizes outcomes from the stored tranche milestone flags. Use it to judge whether the strategy itself is producing edge, even when exact exit capture is incomplete."
-                : "Realized review only counts trades with full execution capture: entry, stop, exit price, and share size. Use it to judge whether actual exits are preserving the modeled edge."}
-            </p>
-            {reviewLane === "realized" && realizedAnalytics.capturedTradeCount < realizedAnalytics.tradeCount ? (
-              <div className="mt-4 rounded-[22px] border border-tds-amber/25 bg-tds-amber/10 px-4 py-3 text-sm text-tds-text">
-                {realizedAnalytics.tradeCount - realizedAnalytics.capturedTradeCount} closed trade{realizedAnalytics.tradeCount - realizedAnalytics.capturedTradeCount === 1 ? " is" : "s are"} missing full exit capture, so they are excluded from realized execution analytics.
+          <div className="mt-5 space-y-3">
+            <div className="priority-card calm">
+              <p className="meta-label">Thesis Trades</p>
+              <p className="mt-2 font-mono text-2xl text-[#162331]">
+                {reviewLane === "modeled" ? formatR(modeledBySource.thesis.expectancy) : formatR(realizedBySource.thesis.expectancy)}
+              </p>
+              <p className="mt-1 text-xs text-[#4e6273]">
+                {reviewLane === "modeled" ? `${modeledBySource.thesis.tradeCount} trades` : `${realizedBySource.thesis.capturedTradeCount} of ${realizedBySource.thesis.tradeCount} captured`}
+              </p>
+            </div>
+            <div className="priority-card calm">
+              <p className="meta-label">MarketWatch Trades</p>
+              <p className="mt-2 font-mono text-2xl text-[#162331]">
+                {reviewLane === "modeled" ? formatR(modeledBySource.marketwatch.expectancy) : formatR(realizedBySource.marketwatch.expectancy)}
+              </p>
+              <p className="mt-1 text-xs text-[#4e6273]">
+                {reviewLane === "modeled" ? `${modeledBySource.marketwatch.tradeCount} trades` : `${realizedBySource.marketwatch.capturedTradeCount} of ${realizedBySource.marketwatch.tradeCount} captured`}
+              </p>
+            </div>
+            <div className="priority-card calm">
+              <p className="meta-label">Lane Summary</p>
+              <div className="mt-2 space-y-1 text-xs text-[#4e6273]">
+                <p>Trend: <span className="font-semibold text-[#162331]">{trendLabel}</span></p>
+                <p>Win rate: <span className="font-semibold text-[#162331]">{(selectedAnalytics.winRate * 100).toFixed(1)}%</span></p>
+                <p>Rolling exp: <span className="font-semibold text-[#162331]">{formatR(selectedAnalytics.rollingExpectancy)}</span></p>
               </div>
-            ) : null}
-          </div>
-
-          <div className="fin-card p-5">
-            <p className="fin-kicker">Lane Summary</p>
-            <div className="mt-3 space-y-2 text-sm text-tds-dim">
-              <p>Trend: <span className="text-tds-text">{trendLabel}</span></p>
-              <p>Win rate: <span className="text-tds-text">{(selectedAnalytics.winRate * 100).toFixed(1)}%</span></p>
-              <p>Rolling expectancy: <span className="text-tds-text">{formatR(selectedAnalytics.rollingExpectancy)}</span></p>
-              <p>Outcome sample: <span className="text-tds-text">{selectedOutcomeCount}</span></p>
             </div>
           </div>
-        </div>
+        </section>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <div className="fin-card p-5">
-          <p className="fin-kicker">Win Rate</p>
-          <p className="mt-3 font-mono text-3xl text-tds-text">{(selectedAnalytics.winRate * 100).toFixed(1)}%</p>
-        </div>
-        <div className="fin-card p-5">
-          <p className="fin-kicker">Expectancy</p>
-          <p className="mt-3 font-mono text-3xl text-tds-text">{formatR(selectedAnalytics.expectancy)}</p>
-        </div>
-        <div className="fin-card p-5">
-          <p className="fin-kicker">Avg Win</p>
-          <p className="mt-3 font-mono text-3xl text-tds-text">{formatR(selectedAnalytics.avgWinR)}</p>
-        </div>
-        <div className="fin-card p-5">
-          <p className="fin-kicker">Avg Loss</p>
-          <p className="mt-3 font-mono text-3xl text-tds-text">{formatR(selectedAnalytics.avgLossR)}</p>
-        </div>
-        <div className="fin-card p-5">
-          <p className="fin-kicker">Profit Factor</p>
-          <p className="mt-3 font-mono text-3xl text-tds-text">{Number.isFinite(selectedAnalytics.profitFactor) ? selectedAnalytics.profitFactor.toFixed(2) : "∞"}</p>
-        </div>
-      </section>
-
-      <section className="grid gap-6 xl:grid-cols-2">
-        <div className="fin-panel p-6">
-          <p className="fin-kicker">Setup Breakdown</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-tds-text">Average edge by setup</h2>
+      <section className="analytics-insight-grid">
+        <article className="surface-panel analytics-insight-card">
+          <p className="meta-label">Setup Breakdown</p>
+          <h3>Edge by setup type</h3>
           <div className="mt-5 space-y-4">
-            {setupRows.length === 0 ? <p className="text-sm text-tds-dim">No {reviewLane} setup data is available yet.</p> : null}
+            {setupRows.length === 0 ? <p className="text-sm text-[#4e6273]">No {reviewLane} setup data yet.</p> : null}
             {setupRows.map((row) => {
               const blocks = Math.max(1, Math.round((Math.abs(row.avgR) / maxAbsSetupR) * 12));
               return (
                 <div key={row.setup}>
-                  <div className="mb-2 flex items-center justify-between text-sm text-tds-dim">
+                  <div className="mb-2 flex items-center justify-between text-xs text-[#4e6273]">
                     <span>{row.setup}</span>
                     <span className={row.avgR >= 0 ? "text-tds-green" : "text-tds-red"}>{formatR(row.avgR)} · {row.count}</span>
                   </div>
                   <div className="flex flex-wrap gap-1">
-                    {Array.from({ length: blocks }).map((_, index) => (
-                      <span key={`${row.setup}-${index}`} className={`h-2.5 w-5 rounded-full ${row.avgR >= 0 ? "bg-tds-green" : "bg-tds-red"}`} />
+                    {Array.from({ length: blocks }).map((_, i) => (
+                      <span key={`${row.setup}-${i}`} className={`h-2 w-4 rounded-full ${row.avgR >= 0 ? "bg-tds-green" : "bg-tds-red"}`} />
                     ))}
                   </div>
                 </div>
               );
             })}
           </div>
-        </div>
+        </article>
 
-        <div className="fin-panel p-6">
-          <p className="fin-kicker">Strategy Breakdown</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-tds-text">Average edge by saved strategy</h2>
+        <article className="surface-panel analytics-insight-card">
+          <p className="meta-label">Strategy Breakdown</p>
+          <h3>Edge by saved strategy</h3>
           <div className="mt-5 space-y-4">
-            {strategyRows.length === 0 ? <p className="text-sm text-tds-dim">No {reviewLane} strategy data is available yet.</p> : null}
+            {strategyRows.length === 0 ? <p className="text-sm text-[#4e6273]">No {reviewLane} strategy data yet.</p> : null}
             {strategyRows.map((row) => {
               const blocks = Math.max(1, Math.round((Math.abs(row.avgR) / maxAbsStrategyR) * 12));
               return (
                 <div key={row.strategy}>
-                  <div className="mb-2 flex items-center justify-between gap-3 text-sm text-tds-dim">
+                  <div className="mb-2 flex items-center justify-between gap-3 text-xs text-[#4e6273]">
                     <span>{row.strategy}</span>
                     <span className={row.avgR >= 0 ? "text-tds-green" : "text-tds-red"}>{formatR(row.avgR)} · {row.count}</span>
                   </div>
                   <div className="flex flex-wrap gap-1">
-                    {Array.from({ length: blocks }).map((_, index) => (
-                      <span key={`${row.strategy}-${index}`} className={`h-2.5 w-5 rounded-full ${row.avgR >= 0 ? "bg-tds-green" : "bg-tds-red"}`} />
+                    {Array.from({ length: blocks }).map((_, i) => (
+                      <span key={`${row.strategy}-${i}`} className={`h-2 w-4 rounded-full ${row.avgR >= 0 ? "bg-tds-green" : "bg-tds-red"}`} />
                     ))}
                   </div>
                 </div>
               );
             })}
           </div>
-        </div>
-      </section>
+        </article>
 
-      <section className="fin-panel p-6">
-        <p className="fin-kicker">Equity Curve</p>
-        <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-tds-text">Cumulative {reviewLane === "modeled" ? "R progression" : "captured R progression"}</h2>
-        {equityCurve.length === 0 ? <p className="mt-5 text-sm text-tds-dim">No {reviewLane} outcome series is available yet.</p> : null}
-        {equityCurve.length > 0 ? (
-          <div className="mt-6 h-72 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={equityCurve}>
-                <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" />
-                <XAxis dataKey="idx" tick={{ fill: "#6b7b8f", fontSize: 10 }} axisLine={{ stroke: "#d8e2ec" }} tickLine={false} />
-                <YAxis tick={{ fill: "#6b7b8f", fontSize: 10 }} axisLine={{ stroke: "#d8e2ec" }} tickLine={false} />
-                <Bar dataKey="cumulativeR" radius={[6, 6, 0, 0]}>
-                  {equityCurve.map((entry) => (
-                    <Cell key={`bar-${entry.idx}`} fill={entry.fill} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+        <article className="surface-panel analytics-insight-card">
+          <p className="meta-label">Discipline Review</p>
+          <h3>System health</h3>
+          <div className="mt-5 space-y-3">
+            <div className="priority-card calm flex items-start gap-3">
+              <Activity className="mt-0.5 h-4 w-4 shrink-0 text-tds-blue" />
+              <div>
+                <p className="meta-label">Modeled Sample</p>
+                <p className="mt-1 text-sm text-[#162331]">{modeledAnalytics.tradeCount} closed trades contributing to system review.</p>
+              </div>
+            </div>
+            <div className="priority-card calm flex items-start gap-3">
+              <Scale className="mt-0.5 h-4 w-4 shrink-0 text-tds-amber" />
+              <div>
+                <p className="meta-label">Realized Coverage</p>
+                <p className="mt-1 text-sm text-[#162331]">{realizedAnalytics.capturedTradeCount} of {realizedAnalytics.tradeCount} trades have full exit capture.</p>
+              </div>
+            </div>
+            <div className="priority-card calm flex items-start gap-3">
+              <TrendingUp className="mt-0.5 h-4 w-4 shrink-0 text-tds-green" />
+              <div>
+                <p className="meta-label">Lane Split</p>
+                <p className="mt-1 text-sm text-[#162331]">Modeled uses T1/T2/T3 milestones. Realized uses actual captured exit math only.</p>
+              </div>
+            </div>
           </div>
-        ) : null}
+        </article>
       </section>
     </main>
   );

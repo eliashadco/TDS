@@ -1,0 +1,1021 @@
+# TRADING DISCIPLINE PLATFORM
+
+## Technical Requirements Document (TRD v2)
+
+---
+
+# 1. PRODUCT OVERVIEW
+
+## 1.1 Objective
+
+Build a trading platform that enforces disciplined execution by separating:
+
+* Strategy Definition (thinking phase)
+* Trade Execution (action phase)
+
+The system must:
+
+* Prevent impulsive trades
+* Allow controlled bypass with accountability
+* Track discipline independently from P&L
+* Adapt to beginner and advanced users
+
+---
+
+# 2. CORE PRINCIPLES
+
+1. Discipline over prediction
+2. Friction over impulsivity
+3. Transparency over black-box scoring
+4. Flexibility with accountability (NOT freedom without consequences)
+
+---
+
+# 3. SYSTEM ARCHITECTURE
+
+## 3.1 High-Level Components
+
+* Frontend (Web App)
+* Backend API Layer
+* Scoring Engine
+* Discipline Engine
+* Market Data Engine
+* Cache Layer (Redis)
+* Database (PostgreSQL)
+* Async Workers (Queue-based)
+
+---
+
+## 3.2 Data Flow Model
+
+Market Data → Processing Layer → Rule Engine → Score Cache → API → UI
+
+---
+
+# 4. USER MODES
+
+## 4.1 Discipline Profiles
+
+* Strict Mode
+
+  * Hard rules block execution
+  * Full friction on override
+
+* Balanced Mode
+
+  * Some hard rules degrade to warnings
+  * Reduced friction
+
+* Expert Mode
+
+  * No blocking
+  * Overrides always logged
+  * Fast execution enabled
+
+---
+
+# 5. STRATEGY BUILDER
+
+## 5.1 Strategy Object
+
+```
+Strategy {
+  id: string
+  name: string
+  timeframe: string
+  rules: Rule[]
+  regimeCondition: RegimeRule
+  disciplineProfile: string
+  parentStrategyId?: string
+  changeLog: string[]
+}
+```
+
+---
+
+## 5.2 Rule Types
+
+### Hard Rules
+
+* Block execution if failed (depending on mode)
+
+### Soft Rules
+
+* Affect score only
+
+---
+
+## 5.3 Rule Structure
+
+```
+Rule {
+  id: string
+  type: "simple" | "composite"
+  metric: string
+  operator: string
+  value: number
+  weight: number
+  isHard: boolean
+  conditions?: Rule[]
+  logicalOperator?: "AND" | "OR"
+}
+```
+
+---
+
+## 5.4 Market Regime Rule
+
+```
+RegimeRule {
+  symbol: "SPY"
+  condition: string
+  timeframe: string
+}
+```
+
+---
+
+# 6. COMPUTATION ENGINE
+
+## 6.1 Execution Timing
+
+| Rule Type     | Trigger      |
+| ------------- | ------------ |
+| Fundamentals  | Daily        |
+| Regime        | Daily        |
+| Technical     | Candle Close |
+| Price Trigger | Real-time    |
+
+---
+
+## 6.2 Score Cache
+
+```
+CachedScore {
+  ticker: string
+  strategyId: string
+  score: number
+  hardRulePass: boolean
+  lastUpdated: timestamp
+}
+```
+
+---
+
+## 6.3 Update Mechanism
+
+* Pub/Sub model
+* Event-driven recalculation
+
+---
+
+# 7. COMPATIBILITY ENGINE
+
+## 7.1 Output
+
+* Score (0–100)
+* Hard rule status
+* Rule breakdown
+
+---
+
+## 7.2 Evaluation Mode
+
+Default: Closed candle
+Optional (Expert): Live with tolerance buffer
+
+---
+
+## 7.3 Tolerance Buffer
+
+```
+ToleranceRule {
+  metric: string
+  bufferPercent: number
+}
+```
+
+---
+
+# 8. EXECUTION FLOW
+
+## 8.1 Standard Flow
+
+1. Select ticker
+2. Fetch cached score
+3. Display Compatibility Card
+4. User action:
+
+   * Deploy
+   * Add to Watch
+   * Override
+
+---
+
+## 8.2 Compatibility Card UI
+
+Displays:
+
+* Score
+* Rule pass/fail
+* Strategy name
+* Regime status
+
+---
+
+# 9. OVERRIDE SYSTEM (CORE)
+
+## 9.1 Trigger Condition
+
+* Hard rule failure OR user override intent
+
+---
+
+## 9.2 Friction Flow
+
+1. Warning message
+2. 30-second timer
+3. Justification input
+
+---
+
+## 9.3 Justification Validation
+
+### Heuristic Validation
+
+```
+JustificationValidation {
+  minWordCount: 8
+  minUniqueWordRatio: 0.5
+}
+```
+
+---
+
+### AI Audit (Async)
+
+* Classifies justification quality
+* Flags low-effort entries
+
+---
+
+## 9.4 Override Classification
+
+* Valid Override
+* Low-Quality Override
+* High-Risk Override (during drawdown)
+
+---
+
+## 9.5 Override Memory Injection
+
+System displays past override outcomes before confirmation
+
+---
+
+# 10. DISCIPLINE ENGINE
+
+## 10.1 Discipline Score
+
+Factors:
+
+* % in-policy trades
+* overrides
+* justification quality
+
+---
+
+## 10.2 Trade Classification
+
+* In Policy
+* Override
+* Out-of-Bounds
+
+---
+
+## 10.3 Weekly Summary
+
+* total trades
+* overrides
+* performance difference
+
+---
+
+# 11. JOURNAL SYSTEM
+
+## 11.1 Trade Entry
+
+```
+Trade {
+  id: string
+  ticker: string
+  strategyId: string
+  entry: number
+  exit: number
+  pnl: number
+  classification: string
+  justification: string
+}
+```
+
+---
+
+## 11.2 Override Section
+
+Dedicated tab:
+
+* All override trades
+* grouped by rule broken
+
+---
+
+## 11.3 Review Loop
+
+User + system evaluate:
+
+* Was override correct?
+* Should rule change?
+
+---
+
+# 12. CIRCUIT BREAKER SYSTEM
+
+## 12.1 Conditions
+
+```
+CircuitBreaker {
+  maxConsecutiveLosses: number
+  maxDrawdownPercent: number
+}
+```
+
+---
+
+## 12.2 Behavior
+
+* Strategy paused
+* Execution locked
+* Override still possible with max friction
+
+---
+
+# 13. MULTI-STRATEGY SCORING
+
+* One ticker → multiple strategies
+* User selects execution path
+
+---
+
+# 14. BEGINNER MODE
+
+## 14.1 Learning Mode
+
+* contextual explanations
+* rule breakdowns
+
+---
+
+## 14.2 Shadow Mode
+
+* simulate trades
+* compare vs system
+
+---
+
+## 14.3 Progressive Unlock
+
+Features unlock with usage
+
+---
+
+# 15. ADVANCED FEATURES
+
+* Strategy branching
+* Custom rule builder
+* Fast execution mode
+* API export
+
+---
+
+# 16. UX REQUIREMENTS
+
+## 16.1 Color System
+
+* Green: Valid
+* Yellow: Watch
+* Red: Blocked
+* Orange: Override
+
+---
+
+## 16.2 Persistent UI Elements
+
+* Active strategy
+* Discipline mode
+* Regime status
+
+---
+
+## 16.3 Feedback System
+
+* Trade confirmation feedback
+* Discipline change indicators
+
+---
+
+# 17. PERFORMANCE REQUIREMENTS
+
+* Compatibility response < 100ms (cached)
+* Async processes for heavy computation
+* Scalable to 1000+ tickers
+
+---
+
+# 18. SECURITY & DATA
+
+* User data isolation
+* Strategy ownership
+* Audit logs for overrides
+
+---
+
+# 19. API ENDPOINTS (CORE)
+
+* GET /strategy
+* POST /strategy
+* GET /score
+* POST /trade
+* POST /override
+* GET /journal
+
+---
+
+# 20. FINAL NOTE
+
+This system is designed to:
+
+* enforce discipline
+* allow controlled deviation
+* create behavioral feedback loops
+
+The system must NEVER:
+
+* allow silent overrides
+* remove accountability
+* rely on real-time heavy computation
+
+---
+
+---
+
+# 21. DATABASE SCHEMA (POSTGRESQL)
+
+## 21.1 Tables
+
+### users
+
+* id (uuid, pk)
+* email
+* password_hash
+* discipline_profile
+* created_at
+
+### strategies
+
+* id (uuid, pk)
+* user_id (fk)
+* name
+* timeframe
+* regime_rule (jsonb)
+* parent_strategy_id (nullable)
+* created_at
+
+### rules
+
+* id (uuid, pk)
+* strategy_id (fk)
+* type
+* metric
+* operator
+* value
+* weight
+* is_hard
+* conditions (jsonb)
+
+### cached_scores
+
+* id (uuid, pk)
+* ticker
+* strategy_id
+* score
+* hard_rule_pass
+* last_updated
+
+### trades
+
+* id (uuid, pk)
+* user_id
+* ticker
+* strategy_id
+* entry
+* exit
+* pnl
+* classification
+* justification
+* created_at
+
+### overrides
+
+* id (uuid, pk)
+* trade_id
+* justification
+* quality_flag
+* created_at
+
+### discipline_metrics
+
+* id (uuid, pk)
+* user_id
+* score
+* period
+
+---
+
+# 22. STATE MACHINES
+
+## 22.1 Trade Lifecycle
+
+States:
+
+* INITIATED
+* EVALUATED
+* BLOCKED
+* DEPLOYED
+* OVERRIDDEN
+* CLOSED
+
+Transitions:
+INITIATED → EVALUATED
+EVALUATED → DEPLOYED (if valid)
+EVALUATED → BLOCKED (if hard fail)
+BLOCKED → OVERRIDDEN
+DEPLOYED → CLOSED
+
+---
+
+## 22.2 Override Lifecycle
+
+States:
+
+* INIT
+* TIMER_ACTIVE
+* JUSTIFICATION_INPUT
+* VALIDATED
+* EXECUTED
+* FLAGGED (async AI)
+
+---
+
+# 23. SEQUENCE FLOWS
+
+## 23.1 Standard Trade
+
+User → UI → API (/score)
+API → Cache → return score
+User clicks Deploy
+API → /trade → DB insert
+
+---
+
+## 23.2 Override Flow
+
+User clicks Override
+UI triggers timer
+User inputs justification
+Frontend validates (heuristic)
+API → /override
+Trade executed
+Async worker → AI audit
+
+---
+
+# 24. API CONTRACTS (DETAILED)
+
+## GET /score
+
+Request:
+{
+ticker: string,
+strategyId: string
+}
+
+Response:
+{
+score: number,
+hardRulePass: boolean,
+breakdown: []
+}
+
+---
+
+## POST /trade
+
+{
+ticker,
+strategyId,
+entry
+}
+
+---
+
+## POST /override
+
+{
+tradeId,
+justification
+}
+
+---
+
+# 25. EVENT SYSTEM (PUB/SUB)
+
+Events:
+
+* MARKET_DATA_UPDATED
+* SCORE_UPDATED
+* TRADE_EXECUTED
+* OVERRIDE_CREATED
+
+Subscribers:
+
+* Scoring Engine
+* UI WebSocket Layer
+
+---
+
+# 26. UI WIREFRAME SPECIFICATION
+
+## 26.1 Dashboard
+
+Sections:
+
+* Watchlist (left panel)
+* Chart + Compatibility Card (center)
+* Strategy Panel (top)
+* Discipline Score (top-right)
+
+---
+
+## 26.2 Compatibility Card
+
+Elements:
+
+* Score (large number)
+* Rule list (pass/fail icons)
+* Deploy button
+* Override button (conditional)
+
+---
+
+## 26.3 Override Modal
+
+* Warning text
+* Countdown timer
+* Text input
+* Submit button (disabled until valid)
+
+---
+
+## 26.4 Journal Page
+
+Tabs:
+
+* All trades
+* Overrides
+* Discipline analysis
+
+---
+
+# 27. PERFORMANCE DESIGN
+
+* Redis caching for scores
+* Worker queues for heavy tasks
+* WebSocket updates for UI
+
+---
+
+# 28. DEPLOYMENT ARCHITECTURE
+
+* Backend: Node.js / Python
+* Frontend: React
+* DB: PostgreSQL
+* Cache: Redis
+* Queue: RabbitMQ / Kafka
+
+---
+
+# 29. TESTING REQUIREMENTS
+
+* Unit tests (rules engine)
+* Integration tests (API)
+* Load tests (scoring engine)
+* UX tests (override flow timing)
+
+---
+
+# 30. MVP SCOPE (STRICT)
+
+INCLUDE:
+
+* Strategy builder (basic)
+* Compatibility scoring (cached)
+* Override system (full)
+* Journal (basic)
+* Discipline score
+
+EXCLUDE (V2):
+
+* API external access
+* advanced rule builder UI
+* multi-strategy parallel scoring UI
+
+---
+
+# FINAL NOTE
+
+This is a production-ready specification. Any deviation must preserve:
+
+* discipline enforcement
+* controlled flexibility
+* computational efficiency
+
+---
+
+---
+
+# 31. UI WIREFRAMES (DETAILED SCREENS & FLOWS)
+
+## 31.1 GLOBAL LAYOUT (DESKTOP)
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│ Top Bar: [Logo] [Strategy ▼] [Mode: Strict/Balanced/Expert]  │
+│          [Regime: Bull/Bear/Neutral]        [Discipline 82]   │
+├───────────────┬───────────────────────────────┬───────────────┤
+│ Watchlist     │ Main Workspace               │ Side Panel    │
+│ (tickers)     │ (Chart + Compatibility Card)│ (Details)     │
+│               │                              │               │
+└───────────────┴───────────────────────────────┴───────────────┘
+```
+
+---
+
+## 31.2 DASHBOARD (PRIMARY TRADING SCREEN)
+
+### Left: Watchlist
+
+```
+[AAPL]  Score: 78  🟢
+[TSLA]  Score: 42  🔴
+[NVDA]  Score: 91  🟢
+...
+```
+
+* Click ticker → updates center
+* Auto-rescores via websocket
+
+---
+
+### Center: Chart + Compatibility Card
+
+```
+[ Chart Area (TradingView Integration) ]
+
+┌──────────────────────────────────────┐
+│ NVDA                                │
+│ Score: 91 (HIGH)                    │
+│ Strategy: Growth Breakout           │
+│ Regime: Valid                       │
+│-------------------------------------│
+│ ✔ Price > 200 SMA                   │
+│ ✔ Volume Spike                      │
+│ ✖ RSI < 70                          │
+│-------------------------------------│
+│ [DEPLOY]   [ADD TO WATCH]           │
+│ [OVERRIDE] (if blocked or optional) │
+└──────────────────────────────────────┘
+```
+
+---
+
+### Right: Context Panel
+
+```
+Strategy Summary
+- Rules: 7
+- Hard: 3
+- Soft: 4
+
+Recent Overrides
+- RSI Break (-2.1%)
+- Trend Break (+1.3%)
+```
+
+---
+
+## 31.3 OVERRIDE FLOW (CRITICAL UX)
+
+### Step 1: Warning Modal
+
+```
+⚠ This trade violates your strategy
+
+Broken Rule:
+- Price below 200 SMA (HARD)
+
+Last similar override:
+- Result: -2.1%
+
+[Proceed to Override]
+[Cancel]
+```
+
+---
+
+### Step 2: Friction Timer
+
+```
+⏳ Confirming override...
+
+Timer: 30s (countdown)
+
+"Proceed deliberately. This action reduces your discipline score."
+```
+
+---
+
+### Step 3: Justification Input
+
+```
+Explain your reasoning:
+[_____________________________________]
+
+(min 8 words required)
+
+[Submit Override] (disabled until valid)
+```
+
+---
+
+### Step 4: Confirmation Feedback
+
+```
+Override Executed
+
+Trade marked as: OUT-OF-BOUNDS
+Discipline Score Impact: -3
+```
+
+---
+
+## 31.4 JOURNAL PAGE
+
+### Tabs
+
+```
+[All Trades] [Overrides] [Discipline]
+```
+
+---
+
+### All Trades Table
+
+```
+Ticker | Strategy | PnL | Type
+NVDA   | Breakout | +2% | In Policy
+TSLA   | Breakout | -1% | Override ⚠
+```
+
+---
+
+### Overrides Tab
+
+```
+Rule Broken | Result | Justification Quality
+RSI         | -2.1%  | Low
+Trend       | +1.3%  | Valid
+```
+
+---
+
+### Discipline Panel
+
+```
+Weekly Report:
+- Trades: 12
+- In Policy: 9
+- Overrides: 3
+
+Impact:
+- In Policy: +4.5%
+- Overrides: -2.8%
+
+Discipline Score: 78 → 74
+```
+
+---
+
+## 31.5 STRATEGY BUILDER
+
+### Layout
+
+```
+Strategy Name: [__________]
+Timeframe: [5m ▼]
+
+Rules:
+[+ Add Rule]
+
+Rule Example:
+- Metric: RSI
+- Condition: < 30
+- Type: HARD / SOFT toggle
+
+[Save Strategy]
+```
+
+---
+
+## 31.6 BEGINNER MODE (LEARNING OVERLAY)
+
+### Tooltip Example
+
+```
+RSI > 70
+→ This indicates overbought conditions.
+→ In your strategy, this reduces probability.
+```
+
+---
+
+## 31.7 SHADOW MODE
+
+```
+You chose NOT to take this trade
+System would have: TAKEN
+Result: +1.8%
+```
+
+---
+
+## 31.8 CIRCUIT BREAKER MODAL
+
+```
+⚠ Strategy Paused
+
+Reason:
+- 5 consecutive losses
+- Drawdown: -8%
+
+[Review Strategy]
+[Override Anyway]
+```
+
+---
+
+## 31.9 FAST EXECUTION MODE (EXPERT)
+
+```
+Command Input:
+> NVDA
+
+[ENTER]
+→ Instant execution if valid
+```
+
+---
+
+## 31.10 MOBILE ADAPTATION (SUMMARY)
+
+* Bottom navigation:
+
+  * Watchlist
+  * Trade
+  * Journal
+
+* Compatibility card becomes full-screen
+
+* Override flow stacked vertically
+
+---
+
+# FINAL UI PRINCIPLES
+
+* No hidden actions
+* Every override is visible and remembered
+* Feedback is immediate and behavioral
+* UI reinforces discipline at every step
+
+---
+
+END OF TRD v3 (ENGINEERING PACKAGE + UI WIREFRAMES)

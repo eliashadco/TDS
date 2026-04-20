@@ -1003,7 +1003,6 @@ export default function NewTradeClient({
               ))}
             </div>
 
-            {/* Chart lives in ThesisStep on step 1; show in context band on steps 2-4 */}
             {activeStepKey !== "identification" && (
             <div className="trade-context-chart-shell">
               <div className="trade-context-chart-toolbar">
@@ -1152,13 +1151,13 @@ export default function NewTradeClient({
                   draftMeta={draftMeta}
                   smartStopHint={smartStopHint}
                   sharedLibraryItems={structureLibrary}
-                  candles={headerCandles}
-                  timeframe={headerTimeframe}
                   onSaveLibraryItem={saveSharedStructureItem}
                   onChange={updateThesis}
                   onGenerateDraft={runThesisDraft}
-                  onTimeframeChange={setHeaderTimeframe}
                   onNext={onThesisNext}
+                  candles={headerCandles}
+                  timeframe={headerTimeframe}
+                  onTimeframeChange={setHeaderTimeframe}
                 />
               </div>
               ) : null}

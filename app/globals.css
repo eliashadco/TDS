@@ -2664,15 +2664,14 @@
     padding-bottom: 0.95rem;
   }
 
-  /* ── Identification row (ticker + direction) ── */
+  /* Identification row (ticker + mini-chart) */
   .trade-thesis-id-row {
     display: grid;
     gap: 1rem;
     grid-template-columns: 1fr 1fr;
-    align-items: end;
+    align-items: start;
   }
 
-  /* ── Mini chart panel (ThesisStep step 1) ── */
   .trade-thesis-chart-panel {
     border: 1px solid var(--fin-border);
     border-radius: 18px;
@@ -2713,7 +2712,6 @@
     border-color: var(--tds-text);
   }
 
-  /* ── Accordion wrappers (setup types / conditions+patterns) ── */
   .trade-thesis-accordion {
     border: 1px solid var(--fin-border);
     border-radius: 18px;
@@ -3799,48 +3797,6 @@
   body[data-theme="dark"] .trade-structure-stage-kicker,
   body[data-theme="dark"] .trade-structure-stage-count {
     color: #9fb2c2;
-  }
-
-  body[data-theme="dark"] .trade-thesis-chart-panel {
-    border-color: rgba(39, 77, 103, 0.5);
-    background: rgba(10, 20, 30, 0.85);
-  }
-
-  body[data-theme="dark"] .trade-thesis-chart-bar {
-    border-bottom-color: rgba(39, 77, 103, 0.5);
-  }
-
-  body[data-theme="dark"] .trade-tf-btn {
-    border-color: rgba(39, 77, 103, 0.5);
-    color: #9fb2c2;
-  }
-
-  body[data-theme="dark"] .trade-tf-btn:hover {
-    background: rgba(39, 77, 103, 0.3);
-    color: #eef4fb;
-  }
-
-  body[data-theme="dark"] .trade-tf-btn.is-active {
-    background: #eef4fb;
-    color: #0a1522;
-    border-color: #eef4fb;
-  }
-
-  body[data-theme="dark"] .trade-thesis-accordion {
-    border-color: rgba(39, 77, 103, 0.5);
-    background: rgba(10, 20, 30, 0.85);
-  }
-
-  body[data-theme="dark"] .trade-thesis-accordion-trigger:hover {
-    background: rgba(39, 77, 103, 0.2);
-  }
-
-  body[data-theme="dark"] .trade-thesis-accordion-title {
-    color: #eef4fb;
-  }
-
-  body[data-theme="dark"] .trade-thesis-accordion-body {
-    border-top-color: rgba(39, 77, 103, 0.5);
   }
 
   body[data-theme="dark"] .trade-sizing-position-grid article,

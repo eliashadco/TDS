@@ -2664,6 +2664,94 @@
     padding-bottom: 0.95rem;
   }
 
+  /* ── Identification row (ticker + direction) ── */
+  .trade-thesis-id-row {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: 1fr 1fr;
+    align-items: end;
+  }
+
+  /* ── Mini chart panel (ThesisStep step 1) ── */
+  .trade-thesis-chart-panel {
+    border: 1px solid var(--fin-border);
+    border-radius: 18px;
+    overflow: hidden;
+    background: var(--fin-surface);
+  }
+
+  .trade-thesis-chart-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.65rem 1rem;
+    border-bottom: 1px solid var(--fin-border);
+  }
+
+  .trade-tf-btn {
+    padding: 0.2rem 0.6rem;
+    border-radius: 8px;
+    border: 1px solid var(--fin-border);
+    background: transparent;
+    color: var(--tds-dim);
+    font: 600 0.67rem/1 var(--font-ibm-plex-mono), monospace;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+
+  .trade-tf-btn:hover {
+    background: var(--fin-muted);
+    color: var(--tds-text);
+  }
+
+  .trade-tf-btn.is-active {
+    background: var(--tds-text);
+    color: var(--fin-bg);
+    border-color: var(--tds-text);
+  }
+
+  /* ── Accordion wrappers (setup types / conditions+patterns) ── */
+  .trade-thesis-accordion {
+    border: 1px solid var(--fin-border);
+    border-radius: 18px;
+    overflow: hidden;
+    background: var(--fin-surface);
+  }
+
+  .trade-thesis-accordion-trigger {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.85rem 1.1rem;
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s;
+  }
+
+  .trade-thesis-accordion-trigger:hover {
+    background: var(--fin-muted);
+  }
+
+  .trade-thesis-accordion-title {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font: 600 0.82rem/1.2 var(--font-manrope), sans-serif;
+    color: var(--tds-text);
+    letter-spacing: -0.01em;
+  }
+
+  .trade-thesis-accordion-body {
+    border-top: 1px solid var(--fin-border);
+    padding: 1rem;
+  }
+
   .trade-structure-shell {
     padding: 1rem 1.05rem;
   }
@@ -3713,6 +3801,48 @@
     color: #9fb2c2;
   }
 
+  body[data-theme="dark"] .trade-thesis-chart-panel {
+    border-color: rgba(39, 77, 103, 0.5);
+    background: rgba(10, 20, 30, 0.85);
+  }
+
+  body[data-theme="dark"] .trade-thesis-chart-bar {
+    border-bottom-color: rgba(39, 77, 103, 0.5);
+  }
+
+  body[data-theme="dark"] .trade-tf-btn {
+    border-color: rgba(39, 77, 103, 0.5);
+    color: #9fb2c2;
+  }
+
+  body[data-theme="dark"] .trade-tf-btn:hover {
+    background: rgba(39, 77, 103, 0.3);
+    color: #eef4fb;
+  }
+
+  body[data-theme="dark"] .trade-tf-btn.is-active {
+    background: #eef4fb;
+    color: #0a1522;
+    border-color: #eef4fb;
+  }
+
+  body[data-theme="dark"] .trade-thesis-accordion {
+    border-color: rgba(39, 77, 103, 0.5);
+    background: rgba(10, 20, 30, 0.85);
+  }
+
+  body[data-theme="dark"] .trade-thesis-accordion-trigger:hover {
+    background: rgba(39, 77, 103, 0.2);
+  }
+
+  body[data-theme="dark"] .trade-thesis-accordion-title {
+    color: #eef4fb;
+  }
+
+  body[data-theme="dark"] .trade-thesis-accordion-body {
+    border-top-color: rgba(39, 77, 103, 0.5);
+  }
+
   body[data-theme="dark"] .trade-sizing-position-grid article,
   body[data-theme="dark"] .trade-confirm-kpi-grid article {
     border-color: rgba(39, 77, 103, 0.58);
@@ -3779,6 +3909,10 @@
   @media (max-width: 1180px) {
     .trade-thesis-meta-grid,
     .trade-thesis-workspace {
+      grid-template-columns: 1fr;
+    }
+
+    .trade-thesis-id-row {
       grid-template-columns: 1fr;
     }
 

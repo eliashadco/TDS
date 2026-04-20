@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 import GuidedStructurePicker from "@/components/trade/GuidedStructurePicker";
+import PriceChart from "@/components/chart/PriceChart";
 import AIProviderBadge from "@/components/ai/AIProviderBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,10 +11,11 @@ import { mergeTradePresetOptions } from "@/lib/trading/structure-library";
 import {
   CHART_PATTERN_OPTIONS,
   CONDITION_OPTIONS,
-  SETUP_TYPE_OPTIONS,
+  filterSetupsByDirection,
 } from "@/lib/trading/presets";
 import type { TradeStructureItemType, TradeStructureLibraryItem } from "@/types/structure-library";
 import type { TradeThesis } from "@/types/trade";
+import type { Candle, CandleTimeframe } from "@/types/market";
 import { cn } from "@/lib/utils";
 import { useLearnMode } from "@/components/learn/LearnModeContext";
 import { SETUP_EXPLANATIONS } from "@/lib/learn/explanations";
@@ -26,13 +28,16 @@ type ThesisStepProps = {
   draftMeta: AIResponseMeta | null;
   smartStopHint: string | null;
   sharedLibraryItems: TradeStructureLibraryItem[];
+  candles: Candle[];
+  timeframe: CandleTimeframe;
   onSaveLibraryItem: (itemType: TradeStructureItemType, label: string) => Promise<void>;
   onChange: (patch: Partial<TradeThesis>) => void;
   onGenerateDraft: () => void;
+  onTimeframeChange: (tf: CandleTimeframe) => void;
   onNext: () => void;
 };
 
-const ASSETS = ["Equity", "ETF", "Forex", "Commodity", "Crypto"];
+const TIMEFRAMES: CandleTimeframe[] = ["hour", "day", "week"];
 
 function toggleInArray(list: string[], value: string): string[] {
   return list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
@@ -53,22 +58,6 @@ function serializeChartPatterns(patterns: string[]): string {
   return patterns.length > 0 ? patterns.join(", ") : "None";
 }
 
-function ThesisSelectionSummary({ items, emptyLabel }: { items: string[]; emptyLabel: string }) {
-  if (items.length === 0) {
-    return <p className="trade-thesis-summary-empty">{emptyLabel}</p>;
-  }
-
-  return (
-    <div className="trade-thesis-pill-cloud">
-      {items.map((item) => (
-        <span key={item} className="trade-summary-pill">
-          {item}
-        </span>
-      ))}
-    </div>
-  );
-}
-
 export default function ThesisStep({
   thesis,
   contradictions,
@@ -76,15 +65,21 @@ export default function ThesisStep({
   draftMeta,
   smartStopHint,
   sharedLibraryItems,
+  candles,
+  timeframe,
   onSaveLibraryItem,
   onChange,
   onGenerateDraft,
+  onTimeframeChange,
   onNext,
 }: ThesisStepProps) {
   const { learnMode } = useLearnMode();
   const isLong = thesis.direction === "LONG";
   const tradeStoryRef = useRef<HTMLDivElement | null>(null);
   const selectedPatterns = parseChartPatterns(thesis.chartPattern);
+  const [chartExpanded, setChartExpanded] = useState(false);
+  const [setupOpen, setSetupOpen] = useState(true);
+  const [extraOpen, setExtraOpen] = useState(false);
 
   const canContinue =
     Boolean(thesis.ticker.trim()) &&
@@ -93,13 +88,14 @@ export default function ThesisStep({
     thesis.setupTypes.length > 0;
 
   const setupOptions = useMemo(
-    () => mergeTradePresetOptions({
-      baseOptions: SETUP_TYPE_OPTIONS,
-      sharedItems: sharedLibraryItems,
-      itemType: "setup_type",
-      selectedLabels: thesis.setupTypes,
-    }),
-    [sharedLibraryItems, thesis.setupTypes],
+    () =>
+      mergeTradePresetOptions({
+        baseOptions: filterSetupsByDirection(thesis.direction),
+        sharedItems: sharedLibraryItems,
+        itemType: "setup_type",
+        selectedLabels: thesis.setupTypes,
+      }),
+    [thesis.direction, sharedLibraryItems, thesis.setupTypes],
   );
 
   const conditionOptions = useMemo(
@@ -132,19 +128,21 @@ export default function ThesisStep({
 
   return (
     <div className="space-y-6">
+      {/* Step Header */}
       <div className="trade-step-hero trade-thesis-hero">
         <div className="trade-step-hero-copy">
           <p className="meta-label">Step 1</p>
-          <h2>Build the trade thesis</h2>
-          <p>Write the trade case first, then lock the setup, conditions, and chart pattern that justify it.</p>
+          <h2>Identify the trade</h2>
         </div>
-
         <div className={cn("trade-direction-banner", isLong ? "is-long" : "is-short")}>
-          {isLong ? "▲ Bullish thesis selected. Assessment will look for upside support." : "▼ Bearish thesis selected. Assessment will look for downside support."}
+          {isLong
+            ? "▲ Bullish — showing long-aligned setups."
+            : "▼ Bearish — showing short-aligned setups."}
         </div>
       </div>
 
-      <div className="trade-input-grid trade-thesis-meta-grid">
+      {/* Ticker + Direction Row */}
+      <div className="trade-thesis-id-row">
         <div className="trade-field-shell space-y-2">
           <Label htmlFor="ticker">Ticker</Label>
           <Input
@@ -155,7 +153,6 @@ export default function ThesisStep({
             maxLength={12}
           />
         </div>
-
         <div className="trade-field-shell space-y-2">
           <Label>Direction</Label>
           <div className="flex gap-3">
@@ -165,7 +162,7 @@ export default function ThesisStep({
               variant={isLong ? "default" : "secondary"}
               onClick={() => onChange({ direction: "LONG" })}
             >
-              ▲ LONG
+              ▲ Long
             </Button>
             <Button
               type="button"
@@ -173,181 +170,249 @@ export default function ThesisStep({
               variant={!isLong ? "default" : "secondary"}
               onClick={() => onChange({ direction: "SHORT" })}
             >
-              ▼ SHORT
+              ▼ Short
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Mini Chart — appears once candles are loaded */}
+      {candles.length > 0 && (
+        <div className="trade-thesis-chart-panel">
+          <div className="trade-thesis-chart-bar">
+            <p className="meta-label">{thesis.ticker} · Price Chart</p>
+            <div className="flex items-center gap-2">
+              {TIMEFRAMES.map((tf) => (
+                <button
+                  key={tf}
+                  type="button"
+                  className={cn("trade-tf-btn", timeframe === tf && "is-active")}
+                  onClick={() => onTimeframeChange(tf)}
+                >
+                  {tf}
+                </button>
+              ))}
+              <button
+                type="button"
+                className="trade-tf-btn"
+                onClick={() => setChartExpanded((prev) => !prev)}
+              >
+                {chartExpanded ? "↙ Collapse" : "↗ Expand"}
+              </button>
+            </div>
+          </div>
+          <PriceChart
+            candles={candles}
+            direction={thesis.direction}
+            timeframe={timeframe}
+            height={chartExpanded ? 300 : 140}
+          />
+        </div>
+      )}
+
+      {/* Thesis Editor */}
+      <div
+        ref={tradeStoryRef}
+        className="trade-review-card trade-story-card trade-story-editor sm:p-6"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="meta-label">Trade Story</p>
+            <h3>Write the case in plain language</h3>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {draftMeta ? <AIProviderBadge meta={draftMeta} /> : null}
+            <Button
+              type="button"
+              variant="secondary"
+              className="secondary-button"
+              onClick={onGenerateDraft}
+              disabled={draftLoading || !thesis.ticker.trim()}
+            >
+              {draftLoading ? "Generating..." : "AI Draft"}
             </Button>
           </div>
         </div>
 
-        <div className="trade-field-shell space-y-2">
-          <Label htmlFor="asset">Asset Class</Label>
-          <select
-            id="asset"
-            aria-label="Asset class"
-            title="Asset class"
-            value={thesis.assetClass}
-            onChange={(event) => onChange({ assetClass: event.target.value })}
-            className="trade-select"
-          >
-            {ASSETS.map((asset) => (
-              <option key={asset} value={asset}>
-                {asset}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <div className="trade-thesis-workspace">
-        <div ref={tradeStoryRef} className="trade-review-card trade-story-card trade-story-editor sm:p-6">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="meta-label">Trade Story</p>
-              <h3>Write the case in plain language</h3>
-              <p className="trade-story-copy">State the edge, what should confirm, and what price action invalidates the idea.</p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {draftMeta ? <AIProviderBadge meta={draftMeta} /> : null}
-              <Button type="button" variant="secondary" className="secondary-button" onClick={onGenerateDraft} disabled={draftLoading || !thesis.ticker.trim()}>
-                {draftLoading ? "Generating..." : "AI Draft + Smart Stop"}
-              </Button>
-            </div>
+        <div className="trade-thesis-editor-grid mt-4">
+          <div className="space-y-2">
+            <Label htmlFor="thesis">Thesis</Label>
+            <textarea
+              id="thesis"
+              value={thesis.thesis}
+              onChange={(event) => onChange({ thesis: event.target.value })}
+              className="trade-textarea trade-thesis-textarea"
+              placeholder={
+                isLong
+                  ? "Why does this ticker fit your edge right now?"
+                  : "Why does this ticker fit your short edge right now?"
+              }
+            />
           </div>
-
-          <div className="trade-thesis-editor-grid">
+          <div className="trade-thesis-support-grid">
             <div className="space-y-2">
-              <Label htmlFor="thesis">Thesis</Label>
-              <textarea
-                id="thesis"
-                value={thesis.thesis}
-                onChange={(event) => onChange({ thesis: event.target.value })}
-                className="trade-textarea trade-thesis-textarea"
-                placeholder={isLong ? "Why does this ticker fit your edge right now?" : "Why does this ticker fit your short edge right now?"}
+              <Label htmlFor="catalyst">Catalyst Window</Label>
+              <Input
+                id="catalyst"
+                value={thesis.catalystWindow}
+                onChange={(event) => onChange({ catalystWindow: event.target.value })}
+                placeholder="What catalyst or timing window matters here?"
               />
-              <p className="text-xs uppercase tracking-[0.14em] text-tds-dim">Write the story first, then lock its timing and invalidation.</p>
             </div>
-
-            <div className="trade-thesis-support-grid">
-              <div className="space-y-2">
-                <Label htmlFor="catalyst">Catalyst Window</Label>
-                <Input
-                  id="catalyst"
-                  value={thesis.catalystWindow}
-                  onChange={(event) => onChange({ catalystWindow: event.target.value })}
-                  placeholder="What catalyst or timing window matters here?"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="invalidation">Invalidation</Label>
-                <Input
-                  id="invalidation"
-                  value={thesis.invalidation}
-                  onChange={(event) => onChange({ invalidation: event.target.value })}
-                  placeholder={isLong ? "What price action proves this long thesis wrong?" : "What price action proves this short thesis wrong?"}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="invalidation">Invalidation</Label>
+              <Input
+                id="invalidation"
+                value={thesis.invalidation}
+                onChange={(event) => onChange({ invalidation: event.target.value })}
+                placeholder={
+                  isLong
+                    ? "What price action proves the long wrong?"
+                    : "What price action proves the short wrong?"
+                }
+              />
             </div>
           </div>
-
-          {smartStopHint ? <p className="mt-4 text-xs uppercase tracking-[0.14em] text-tds-dim">Smart stop note: {smartStopHint}</p> : null}
         </div>
 
-        <aside className="trade-thesis-side-rail">
-          <article className="trade-review-card trade-compact-card">
-            <p className="meta-label">Structure Snapshot</p>
-            <div className="trade-thesis-summary-stack">
-              <div>
-                <p className="trade-thesis-summary-label">Setup Types</p>
-                <ThesisSelectionSummary items={thesis.setupTypes} emptyLabel="Choose at least one setup to unlock the next step." />
-              </div>
-              <div>
-                <p className="trade-thesis-summary-label">Conditions</p>
-                <ThesisSelectionSummary items={thesis.conditions} emptyLabel="No conditions selected yet." />
-              </div>
-              <div>
-                <p className="trade-thesis-summary-label">Chart Pattern</p>
-                <ThesisSelectionSummary items={selectedPatterns} emptyLabel="No dominant pattern selected." />
-              </div>
-            </div>
-          </article>
-
-          {contradictions.length > 0 ? (
-            <div className="trade-warning-panel trade-thesis-warning-panel">
-              <p className="meta-label">Potential Contradictions</p>
-              <ul className="list-disc space-y-1 pl-4 text-xs text-tds-dim">
-                {contradictions.map((warning) => (
-                  <li key={warning}>{warning}</li>
-                ))}
-              </ul>
-            </div>
-          ) : (
-            <article className="trade-review-card trade-compact-card">
-              <p className="meta-label">Story Gate</p>
-              <p className="trade-thesis-summary-empty">Complete the thesis, invalidation, and at least one setup type to open the assessment window cleanly.</p>
-            </article>
-          )}
-
-          {learnMode && thesis.setupTypes.length > 0 ? (
-            <div className="trade-review-card trade-compact-card text-sm text-tds-dim">
-              <p className="meta-label">Learn Notes</p>
-              <div className="mt-3 space-y-2">
-                {thesis.setupTypes.map((setup) => (
-                  <p key={setup}>
-                    <span className="font-semibold text-tds-text">{setup}:</span> {SETUP_EXPLANATIONS[setup] ?? "Directional structure setup."}
-                  </p>
-                ))}
-              </div>
-            </div>
-          ) : null}
-        </aside>
+        {smartStopHint ? (
+          <p className="mt-4 text-xs uppercase tracking-[0.14em] text-tds-dim">
+            Smart stop: {smartStopHint}
+          </p>
+        ) : null}
       </div>
 
-      <GuidedStructurePicker
-        sections={[
-          {
-            key: "setup",
-            title: "Setup Types",
-            description: "What type of opportunity are you actually trading?",
-            itemType: "setup_type",
-            options: setupOptions,
-            selectedLabels: thesis.setupTypes,
-            emptyLabel: "No setup types match the current filter. Broaden the search or save a custom entry.",
-            required: true,
-            onToggleLabel: (label) => onChange({ setupTypes: toggleInArray(thesis.setupTypes, label) }),
-            onClear: () => onChange({ setupTypes: [] }),
-            onManualAdd: (label) => onChange({ setupTypes: toggleInArray(thesis.setupTypes, label) }),
-            onSaveManual: (label) => onSaveLibraryItem("setup_type", label),
-          },
-          {
-            key: "conditions",
-            title: "Conditions",
-            description: "What must the tape or structure be doing for this idea to stay valid?",
-            itemType: "condition",
-            options: conditionOptions,
-            selectedLabels: thesis.conditions,
-            emptyLabel: "No conditions match the current filter. Broaden the search or save a custom entry.",
-            onToggleLabel: (label) => onChange({ conditions: toggleInArray(thesis.conditions, label) }),
-            onClear: () => onChange({ conditions: [] }),
-            onManualAdd: (label) => onChange({ conditions: toggleInArray(thesis.conditions, label) }),
-            onSaveManual: (label) => onSaveLibraryItem("condition", label),
-          },
-          {
-            key: "pattern",
-            title: "Chart Pattern",
-            description: "Optional. Add one or more chart patterns when they materially support the thesis.",
-            itemType: "chart_pattern",
-            options: patternOptions,
-            selectedLabels: selectedPatterns,
-            emptyLabel: "No chart patterns match the current filter. Broaden the search or save a custom entry.",
-            multiSelect: true,
-            onToggleLabel: togglePattern,
-            onClear: () => onChange({ chartPattern: "None" }),
-            onManualAdd: addManualPattern,
-            onSaveManual: (label) => onSaveLibraryItem("chart_pattern", label),
-          },
-        ]}
-        finalCtaLabel="Review trade story"
-        onComplete={() => tradeStoryRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-      />
+      {/* Contradictions */}
+      {contradictions.length > 0 && (
+        <div className="trade-warning-panel trade-thesis-warning-panel">
+          <p className="meta-label">Potential Contradictions</p>
+          <ul className="list-disc space-y-1 pl-4 text-xs text-tds-dim">
+            {contradictions.map((warning) => (
+              <li key={warning}>{warning}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Setup Types — direction-filtered, collapsible */}
+      <div className="trade-thesis-accordion">
+        <button
+          type="button"
+          className="trade-thesis-accordion-trigger"
+          onClick={() => setSetupOpen((prev) => !prev)}
+          aria-expanded={setupOpen}
+        >
+          <span className="trade-thesis-accordion-title">
+            Setup Types
+            {thesis.setupTypes.length > 0 && (
+              <span className="trade-summary-pill">{thesis.setupTypes.length} selected</span>
+            )}
+          </span>
+          <span className="text-xs text-tds-dim">
+            {isLong ? "Long-aligned" : "Short-aligned"} · {setupOpen ? "▲" : "▼"}
+          </span>
+        </button>
+        {setupOpen && (
+          <div className="trade-thesis-accordion-body">
+            <GuidedStructurePicker
+              sections={[
+                {
+                  key: "setup",
+                  title: "Setup Types",
+                  description: "What type of opportunity are you trading?",
+                  itemType: "setup_type",
+                  options: setupOptions,
+                  selectedLabels: thesis.setupTypes,
+                  emptyLabel: "No setup types match this direction.",
+                  required: true,
+                  onToggleLabel: (label) =>
+                    onChange({ setupTypes: toggleInArray(thesis.setupTypes, label) }),
+                  onClear: () => onChange({ setupTypes: [] }),
+                  onManualAdd: (label) =>
+                    onChange({ setupTypes: toggleInArray(thesis.setupTypes, label) }),
+                  onSaveManual: (label) => onSaveLibraryItem("setup_type", label),
+                },
+              ]}
+              finalCtaLabel="Done"
+              onComplete={() => setSetupOpen(false)}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Conditions + Patterns — optional, collapsed */}
+      <div className="trade-thesis-accordion">
+        <button
+          type="button"
+          className="trade-thesis-accordion-trigger"
+          onClick={() => setExtraOpen((prev) => !prev)}
+          aria-expanded={extraOpen}
+        >
+          <span className="trade-thesis-accordion-title">
+            Conditions &amp; Patterns
+            {(thesis.conditions.length > 0 || selectedPatterns.length > 0) && (
+              <span className="trade-summary-pill">
+                {thesis.conditions.length + selectedPatterns.length} selected
+              </span>
+            )}
+          </span>
+          <span className="text-xs text-tds-dim">Optional · {extraOpen ? "▲" : "▼"}</span>
+        </button>
+        {extraOpen && (
+          <div className="trade-thesis-accordion-body">
+            <GuidedStructurePicker
+              sections={[
+                {
+                  key: "conditions",
+                  title: "Conditions",
+                  description: "What must the tape or structure be doing for this idea to stay valid?",
+                  itemType: "condition",
+                  options: conditionOptions,
+                  selectedLabels: thesis.conditions,
+                  emptyLabel: "No conditions match the current filter.",
+                  onToggleLabel: (label) =>
+                    onChange({ conditions: toggleInArray(thesis.conditions, label) }),
+                  onClear: () => onChange({ conditions: [] }),
+                  onManualAdd: (label) =>
+                    onChange({ conditions: toggleInArray(thesis.conditions, label) }),
+                  onSaveManual: (label) => onSaveLibraryItem("condition", label),
+                },
+                {
+                  key: "pattern",
+                  title: "Chart Pattern",
+                  description: "Optional. Add chart patterns that materially support the thesis.",
+                  itemType: "chart_pattern",
+                  options: patternOptions,
+                  selectedLabels: selectedPatterns,
+                  emptyLabel: "No chart patterns match the current filter.",
+                  multiSelect: true,
+                  onToggleLabel: togglePattern,
+                  onClear: () => onChange({ chartPattern: "None" }),
+                  onManualAdd: addManualPattern,
+                  onSaveManual: (label) => onSaveLibraryItem("chart_pattern", label),
+                },
+              ]}
+              finalCtaLabel="Done"
+              onComplete={() => setExtraOpen(false)}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Learn Notes */}
+      {learnMode && thesis.setupTypes.length > 0 && (
+        <div className="trade-review-card trade-compact-card text-sm text-tds-dim">
+          <p className="meta-label">Learn Notes</p>
+          <div className="mt-3 space-y-2">
+            {thesis.setupTypes.map((setup) => (
+              <p key={setup}>
+                <span className="font-semibold text-tds-text">{setup}:</span>{" "}
+                {SETUP_EXPLANATIONS[setup] ?? "Directional structure setup."}
+              </p>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex justify-end">
         <Button type="button" className="primary-button" disabled={!canContinue} onClick={onNext}>

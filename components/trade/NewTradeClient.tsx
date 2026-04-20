@@ -997,13 +997,14 @@ export default function NewTradeClient({
             </div>
 
             <div className="trade-context-pill-row">
-              <span className="trade-summary-pill">{thesis.assetClass}</span>
               {selectedStrategy ? <span className="trade-summary-pill">{selectedStrategy.name}</span> : null}
               {thesis.setupTypes.slice(0, 2).map((setup) => (
                 <span key={setup} className="trade-summary-pill">{setup}</span>
               ))}
             </div>
 
+            {/* Chart lives in ThesisStep on step 1; show in context band on steps 2-4 */}
+            {activeStepKey !== "identification" && (
             <div className="trade-context-chart-shell">
               <div className="trade-context-chart-toolbar">
                 <div>
@@ -1035,6 +1036,7 @@ export default function NewTradeClient({
                 height={220}
               />
             </div>
+            )}
 
             <div className="trade-context-story">
               <div>
@@ -1150,9 +1152,12 @@ export default function NewTradeClient({
                   draftMeta={draftMeta}
                   smartStopHint={smartStopHint}
                   sharedLibraryItems={structureLibrary}
+                  candles={headerCandles}
+                  timeframe={headerTimeframe}
                   onSaveLibraryItem={saveSharedStructureItem}
                   onChange={updateThesis}
                   onGenerateDraft={runThesisDraft}
+                  onTimeframeChange={setHeaderTimeframe}
                   onNext={onThesisNext}
                 />
               </div>

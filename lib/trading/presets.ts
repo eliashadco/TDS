@@ -5,6 +5,7 @@ export type TradePresetOption = {
   family: string;
   detail: string;
   keywords: string[];
+  bias?: "long" | "short" | "both";
 };
 
 const FUNDAMENTAL_METRICS: Metric[] = [
@@ -86,110 +87,137 @@ export const SETUP_TYPE_OPTIONS: TradePresetOption[] = [
     family: "Expansion",
     detail: "Price clears well-defined resistance and starts trend expansion.",
     keywords: ["resistance", "range high", "expansion", "momentum"],
+    bias: "long",
   },
   {
     label: "Breakdown",
     family: "Expansion",
     detail: "Price loses support and opens a fresh downside leg.",
     keywords: ["support", "failure", "selloff", "downtrend"],
+    bias: "short",
   },
   {
     label: "Continuation",
     family: "Trend",
     detail: "Existing trend pauses, resets, and then resumes.",
     keywords: ["trend", "pause", "resume", "pullback"],
+    bias: "both",
   },
   {
     label: "Reversal",
     family: "Reversal",
     detail: "Exhaustion plus structure shift suggests a directional turn.",
     keywords: ["turn", "exhaustion", "reclaim", "flush"],
+    bias: "both",
   },
   {
     label: "Mean Reversion",
     family: "Reversal",
     detail: "Price is stretched from fair value and may snap back toward the mean.",
     keywords: ["stretch", "snapback", "extreme", "fade"],
+    bias: "both",
   },
   {
     label: "Pullback",
     family: "Trend",
     detail: "Controlled retrace into a support or resistance decision zone.",
     keywords: ["retracement", "trend entry", "support", "resistance"],
+    bias: "long",
   },
   {
     label: "Trend Resumption",
     family: "Trend",
     detail: "A mature trend regains momentum after a shallow reset.",
     keywords: ["trend", "resume", "higher low", "lower high"],
+    bias: "both",
   },
   {
     label: "Base Break",
     family: "Expansion",
     detail: "A long base or compression resolves into a directional move.",
     keywords: ["base", "compression", "launchpad", "range"],
+    bias: "both",
   },
   {
     label: "Failed Breakdown",
     family: "Reversal",
     detail: "Sellers lose follow-through after support breaks and snaps back.",
     keywords: ["trap", "reclaim", "bear trap", "failure"],
+    bias: "long",
   },
   {
     label: "Failed Breakout",
     family: "Reversal",
     detail: "Buyers fail to hold a breakout, opening the door to a fade.",
     keywords: ["trap", "reject", "bull trap", "failure"],
+    bias: "short",
   },
   {
     label: "Gap and Go",
     family: "Catalyst",
     detail: "A catalyst gap holds and continues in the gap direction.",
     keywords: ["gap", "open drive", "news", "momentum"],
+    bias: "both",
   },
   {
     label: "Gap Fill Fade",
     family: "Catalyst",
     detail: "A gap exhausts and rotates back toward the prior close.",
     keywords: ["gap fill", "fade", "retrace", "open"],
+    bias: "both",
   },
   {
     label: "Earnings Momentum",
     family: "Catalyst",
     detail: "Post-earnings repricing creates multi-session directional flow.",
     keywords: ["earnings", "guidance", "reprice", "event"],
+    bias: "both",
   },
   {
     label: "Post-Earnings Drift",
     family: "Catalyst",
     detail: "The first post-earnings push continues after the initial reaction.",
     keywords: ["earnings", "drift", "follow-through", "day two"],
+    bias: "both",
   },
   {
     label: "News Catalyst",
     family: "Catalyst",
     detail: "Fresh narrative change creates a tradeable repricing window.",
     keywords: ["news", "headline", "catalyst", "event"],
+    bias: "both",
   },
   {
     label: "Relative Strength Leader",
     family: "Leadership",
     detail: "A name leads its sector and keeps outperforming into strength.",
     keywords: ["leader", "sector", "relative strength", "outperform"],
+    bias: "long",
   },
   {
     label: "Relative Weakness Laggard",
     family: "Leadership",
     detail: "A name lags its peer group and stays weak into rallies.",
     keywords: ["laggard", "sector", "relative weakness", "underperform"],
+    bias: "short",
   },
   {
     label: "IPO Expansion",
     family: "Catalyst",
     detail: "A recent IPO clears discovery levels and expands range rapidly.",
     keywords: ["ipo", "price discovery", "new issue", "expansion"],
+    bias: "long",
   },
 ];
+
+export function filterSetupsByDirection(
+  direction: "LONG" | "SHORT"
+): TradePresetOption[] {
+  const biasKey = direction === "LONG" ? "long" : "short";
+  return SETUP_TYPE_OPTIONS.filter(
+    (s) => !s.bias || s.bias === biasKey || s.bias === "both"
+  );
+}
 
 export const CONDITION_OPTIONS: TradePresetOption[] = [
   {

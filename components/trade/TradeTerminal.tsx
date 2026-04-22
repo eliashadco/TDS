@@ -754,7 +754,6 @@ export default function TradeTerminal(props: TradeTerminalProps) {
                   >
                     {screen === "IDENTITY" ? (
                       <IdentityStep
-                        mode={initialMode}
                         ticker={tradeDraft.ticker}
                         direction={tradeDraft.direction}
                         quote={quote}
@@ -918,7 +917,6 @@ export default function TradeTerminal(props: TradeTerminalProps) {
 }
 
 function IdentityStep({
-  mode,
   ticker,
   direction,
   quote,
@@ -931,7 +929,6 @@ function IdentityStep({
   onDirectionChange,
   onChartTimeframeChange,
 }: {
-  mode: TradeMode;
   ticker: string;
   direction: Direction;
   quote: Quote | null;

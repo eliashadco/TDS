@@ -330,6 +330,7 @@ export default function PortfolioAnalyticsOverview({ accountEquity, mode, active
   const supabase = useMemo(() => createBrowserSupabase(), []);
   const baseMode = resolveBaseMode(mode);
   const [refreshRows, setRefreshRows] = useState<Record<string, StrategyRefresh>>({});
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [loading, setLoading] = useState(activeTrades.length > 0);
   const [selectedTradeId, setSelectedTradeId] = useState<string | null>(activeTrades[0]?.id ?? null);
   const [watchlistQuery, setWatchlistQuery] = useState("");

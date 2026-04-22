@@ -16,7 +16,7 @@ import {
 } from "@/lib/trading/strategies";
 import { equitySchema, metricCustomSchema } from "@/lib/validation/forms";
 import type { Database, Json } from "@/types/database";
-import type { TradeStructureLibraryItem, TradeStructureItemType } from "@/types/structure-library";
+import type { TradeSetupCategory, TradeStructureLibraryItem, TradeStructureItemType } from "@/types/structure-library";
 import type { TradeMode } from "@/types/trade";
 import type { AIResponseMeta } from "@/lib/ai/response";
 import type { SavedStrategy, StrategyPresetDefinition, StrategyStatus, StrategyStructureSnapshot } from "@/types/strategy";
@@ -191,6 +191,7 @@ export default function MetricsEditorClient({
   const [structureFamilyInput, setStructureFamilyInput] = useState("Custom");
   const [structureDetailInput, setStructureDetailInput] = useState("");
   const [structureKeywordsInput, setStructureKeywordsInput] = useState("");
+  const [structureSetupCategoryInput, setStructureSetupCategoryInput] = useState<TradeSetupCategory>("technical");
 
   const selectedStrategy = strategies.find((strategy) => strategy.id === selectedStrategyId) ?? strategies[0] ?? null;
   const metrics = useMemo(() => selectedStrategy?.metrics ?? [], [selectedStrategy]);
@@ -718,6 +719,7 @@ export default function MetricsEditorClient({
           structureFamilyInput,
           structureDetailInput,
           serializeListInput(structureKeywordsInput),
+          structureTab === "setup_type" ? { setupCategory: structureSetupCategoryInput } : undefined,
         ),
       )
       .select("*")
@@ -735,6 +737,7 @@ export default function MetricsEditorClient({
     setStructureFamilyInput("Custom");
     setStructureDetailInput("");
     setStructureKeywordsInput("");
+    setStructureSetupCategoryInput("technical");
     setStructureBusyKey(null);
   }
 
@@ -1453,6 +1456,11 @@ export default function MetricsEditorClient({
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="font-mono text-sm text-tds-text">{item.label}</p>
                         <span className="rounded-full bg-tds-muted px-2 py-1 font-mono text-[10px] text-tds-text">{item.family}</span>
+                        {item.itemType === "setup_type" && item.setupCategory ? (
+                          <span className="rounded-full border border-tds-border px-2 py-1 font-mono text-[10px] uppercase text-tds-dim">
+                            {item.setupCategory}
+                          </span>
+                        ) : null}
                       </div>
                       <p className="mt-2 text-xs text-tds-dim">{item.detail || "No extra guidance saved for this entry yet."}</p>
                       {item.keywords.length > 0 ? <p className="mt-2 text-xs text-tds-dim">Keywords: {item.keywords.join(", ")}</p> : null}
@@ -1489,6 +1497,30 @@ export default function MetricsEditorClient({
                 placeholder="Family / category"
                 className="w-full rounded-lg border border-tds-border bg-tds-card px-3 py-2 text-sm text-tds-text focus:border-tds-focus focus:outline-none"
               />
+              {structureTab === "setup_type" ? (
+                <div className="space-y-2">
+                  <p className="text-xs uppercase tracking-[0.18em] text-tds-dim">Setup Classification</p>
+                  <div className="flex flex-wrap gap-2">
+                    {(["fundamental", "technical"] as const).map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => setStructureSetupCategoryInput(value)}
+                        className={`rounded-full border px-3 py-1 text-xs uppercase tracking-[0.16em] ${
+                          structureSetupCategoryInput === value
+                            ? "border-tds-blue bg-tds-blue/20 text-tds-text"
+                            : "border-tds-border bg-tds-card text-tds-dim hover:bg-tds-hover"
+                        }`}
+                      >
+                        {value}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs leading-5 text-tds-dim">
+                    Tag setup entries explicitly so trade pickers stop guessing whether the edge is narrative-driven or purely structural.
+                  </p>
+                </div>
+              ) : null}
               <textarea
                 value={structureDetailInput}
                 onChange={(event) => setStructureDetailInput(event.target.value)}

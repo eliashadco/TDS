@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import { Activity, Scale, TrendingUp } from "lucide-react";
@@ -77,8 +78,8 @@ export default function AnalyticsClient({ closedTrades, showHero = true }: Analy
 
   if (modeledAnalytics.tradeCount < 5) {
     return (
-      <main className="analytics-terminal">
-        <section className="surface-panel p-6 sm:p-8">
+      <main className="analytics-terminal trade-terminal analytics-cockpit">
+        <section className="surface-panel analytics-cockpit-hero p-6 sm:p-8">
           <p className="meta-label">{showHero ? "Performance Analytics" : "Historical Analytics"}</p>
           <h2 className="mt-3 font-[Iowan_Old_Style,Palatino_Linotype,Georgia,serif] text-[clamp(2rem,3vw,3rem)] font-semibold leading-[0.98] text-[#162331]">
             Not enough closed trades yet.
@@ -89,20 +90,42 @@ export default function AnalyticsClient({ closedTrades, showHero = true }: Analy
           <p className="mt-3 max-w-2xl text-sm leading-7 text-[#4e6273]">
             Realized execution analytics currently have {realizedAnalytics.capturedTradeCount} trade{realizedAnalytics.capturedTradeCount === 1 ? "" : "s"} with full exit capture.
           </p>
+          <div className="analytics-preview-grid mt-6">
+            <article className="analytics-preview-card">
+              <p className="meta-label">Closed trades logged</p>
+              <strong>{modeledAnalytics.tradeCount}</strong>
+              <span>Statistical review opens at 5 closed trades.</span>
+            </article>
+            <article className="analytics-preview-card">
+              <p className="meta-label">Trades remaining</p>
+              <strong>{Math.max(5 - modeledAnalytics.tradeCount, 0)}</strong>
+              <span>Needed before the expectancy cockpit unlocks.</span>
+            </article>
+            <article className="analytics-preview-card">
+              <p className="meta-label">Realized coverage</p>
+              <strong>{realizedAnalytics.capturedTradeCount}</strong>
+              <span>Trades with complete exit capture.</span>
+            </article>
+          </div>
+          <div className="analytics-preview-actions mt-6">
+            <Link href="/trade/new" className="blind-eval-primary blind-eval-link">Log new trade</Link>
+            <Link href="/archive" className="blind-eval-secondary blind-eval-link-secondary">Review archive</Link>
+          </div>
         </section>
       </main>
     );
   }
 
   return (
-    <main className="analytics-terminal">
-      <section className="analytics-header-row">
-        <div>
+    <main className="analytics-terminal trade-terminal analytics-cockpit">
+      <section className="surface-panel analytics-cockpit-hero analytics-header-row">
+        <div className="analytics-cockpit-hero-copy">
+          <p className="meta-label">Performance Analytics</p>
           <h2>Portfolio Analytics</h2>
-          <p className="page-intro">Performance attribution and mechanical discipline review.</p>
+          <p className="page-intro">Performance attribution, expectancy quality, and execution discipline in a single review cockpit.</p>
         </div>
-        <div className="analytics-summary-strip">
-          <article className="override-budget-card">
+        <div className="analytics-summary-strip analytics-command-deck">
+          <article className="override-budget-card analytics-lane-card">
             <p className="meta-label">Review Lane</p>
             <strong>
               {reviewLane === "modeled" ? "M" : "R"}
@@ -125,11 +148,11 @@ export default function AnalyticsClient({ closedTrades, showHero = true }: Analy
               </button>
             </div>
           </article>
-          <article className="analytics-top-stat">
+          <article className="analytics-top-stat analytics-hero-stat">
             <p className="meta-label">Expectancy</p>
             <strong>{formatR(selectedAnalytics.expectancy)}</strong>
           </article>
-          <article className="analytics-top-stat">
+          <article className="analytics-top-stat analytics-hero-stat">
             <p className="meta-label">Total P&amp;L</p>
             <strong className={reviewLane === "modeled" || realizedAnalytics.totalPnl >= 0 ? "positive" : "negative"}>
               {reviewLane === "modeled" ? formatR(selectedAnalytics.expectancy * selectedOutcomeCount) : formatMoney(realizedAnalytics.totalPnl)}
@@ -139,23 +162,23 @@ export default function AnalyticsClient({ closedTrades, showHero = true }: Analy
       </section>
 
       {showHero ? (
-        <section className="analytics-kpi-grid">
-          <article className="surface-panel analytics-kpi-card">
+        <section className="analytics-kpi-grid analytics-kpi-shell">
+          <article className="surface-panel analytics-kpi-card analytics-kpi-spotlight">
             <p className="meta-label">Modeled Expectancy</p>
             <strong>{formatR(modeledAnalytics.expectancy)}</strong>
             <span>{modeledAnalytics.tradeCount} trades in model sample</span>
           </article>
-          <article className="surface-panel analytics-kpi-card">
+          <article className="surface-panel analytics-kpi-card analytics-kpi-spotlight">
             <p className="meta-label">Realized P&amp;L</p>
             <strong className={realizedAnalytics.totalPnl >= 0 ? "positive" : "negative"}>{formatMoney(realizedAnalytics.totalPnl)}</strong>
             <span>Captured exit math only</span>
           </article>
-          <article className="surface-panel analytics-kpi-card">
+          <article className="surface-panel analytics-kpi-card analytics-kpi-spotlight">
             <p className="meta-label">Realized Coverage</p>
             <strong>{(captureRate * 100).toFixed(0)}%</strong>
             <span>{realizedAnalytics.capturedTradeCount}/{realizedAnalytics.tradeCount} trades captured</span>
           </article>
-          <article className="surface-panel analytics-kpi-card">
+          <article className="surface-panel analytics-kpi-card analytics-kpi-spotlight">
             <p className="meta-label">Trend</p>
             <strong>{trendLabel}</strong>
             <span>Rolling vs overall expectancy</span>
@@ -176,36 +199,36 @@ export default function AnalyticsClient({ closedTrades, showHero = true }: Analy
       ) : null}
 
       {reviewLane === "realized" && realizedAnalytics.capturedTradeCount < realizedAnalytics.tradeCount ? (
-        <div className="priority-card warn">
+        <div className="priority-card warn analytics-warning-callout">
           {realizedAnalytics.tradeCount - realizedAnalytics.capturedTradeCount} closed trade{realizedAnalytics.tradeCount - realizedAnalytics.capturedTradeCount === 1 ? " is" : "s are"} missing full exit capture and are excluded from realized analytics.
         </div>
       ) : null}
 
-      <section className="analytics-kpi-grid">
-        <article className="surface-panel analytics-kpi-card">
+      <section className="analytics-kpi-grid analytics-kpi-shell analytics-kpi-shell-secondary">
+        <article className="surface-panel analytics-kpi-card analytics-kpi-spotlight">
           <p className="meta-label">Win Rate</p>
           <strong>{(selectedAnalytics.winRate * 100).toFixed(1)}%</strong>
           <span>{selectedOutcomeCount} outcome{selectedOutcomeCount === 1 ? "" : "s"} in sample</span>
         </article>
-        <article className="surface-panel analytics-kpi-card">
+        <article className="surface-panel analytics-kpi-card analytics-kpi-spotlight">
           <p className="meta-label">Expectancy</p>
           <strong>{formatR(selectedAnalytics.expectancy)}</strong>
           <span>Per-trade normalized edge</span>
         </article>
-        <article className="surface-panel analytics-kpi-card">
+        <article className="surface-panel analytics-kpi-card analytics-kpi-spotlight">
           <p className="meta-label">Avg R-Multiple</p>
           <strong>{formatR(selectedAnalytics.avgWinR)}</strong>
           <span>Avg loss {formatR(selectedAnalytics.avgLossR)}</span>
         </article>
-        <article className="surface-panel analytics-kpi-card">
+        <article className="surface-panel analytics-kpi-card analytics-kpi-spotlight">
           <p className="meta-label">Profit Factor</p>
           <strong>{Number.isFinite(selectedAnalytics.profitFactor) ? selectedAnalytics.profitFactor.toFixed(2) : "∞"}</strong>
           <span>Rolling {formatR(selectedAnalytics.rollingExpectancy)}</span>
         </article>
       </section>
 
-      <section className="analytics-chart-grid">
-        <section className="surface-panel analytics-chart-panel wide-chart-panel">
+      <section className="analytics-chart-grid analytics-chart-shell">
+        <section className="surface-panel analytics-chart-panel wide-chart-panel analytics-chart-spotlight">
           <div className="analytics-panel-header">
             <div>
               <p className="meta-label">Equity Curve</p>
@@ -236,7 +259,7 @@ export default function AnalyticsClient({ closedTrades, showHero = true }: Analy
           )}
         </section>
 
-        <section className="surface-panel analytics-chart-panel narrow-analytics-panel">
+        <section className="surface-panel analytics-chart-panel narrow-analytics-panel analytics-chart-sidecar">
           <div className="analytics-panel-header">
             <div>
               <p className="meta-label">Source Breakdown</p>
@@ -274,8 +297,8 @@ export default function AnalyticsClient({ closedTrades, showHero = true }: Analy
         </section>
       </section>
 
-      <section className="analytics-insight-grid">
-        <article className="surface-panel analytics-insight-card">
+      <section className="analytics-insight-grid analytics-insight-shell">
+        <article className="surface-panel analytics-insight-card analytics-insight-spotlight">
           <p className="meta-label">Setup Breakdown</p>
           <h3>Edge by setup type</h3>
           <div className="mt-5 space-y-4">
@@ -299,7 +322,7 @@ export default function AnalyticsClient({ closedTrades, showHero = true }: Analy
           </div>
         </article>
 
-        <article className="surface-panel analytics-insight-card">
+        <article className="surface-panel analytics-insight-card analytics-insight-spotlight">
           <p className="meta-label">Strategy Breakdown</p>
           <h3>Edge by saved strategy</h3>
           <div className="mt-5 space-y-4">
@@ -323,7 +346,7 @@ export default function AnalyticsClient({ closedTrades, showHero = true }: Analy
           </div>
         </article>
 
-        <article className="surface-panel analytics-insight-card">
+        <article className="surface-panel analytics-insight-card analytics-insight-spotlight">
           <p className="meta-label">Discipline Review</p>
           <h3>System health</h3>
           <div className="mt-5 space-y-3">

@@ -12,7 +12,6 @@ export interface Metric {
 export interface TradeThesis {
   ticker: string;
   direction: "LONG" | "SHORT";
-  assetClass: string;
   setupTypes: string[];
   conditions: string[];
   chartPattern: string;

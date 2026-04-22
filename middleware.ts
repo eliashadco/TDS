@@ -12,10 +12,10 @@ const PROTECTED_PREFIXES = [
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
+  const isProtected = PROTECTED_PREFIXES.some((prefix) => request.nextUrl.pathname.startsWith(prefix));
 
   const hasSupabaseEnv = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
   if (!hasSupabaseEnv) {
-    const isProtected = PROTECTED_PREFIXES.some((prefix) => request.nextUrl.pathname.startsWith(prefix));
     if (isProtected) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
@@ -45,7 +45,6 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isProtected = PROTECTED_PREFIXES.some((prefix) => request.nextUrl.pathname.startsWith(prefix));
   if (!user && isProtected) {
     return NextResponse.redirect(new URL("/login", request.url));
   }

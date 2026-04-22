@@ -51,7 +51,7 @@ export default function ConfirmStep({
       <div className="flex flex-wrap gap-2 text-xs">
         <span className="inline-tag neutral">{thesis.ticker}</span>
         <span className="inline-tag neutral">{thesis.direction}</span>
-        <span className="inline-tag neutral">{thesis.assetClass}</span>
+        
         <span className="inline-tag scored">{conviction.tier}</span>
         {thesis.setupTypes.map((setup) => (
           <span key={setup} className="inline-tag neutral">
@@ -88,7 +88,7 @@ export default function ConfirmStep({
             </div>
             <div>
               <span>Asset</span>
-              <strong>{thesis.assetClass}</strong>
+              <strong>Equity</strong>
             </div>
             <div>
               <span>Setup count</span>

@@ -1,3 +1,4 @@
+import type { TradeSetupCategory } from "@/types/structure-library";
 import type { Metric, TradeMode } from "@/types/trade";
 
 export type TradePresetOption = {
@@ -6,6 +7,7 @@ export type TradePresetOption = {
   detail: string;
   keywords: string[];
   bias?: "long" | "short" | "both";
+  setupCategory?: TradeSetupCategory;
 };
 
 const FUNDAMENTAL_METRICS: Metric[] = [
@@ -88,6 +90,7 @@ export const SETUP_TYPE_OPTIONS: TradePresetOption[] = [
     detail: "Price clears well-defined resistance and starts trend expansion.",
     bias: "long",
     keywords: ["resistance", "range high", "expansion", "momentum"],
+    setupCategory: "technical",
   },
   {
     label: "Breakdown",
@@ -95,6 +98,7 @@ export const SETUP_TYPE_OPTIONS: TradePresetOption[] = [
     detail: "Price loses support and opens a fresh downside leg.",
     bias: "short",
     keywords: ["support", "failure", "selloff", "downtrend"],
+    setupCategory: "technical",
   },
   {
     label: "Continuation",
@@ -102,6 +106,7 @@ export const SETUP_TYPE_OPTIONS: TradePresetOption[] = [
     detail: "Existing trend pauses, resets, and then resumes.",
     bias: "both",
     keywords: ["trend", "pause", "resume", "pullback"],
+    setupCategory: "technical",
   },
   {
     label: "Reversal",
@@ -109,6 +114,7 @@ export const SETUP_TYPE_OPTIONS: TradePresetOption[] = [
     detail: "Exhaustion plus structure shift suggests a directional turn.",
     bias: "both",
     keywords: ["turn", "exhaustion", "reclaim", "flush"],
+    setupCategory: "technical",
   },
   {
     label: "Mean Reversion",
@@ -116,6 +122,7 @@ export const SETUP_TYPE_OPTIONS: TradePresetOption[] = [
     detail: "Price is stretched from fair value and may snap back toward the mean.",
     bias: "both",
     keywords: ["stretch", "snapback", "extreme", "fade"],
+    setupCategory: "technical",
   },
   {
     label: "Pullback",
@@ -123,6 +130,7 @@ export const SETUP_TYPE_OPTIONS: TradePresetOption[] = [
     detail: "Controlled retrace into a support or resistance decision zone.",
     bias: "long",
     keywords: ["retracement", "trend entry", "support", "resistance"],
+    setupCategory: "technical",
   },
   {
     label: "Trend Resumption",
@@ -130,6 +138,7 @@ export const SETUP_TYPE_OPTIONS: TradePresetOption[] = [
     detail: "A mature trend regains momentum after a shallow reset.",
     bias: "both",
     keywords: ["trend", "resume", "higher low", "lower high"],
+    setupCategory: "technical",
   },
   {
     label: "Base Break",
@@ -137,6 +146,7 @@ export const SETUP_TYPE_OPTIONS: TradePresetOption[] = [
     detail: "A long base or compression resolves into a directional move.",
     bias: "both",
     keywords: ["base", "compression", "launchpad", "range"],
+    setupCategory: "technical",
   },
   {
     label: "Failed Breakdown",
@@ -144,6 +154,7 @@ export const SETUP_TYPE_OPTIONS: TradePresetOption[] = [
     detail: "Sellers lose follow-through after support breaks and snaps back.",
     bias: "long",
     keywords: ["trap", "reclaim", "bear trap", "failure"],
+    setupCategory: "technical",
   },
   {
     label: "Failed Breakout",
@@ -151,6 +162,7 @@ export const SETUP_TYPE_OPTIONS: TradePresetOption[] = [
     detail: "Buyers fail to hold a breakout, opening the door to a fade.",
     bias: "short",
     keywords: ["trap", "reject", "bull trap", "failure"],
+    setupCategory: "technical",
   },
   {
     label: "Gap and Go",
@@ -158,6 +170,7 @@ export const SETUP_TYPE_OPTIONS: TradePresetOption[] = [
     detail: "A catalyst gap holds and continues in the gap direction.",
     bias: "both",
     keywords: ["gap", "open drive", "news", "momentum"],
+    setupCategory: "fundamental",
   },
   {
     label: "Gap Fill Fade",
@@ -165,6 +178,7 @@ export const SETUP_TYPE_OPTIONS: TradePresetOption[] = [
     detail: "A gap exhausts and rotates back toward the prior close.",
     bias: "both",
     keywords: ["gap fill", "fade", "retrace", "open"],
+    setupCategory: "fundamental",
   },
   {
     label: "Earnings Momentum",
@@ -172,6 +186,7 @@ export const SETUP_TYPE_OPTIONS: TradePresetOption[] = [
     detail: "Post-earnings repricing creates multi-session directional flow.",
     bias: "both",
     keywords: ["earnings", "guidance", "reprice", "event"],
+    setupCategory: "fundamental",
   },
   {
     label: "Post-Earnings Drift",
@@ -179,6 +194,7 @@ export const SETUP_TYPE_OPTIONS: TradePresetOption[] = [
     detail: "The first post-earnings push continues after the initial reaction.",
     bias: "both",
     keywords: ["earnings", "drift", "follow-through", "day two"],
+    setupCategory: "fundamental",
   },
   {
     label: "News Catalyst",
@@ -186,6 +202,7 @@ export const SETUP_TYPE_OPTIONS: TradePresetOption[] = [
     detail: "Fresh narrative change creates a tradeable repricing window.",
     bias: "both",
     keywords: ["news", "headline", "catalyst", "event"],
+    setupCategory: "fundamental",
   },
   {
     label: "Relative Strength Leader",
@@ -193,6 +210,7 @@ export const SETUP_TYPE_OPTIONS: TradePresetOption[] = [
     detail: "A name leads its sector and keeps outperforming into strength.",
     bias: "long",
     keywords: ["leader", "sector", "relative strength", "outperform"],
+    setupCategory: "fundamental",
   },
   {
     label: "Relative Weakness Laggard",
@@ -200,6 +218,7 @@ export const SETUP_TYPE_OPTIONS: TradePresetOption[] = [
     detail: "A name lags its peer group and stays weak into rallies.",
     bias: "short",
     keywords: ["laggard", "sector", "relative weakness", "underperform"],
+    setupCategory: "fundamental",
   },
   {
     label: "IPO Expansion",
@@ -207,6 +226,7 @@ export const SETUP_TYPE_OPTIONS: TradePresetOption[] = [
     detail: "A recent IPO clears discovery levels and expands range rapidly.",
     bias: "long",
     keywords: ["ipo", "price discovery", "new issue", "expansion"],
+    setupCategory: "fundamental",
   },
 ];
 

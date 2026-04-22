@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Eye, Gamepad2, Loader2, RefreshCw, Shield, SkipForward } from "lucide-react";
+import { ArrowRight, Eye, Gamepad2, Loader2, RefreshCw, Shield, SkipForward } from "lucide-react";
 import PriceChart from "@/components/chart/PriceChart";
 import type { ReadyTradeView } from "@/components/dashboard/ReadyTradesCard";
 import type { Candle } from "@/types/market";
@@ -174,35 +174,63 @@ export default function BlindEvaluationCard({ activeStrategy, items }: BlindEval
   if (candidates.length === 0 || !current) {
     return (
       <section className="surface-panel blind-eval-panel">
-        <div className="surface-header blind-eval-header">
-          <div>
-            <p className="meta-label">Blind Evaluation Mode</p>
-            <h3>No qualified challenge queued</h3>
+        <div className="blind-eval-header-shell">
+          <div className="surface-header blind-eval-header">
+            <div>
+              <p className="meta-label">Evaluation Queue</p>
+              <h3>No anonymous challenge queued</h3>
+            </div>
+            <div className="blind-eval-top-meta">
+              <span className="blind-eval-counter">0 / 0</span>
+              <span className="blind-eval-pill">Bias shield offline</span>
+            </div>
           </div>
-          <span className="blind-eval-pill">Bias shield offline</span>
+          <p className="blind-eval-lead">Blind rounds come online when a GO setup clears the assigned strategy and is ready for anonymous chart review.</p>
         </div>
-        <p className="blind-eval-empty-copy">
-          Blind rounds activate when a GO setup clears the active parent strategy. Keep the assembly line running and the next qualified chart will appear here.
-        </p>
+        <div className="blind-eval-empty-grid">
+          <article className="blind-eval-empty-card">
+            <p className="blind-eval-panel-label">What activates a round</p>
+            <p className="blind-eval-empty-copy">A GO-scored setup, tied to the current lane, enters here once it clears the workbench and is ready for anonymous chart review.</p>
+          </article>
+          <article className="blind-eval-empty-card">
+            <p className="blind-eval-panel-label">Best next move</p>
+            <p className="blind-eval-empty-copy">Score MarketWatch candidates or build a new thesis so the queue can present the next structure-first challenge.</p>
+          </article>
+        </div>
+        <div className="blind-eval-empty-actions">
+          <Link className="blind-eval-primary blind-eval-link" href="/portfolio-analytics?tab=marketwatch">
+            Open workbench
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+          <Link className="blind-eval-secondary blind-eval-link-secondary" href="/trade/new">
+            Start new thesis
+          </Link>
+        </div>
       </section>
     );
   }
 
   return (
     <section className="surface-panel blind-eval-panel">
-      <div className="surface-header blind-eval-header">
-        <div>
-          <p className="meta-label">Blind Evaluation Mode</p>
-          <h3>Trade the setup, not the story</h3>
+      <div className="blind-eval-header-shell">
+        <div className="surface-header blind-eval-header">
+          <div>
+            <p className="meta-label">Evaluation Queue</p>
+            <h3>Trade the setup, not the story</h3>
+          </div>
+          <div className="blind-eval-top-meta">
+            <span className="blind-eval-counter">{candidateIndex + 1} / {candidates.length}</span>
+            <span className="blind-eval-pill">Bias shield active</span>
+          </div>
         </div>
-        <span className="blind-eval-pill">Bias shield active</span>
+        <p className="blind-eval-lead">Approve the structure only if the anonymous chart qualifies on its own. The ticker appears after conviction, not before.</p>
       </div>
 
       <div className="blind-eval-grid">
         <div className="blind-eval-chart-panel">
           <div className="blind-eval-chart-head">
             <div>
-              <p className="blind-eval-kicker">Challenge {candidateIndex + 1}</p>
+              <p className="blind-eval-kicker">Anonymous challenge {candidateIndex + 1}</p>
               <h4>{revealed ? current.ticker : "Instrument Hidden"}</h4>
             </div>
             <span className={`inline-tag ${current.direction === "LONG" ? "green" : "red"}`}>
@@ -230,11 +258,11 @@ export default function BlindEvaluationCard({ activeStrategy, items }: BlindEval
         <div className="blind-eval-side-panel">
           <div className="blind-eval-rule-stack">
             <div className="blind-eval-meta-row">
-              <span className="blind-eval-meta-label">Parent strategy</span>
+              <span className="blind-eval-meta-label">Assigned strategy</span>
               <span className="blind-eval-meta-value">{activeStrategy?.name} v{activeStrategy?.versionNumber}</span>
             </div>
             <div className="blind-eval-meta-row">
-              <span className="blind-eval-meta-label">Rule stack</span>
+              <span className="blind-eval-meta-label">Enabled checks</span>
               <span className="blind-eval-meta-value">{enabledMetrics.length} enabled / {hardMetrics.length} hard</span>
             </div>
             <p className="blind-eval-strategy-copy">{activeStrategy?.description}</p>
@@ -281,11 +309,11 @@ export default function BlindEvaluationCard({ activeStrategy, items }: BlindEval
             <div className="blind-eval-actions">
               <button className="blind-eval-primary" onClick={() => completeRound("approved")}>
                 <Eye className="h-4 w-4" />
-                Approve Setup
+                Approve structure
               </button>
               <button className="blind-eval-secondary" onClick={() => completeRound("skipped")}>
                 <RefreshCw className="h-4 w-4" />
-                Pass Round
+                Pass challenge
               </button>
             </div>
           ) : (
@@ -298,10 +326,10 @@ export default function BlindEvaluationCard({ activeStrategy, items }: BlindEval
               </div>
               <div className="blind-eval-revealed-cta">
                 <Link className="blind-eval-primary blind-eval-link" href={buildExecutionHref(current, current.strategyId ?? activeStrategy?.id ?? "")}>
-                  Execute Revealed Setup
+                  Execute revealed setup
                 </Link>
                 <button className="blind-eval-secondary" onClick={() => setCandidateIndex((previous) => (previous + 1) % candidates.length)}>
-                  Next Blind Round
+                  Next challenge
                 </button>
               </div>
             </div>

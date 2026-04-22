@@ -67,8 +67,8 @@ export default function ScoredQueueCard({ items }: ScoredQueueCardProps) {
       <aside className="surface-panel scored-queue-panel">
         <div className="surface-header scored-queue-header">
           <div>
-            <p className="meta-label">Scored Queue</p>
-            <h3>Assembly Line</h3>
+            <p className="meta-label">Execution Board</p>
+            <h3>Ready lane is clear</h3>
           </div>
           <span className="signal-badge" aria-hidden="true">⚡</span>
         </div>
@@ -80,9 +80,9 @@ export default function ScoredQueueCard({ items }: ScoredQueueCardProps) {
               <span className="font-mono">{lastAction.ticker}</span>.
             </p>
           ) : (
-            <p>No scored setups ready. Scan the workbench for new ideas.</p>
+            <p>No scored setups are ready to deploy. Rotate back through the workbench for the next qualified setup.</p>
           )}
-          <Link href="/marketwatch" className="secondary-button full-width" style={{ marginTop: "0.75rem" }}>
+          <Link href="/marketwatch" className="secondary-button full-width scored-queue-empty-action">
             Open Workbench
             <ArrowRight className="h-4 w-4" />
           </Link>
@@ -98,8 +98,8 @@ export default function ScoredQueueCard({ items }: ScoredQueueCardProps) {
     <aside className="surface-panel scored-queue-panel">
       <div className="surface-header scored-queue-header">
         <div>
-          <p className="meta-label">Scored Queue</p>
-          <h3>Assembly Line</h3>
+          <p className="meta-label">Execution Board</p>
+          <h3>Highest-conviction setup in queue</h3>
         </div>
         <span className="scored-queue-counter">
           {queueIndex + 1} / {total}
@@ -146,7 +146,7 @@ export default function ScoredQueueCard({ items }: ScoredQueueCardProps) {
           title="Reject — archive this setup"
         >
           <X className="h-5 w-5" />
-          <span>Reject</span>
+          <span>Archive</span>
         </button>
 
         <button
@@ -156,7 +156,7 @@ export default function ScoredQueueCard({ items }: ScoredQueueCardProps) {
           title="Snooze — keep on watchlist, review later"
         >
           <Clock className="h-5 w-5" />
-          <span>Snooze</span>
+          <span>Defer</span>
         </button>
 
         <Link
@@ -165,7 +165,7 @@ export default function ScoredQueueCard({ items }: ScoredQueueCardProps) {
           title="Accept — open trade wizard for this setup"
         >
           <Check className="h-5 w-5" />
-          <span>Accept</span>
+          <span>Execute</span>
         </Link>
       </div>
 

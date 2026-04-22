@@ -5,8 +5,10 @@ import Link from "next/link";
 import { ShieldCheck, Sparkles } from "lucide-react";
 import type { ReadyTradeView } from "@/components/dashboard/ReadyTradesCard";
 import BlindEvaluationCard from "@/components/dashboard/BlindEvaluationCard";
+import RiskMetricCard from "@/components/dashboard/RiskMetricCard";
 import ScoredQueueCard from "@/components/dashboard/ScoredQueueCard";
 import TodaysPrioritiesCard, { type DashboardPriority } from "@/components/dashboard/TodaysPrioritiesCard";
+import { cn } from "@/lib/utils";
 import type { QuoteDataStatus, QuoteProvider } from "@/types/market";
 import type { Metric, TradeMode } from "@/types/trade";
 
@@ -86,6 +88,14 @@ function money(value: number): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value);
 }
 
+function formatModeLabel(mode: TradeMode | null): string {
+  if (!mode) {
+    return "Not set";
+  }
+
+  return mode === "daytrade" ? "Day Trade" : `${mode.charAt(0).toUpperCase()}${mode.slice(1)}`;
+}
+
 function DirectionBadge({ direction }: { direction: "LONG" | "SHORT" }) {
   return <span className={`inline-tag ${direction === "LONG" ? "green" : "red"}`}>{direction === "LONG" ? "Long" : "Short"}</span>;
 }
@@ -114,6 +124,10 @@ export default function DashboardClient({ profile, activeStrategy, activeTrades,
   const livePnlPct = deployedCapital > 0 ? (livePnl / deployedCapital) * 100 : 0;
   const readyTradeCount = readyTrades.filter((item) => item.verdict === "GO").length;
   const queuedTradeCount = readyTrades.filter((item) => item.verdict === "CAUTION").length;
+  const displayEquity = Math.max(profile.equity, 0);
+  const isHeatHot = heat > 6;
+  const heatStateLabel = heat >= 10 ? "Heat Elevated" : heat > 6 ? "Heat Active" : "Heat Controlled";
+  const liveDeltaLabel = `${livePnl >= 0 ? "+" : "-"}${money(Math.abs(livePnl))}`;
 
   const priorities: DashboardPriority[] = [];
   if (heat >= 10) {
@@ -183,138 +197,162 @@ export default function DashboardClient({ profile, activeStrategy, activeTrades,
   }
 
   return (
-    <main className="dashboard-terminal">
-      <section className="dashboard-action-row">
-        <div className="terminal-page-header">
-          <p className="meta-label">Dashboard</p>
-          <h2>Decision surface</h2>
-          <p className="page-intro">Portfolio state, signal readiness, and active work in a tighter operating layout.</p>
-        </div>
-        <div className="dashboard-primary-actions">
-          <Link href="/trade/new" className="primary-button">
-            Execute New Thesis
-          </Link>
-          <Link href="/portfolio-analytics" className="secondary-button">
-            Full Analytics
-          </Link>
+    <main className="dashboard-terminal trade-terminal dashboard-cockpit">
+      <section className="surface-panel dashboard-cockpit-hero">
+        <div className="dashboard-hero-grid">
+          <div className="dashboard-hero-copy">
+            <p className="dashboard-hero-eyebrow">Portfolio Overview</p>
+            <div className="dashboard-hero-equity-row">
+              <h1 className="dashboard-equity-value">{money(displayEquity)}</h1>
+              <div className={cn("dashboard-equity-delta", livePnl >= 0 ? "positive" : "negative")}>
+                <span>{liveDeltaLabel}</span>
+                <span>{livePnlPct >= 0 ? "+" : ""}{livePnlPct.toFixed(2)}%</span>
+              </div>
+            </div>
+            <p className="dashboard-hero-copy-text">
+              Live equity, portfolio heat, and execution readiness in one command surface designed to keep risk state and next action visible.
+            </p>
+          </div>
+
+          <div className="dashboard-command-cluster">
+            <div className="dashboard-primary-actions">
+              <Link href="/trade/new" className="primary-button">
+                Execute New Thesis
+              </Link>
+              <Link href="/portfolio-analytics" className="secondary-button">
+                Open Analytics
+              </Link>
+            </div>
+            <div className="dashboard-command-microgrid">
+              <article className="dashboard-command-stat">
+                <p className="meta-label">Mode</p>
+                <strong>{formatModeLabel(profile.mode)}</strong>
+              </article>
+              <article className="dashboard-command-stat">
+                <p className="meta-label">Active Strategy</p>
+                <strong>{activeStrategy?.name ?? "No strategy"}</strong>
+              </article>
+              <article className="dashboard-command-stat">
+                <p className="meta-label">Ready Board</p>
+                <strong>{readyTradeCount} GO</strong>
+              </article>
+              <article className="dashboard-command-stat">
+                <p className="meta-label">Heat State</p>
+                <strong>{heatStateLabel}</strong>
+              </article>
+            </div>
+          </div>
         </div>
       </section>
 
-      <section className="dashboard-terminal-grid">
-        <section className="surface-panel overview-panel">
-          <div className="surface-header overview-header">
+      <section className="dashboard-kpi-layer">
+        <section className="surface-panel dashboard-kpi-shell">
+          <div className="dashboard-section-head">
             <div>
-              <p className="meta-label">Portfolio Overview</p>
-              <h3>Real-time execution picture</h3>
+              <p className="meta-label">Capital Stack</p>
+              <h2>Deployment, live move, and risk heat</h2>
             </div>
-            <span className={`meta-pill ${heat >= 10 ? "border-amber-200 bg-amber-50 text-amber-700" : "success-pill"}`}>
-              {heat >= 10 ? "Risk: Elevated" : "Risk: Nominal"}
+            <span className={cn("meta-pill dashboard-risk-pill", isHeatHot ? "is-hot" : "is-safe")}>
+              {heatStateLabel}
             </span>
           </div>
 
-          <div className="terminal-metric-grid">
-            <article className="metric-card terminal-metric-card">
-              <p className="meta-label">Total Deployed</p>
-              <strong>{money(deployedCapital)}</strong>
-              <span>{((deployedCapital / Math.max(profile.equity, 1)) * 100).toFixed(1)}% of book is allocated</span>
-            </article>
-            <article className="metric-card terminal-metric-card">
-              <p className="meta-label">Unrealized P&amp;L</p>
-              <strong className={livePnl >= 0 ? "positive" : "negative"}>
-                {livePnl >= 0 ? "+" : "-"}
-                {money(Math.abs(livePnl))}
-              </strong>
-              <span>
-                {livePnlPct >= 0 ? "+" : ""}
-                {livePnlPct.toFixed(2)}% on deployed capital
-              </span>
-            </article>
-            <article className="metric-card terminal-metric-card">
-              <p className="meta-label">Portfolio Heat</p>
-              <strong>{heat.toFixed(1)}%</strong>
-              <span>Max allowed: 12% · Active trades: {activeTrades.length}</span>
-            </article>
-          </div>
+          <RiskMetricCard
+            heat={heat}
+            totalDeployed={deployedCapital}
+            unrealizedPnL={livePnl}
+            pnlPercent={livePnlPct}
+            equity={profile.equity}
+            activeTradeCount={activeTrades.length}
+            heatStateLabel={heatStateLabel}
+          />
         </section>
 
         <ScoredQueueCard items={readyTrades} />
       </section>
 
-      <BlindEvaluationCard activeStrategy={activeStrategy} items={readyTrades} />
+      <section className="dashboard-monitoring-row">
+        <BlindEvaluationCard activeStrategy={activeStrategy} items={readyTrades} />
 
-      {circuitBreaker?.tripped && (
-        <div className="circuit-breaker-banner" role="alert">
-          <span className="circuit-breaker-banner-icon">⚠</span>
-          <div>
-            <strong>Circuit Breaker Active</strong>
-            <p>{circuitBreaker.reason}</p>
-          </div>
-          <Link href="/trade/new" className="circuit-breaker-banner-btn">
-            Review
-          </Link>
-        </div>
-      )}
-
-      {discipline && (
-        <section className="surface-panel discipline-summary-card">
-          <div className="surface-header">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4 text-tds-teal" />
-              <div>
-                <p className="meta-label">Discipline Report</p>
-                <h3>Weekly summary</h3>
+        <div className="dashboard-monitoring-stack">
+          {circuitBreaker?.tripped ? (
+            <section className="surface-panel dashboard-circuit-shell" role="alert">
+              <div className="dashboard-section-head dashboard-section-head-tight">
+                <div>
+                  <p className="meta-label">Risk Alert</p>
+                  <h2>Circuit breaker active</h2>
+                </div>
+                <span className="dashboard-circuit-badge">Review</span>
               </div>
-            </div>
-            <span
-              className="discipline-badge"
-              data-level={discipline.score >= 80 ? "high" : discipline.score >= 50 ? "mid" : "low"}
-            >
-              <span className="discipline-badge-score">{discipline.score}</span>
-            </span>
-          </div>
-          <div className="terminal-metric-grid" style={{ marginTop: "12px" }}>
-            <article className="metric-card terminal-metric-card">
-              <p className="meta-label">Total Trades</p>
-              <strong>{discipline.summary.totalTrades}</strong>
-            </article>
-            <article className="metric-card terminal-metric-card">
-              <p className="meta-label">In Policy</p>
-              <strong className="positive">{discipline.summary.inPolicyCount}</strong>
-              {discipline.summary.pnlInPolicy !== 0 && (
-                <span className={discipline.summary.pnlInPolicy >= 0 ? "positive" : "negative"}>
-                  {discipline.summary.pnlInPolicy >= 0 ? "+" : ""}{discipline.summary.pnlInPolicy.toFixed(1)}%
-                </span>
-              )}
-            </article>
-            <article className="metric-card terminal-metric-card">
-              <p className="meta-label">Overrides</p>
-              <strong className={discipline.summary.overrideCount > 0 ? "text-tds-amber" : ""}>{discipline.summary.overrideCount}</strong>
-              {discipline.summary.pnlOverride !== 0 && (
-                <span className={discipline.summary.pnlOverride >= 0 ? "positive" : "negative"}>
-                  {discipline.summary.pnlOverride >= 0 ? "+" : ""}{discipline.summary.pnlOverride.toFixed(1)}%
-                </span>
-              )}
-            </article>
-          </div>
-        </section>
-      )}
+              <p className="dashboard-circuit-copy">{circuitBreaker.reason}</p>
+              <Link href="/trade/new" className="secondary-button dashboard-circuit-action">
+                Review trade entry rules
+              </Link>
+            </section>
+          ) : null}
 
-      <section className="terminal-lower-grid">
-        <section className="surface-panel positions-terminal-panel">
-          <div className="surface-header">
+          {discipline ? (
+            <section className="surface-panel discipline-summary-card dashboard-discipline-shell">
+              <div className="dashboard-section-head dashboard-section-head-tight">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-tds-teal" />
+                  <div>
+                    <p className="meta-label">Discipline</p>
+                    <h2>Execution quality this week</h2>
+                  </div>
+                </div>
+                <span
+                  className="discipline-badge"
+                  data-level={discipline.score >= 80 ? "high" : discipline.score >= 50 ? "mid" : "low"}
+                >
+                  <span className="discipline-badge-score">{discipline.score}</span>
+                </span>
+              </div>
+              <div className="terminal-metric-grid terminal-metric-grid-spaced dashboard-discipline-grid">
+                <article className="metric-card terminal-metric-card dashboard-kpi-panel">
+                  <p className="meta-label">Total Trades</p>
+                  <strong>{discipline.summary.totalTrades}</strong>
+                </article>
+                <article className="metric-card terminal-metric-card dashboard-kpi-panel">
+                  <p className="meta-label">In Policy</p>
+                  <strong className="positive">{discipline.summary.inPolicyCount}</strong>
+                  {discipline.summary.pnlInPolicy !== 0 ? (
+                    <span className={discipline.summary.pnlInPolicy >= 0 ? "positive" : "negative"}>
+                      {discipline.summary.pnlInPolicy >= 0 ? "+" : ""}{discipline.summary.pnlInPolicy.toFixed(1)}%
+                    </span>
+                  ) : null}
+                </article>
+                <article className="metric-card terminal-metric-card dashboard-kpi-panel">
+                  <p className="meta-label">Overrides</p>
+                  <strong className={discipline.summary.overrideCount > 0 ? "text-tds-amber" : ""}>{discipline.summary.overrideCount}</strong>
+                  {discipline.summary.pnlOverride !== 0 ? (
+                    <span className={discipline.summary.pnlOverride >= 0 ? "positive" : "negative"}>
+                      {discipline.summary.pnlOverride >= 0 ? "+" : ""}{discipline.summary.pnlOverride.toFixed(1)}%
+                    </span>
+                  ) : null}
+                </article>
+              </div>
+            </section>
+          ) : null}
+        </div>
+      </section>
+
+      <section className="terminal-lower-grid dashboard-lower-grid">
+        <section className="surface-panel positions-terminal-panel dashboard-positions-shell">
+          <div className="dashboard-section-head">
             <div>
-              <p className="meta-label">Active Positions</p>
-              <h3>Capital currently at work</h3>
+              <p className="meta-label">Execution Queue</p>
+              <h2>Capital currently at work</h2>
             </div>
             <span className="tag">{activeTrades.length} Open Position{activeTrades.length === 1 ? "" : "s"}</span>
           </div>
 
           {activeTrades.length === 0 ? (
-            <div className="empty-state-panel mt-4">
+            <div className="dashboard-empty-shell">
               <div className="flex max-w-lg flex-col items-center gap-4 text-center">
                 <Sparkles className="h-5 w-5 text-tds-teal" />
                 <p>No active positions yet.</p>
-                <span className="text-sm leading-6 text-tds-dim">Start from MarketWatch or create a thesis-driven trade when a setup qualifies.</span>
+                <span className="text-sm leading-6 text-tds-dim">Start from MarketWatch or open a new thesis when a setup qualifies.</span>
                 <div className="flex flex-wrap justify-center gap-3">
                   <Link href="/trade/new" className="primary-button">
                     Start new thesis
@@ -326,23 +364,31 @@ export default function DashboardClient({ profile, activeStrategy, activeTrades,
               </div>
             </div>
           ) : (
-            <div className="position-list">
+            <div className="dashboard-positions-stack">
               {activeTrades.map((trade) => (
-                <Link key={trade.id} href={`/trade/${trade.id}`} className="position-row transition-transform hover:-translate-y-0.5">
-                  <div>
-                    <div className="row-title">
-                      <span>{trade.ticker}</span>
-                      <DirectionBadge direction={trade.direction} />
+                <Link key={trade.id} href={`/trade/${trade.id}`} className="dashboard-position-card transition-transform hover:-translate-y-0.5">
+                  <div className="dashboard-position-main">
+                    <div className={cn("dashboard-position-avatar", trade.direction === "LONG" ? "is-long" : "is-short")}>
+                      {trade.ticker[0]}
                     </div>
-                    <p className="mt-2 text-sm text-tds-dim">
-                      Entry {trade.entryPrice.toFixed(2)} · Last {trade.currentPrice.toFixed(2)} · Risk {(trade.riskPct * 100).toFixed(2)}%
-                      {trade.conviction ? ` · ${trade.conviction} conviction` : ""}
-                      {trade.source === "marketwatch" ? " · MarketWatch" : ""}
-                    </p>
+                    <div className="dashboard-position-copy">
+                      <div className="dashboard-position-topline">
+                        <strong>{trade.ticker}</strong>
+                        <DirectionBadge direction={trade.direction} />
+                        {trade.conviction ? <span className="inline-tag neutral">{trade.conviction}</span> : null}
+                        {trade.source === "marketwatch" ? <span className="inline-tag neutral">MarketWatch</span> : <span className="inline-tag neutral">Thesis</span>}
+                      </div>
+                      <p className="dashboard-position-thesis">{trade.thesis ? `${trade.thesis.slice(0, 76)}${trade.thesis.length > 76 ? "..." : ""}` : "No thesis summary recorded."}</p>
+                      <p className="dashboard-position-meta">
+                        Entry {trade.entryPrice.toFixed(2)} · Last {trade.currentPrice.toFixed(2)} · Risk {(trade.riskPct * 100).toFixed(2)}%
+                      </p>
+                    </div>
                   </div>
-                  <div className={`row-value ${trade.livePnl >= 0 ? "positive" : "negative"}`}>
-                    {trade.livePnl >= 0 ? "+" : "-"}
-                    {money(Math.abs(trade.livePnl))}
+                  <div className="dashboard-position-side">
+                    <div className={cn("dashboard-position-pnl", trade.livePnl >= 0 ? "positive" : "negative")}>
+                      {trade.livePnl >= 0 ? "+" : "-"}{money(Math.abs(trade.livePnl))}
+                    </div>
+                    <span className="dashboard-position-manage">Manage</span>
                   </div>
                 </Link>
               ))}

@@ -65,7 +65,7 @@ type GateKey = keyof GatePermissions;
 const DEFAULT_THESIS: TradeThesis = {
   ticker: "",
   direction: "LONG",
-  assetClass: "Equity",
+  
   setupTypes: [],
   conditions: [],
   chartPattern: "None",
@@ -250,7 +250,7 @@ export default function NewTradeClient({
       .map((value) => value.trim())
       .filter(Boolean) ?? [];
     const chartPattern = searchParams.get("chartPattern")?.trim();
-    const assetClass = searchParams.get("assetClass")?.trim();
+    
 
     if (!ticker && !thesisText && !strategyId) {
       return;
@@ -281,7 +281,7 @@ export default function NewTradeClient({
       ...previous,
       ticker: ticker ? ticker.toUpperCase() : previous.ticker,
       direction: direction === "LONG" || direction === "SHORT" ? direction : previous.direction,
-      assetClass: assetClass || previous.assetClass,
+      
       setupTypes: setupTypes.length > 0 ? setupTypes : previous.setupTypes,
       conditions: conditions.length > 0 ? conditions : previous.conditions,
       chartPattern: chartPattern || previous.chartPattern,
@@ -498,7 +498,7 @@ export default function NewTradeClient({
         setups: thesis.setupTypes,
         conditions: thesis.conditions,
         chartPattern: thesis.chartPattern,
-        asset: thesis.assetClass,
+        asset: "Equity",
         mode,
         strategyName: selectedStrategy.name,
         strategyInstruction: selectedStrategy.aiInstruction,
@@ -576,7 +576,7 @@ export default function NewTradeClient({
           ticker: thesis.ticker,
           direction: thesis.direction,
           strategyId: selectedStrategy.id,
-          assetClass: thesis.assetClass,
+          assetClass: "Equity",
         }),
       });
 
@@ -668,7 +668,7 @@ export default function NewTradeClient({
     const validation = thesisSchema.safeParse({
       ticker: thesis.ticker,
       direction: thesis.direction,
-      assetClass: thesis.assetClass,
+      assetClass: "Equity",
       setupTypes: thesis.setupTypes,
       thesis: thesis.thesis,
       invalidation: thesis.invalidation,
@@ -699,7 +699,7 @@ export default function NewTradeClient({
         strategy_snapshot: tradeStrategySnapshot as unknown as Database["public"]["Tables"]["trades"]["Insert"]["strategy_snapshot"],
         ticker: thesis.ticker,
         direction: thesis.direction,
-        asset_class: thesis.assetClass,
+        asset_class: "Equity",
         mode,
         setup_types: thesis.setupTypes,
         conditions: thesis.conditions,
@@ -727,7 +727,7 @@ export default function NewTradeClient({
           strategy_snapshot: tradeStrategySnapshot as unknown as Database["public"]["Tables"]["watchlist_items"]["Insert"]["strategy_snapshot"],
           ticker: thesis.ticker,
           direction: thesis.direction,
-          asset_class: thesis.assetClass,
+          asset_class: "Equity",
           mode,
           scores: {
             fScore,
@@ -805,7 +805,7 @@ export default function NewTradeClient({
         strategy_snapshot: tradeStrategySnapshot as unknown as Database["public"]["Tables"]["trades"]["Insert"]["strategy_snapshot"],
         ticker: thesis.ticker,
         direction: thesis.direction,
-        asset_class: thesis.assetClass,
+        asset_class: "Equity",
         mode,
         setup_types: thesis.setupTypes,
         conditions: thesis.conditions,
@@ -876,7 +876,7 @@ export default function NewTradeClient({
       strategy_snapshot: tradeStrategySnapshot as unknown as Database["public"]["Tables"]["trades"]["Insert"]["strategy_snapshot"],
       ticker: thesis.ticker,
       direction: thesis.direction,
-      asset_class: thesis.assetClass,
+      asset_class: "Equity",
       mode,
       setup_types: thesis.setupTypes,
       conditions: thesis.conditions,
@@ -1272,7 +1272,7 @@ export default function NewTradeClient({
                 <article className="trade-review-card trade-rail-card">
                   <p className="meta-label">Trade Identity</p>
                   <h4>{thesis.ticker || "Pending"}</h4>
-                  <p>{thesis.direction} · {thesis.assetClass} · {formatModeLabel(mode)}</p>
+                  <p>{thesis.direction} · {formatModeLabel(mode)}</p>
                 </article>
 
                 <article className="trade-review-card trade-rail-card">

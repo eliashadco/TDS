@@ -30,30 +30,40 @@ export default async function PortfolioAnalyticsPage({ searchParams }: Portfolio
   const enabledMetrics = activeStrategy?.metrics.filter((metric) => metric.enabled) ?? [];
   const activeTab = requestedTab;
 
-  function renderWorkspace(content: ReactNode, options?: { showHeader?: boolean }) {
-    const showHeader = options?.showHeader ?? true;
+  function renderWorkspace(content: ReactNode, options?: { headerMode?: "full" | "compact" | "hidden" }) {
+    const headerMode = options?.headerMode ?? "full";
 
     return (
-      <div className="space-y-8">
-        {showHeader ? (
-          <section className="surface-panel p-6 sm:p-8">
+      <div className={headerMode === "compact" ? "space-y-4" : "space-y-8"}>
+        {headerMode !== "hidden" ? (
+          <section className={`surface-panel analytics-workspace-header ${headerMode === "compact" ? "analytics-workspace-header-compact px-4 py-3 sm:px-5 sm:py-3.5" : "p-6 sm:p-8"}`}>
             <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <p className="meta-label">Portfolio Analytics</p>
-                <h1 className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-tds-text">Track performance, analytics, and strategy-qualified market flow in one workspace.</h1>
-                <p className="mt-4 max-w-3xl text-sm leading-7 text-tds-dim">Analytics and MarketWatch now live under one parent workspace so review, qualification, and execution stay in the same lane.</p>
-              </div>
+              {headerMode === "compact" ? (
+                <div className="flex min-w-0 flex-wrap items-center gap-3">
+                  <div>
+                    <p className="meta-label">Portfolio Analytics</p>
+                    <p className="mt-1 text-sm font-medium text-tds-text">Overview terminal and market qualification</p>
+                  </div>
+                  <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-tds-dim">Live workspace</span>
+                </div>
+              ) : (
+                <div>
+                  <p className="meta-label">Portfolio Analytics</p>
+                  <h1 className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-tds-text">Track performance, analytics, and strategy-qualified market flow in one workspace.</h1>
+                  <p className="mt-4 max-w-3xl text-sm leading-7 text-tds-dim">Analytics and MarketWatch now live under one parent workspace so review, qualification, and execution stay in the same lane.</p>
+                </div>
+              )}
 
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 analytics-workspace-tabs">
                 <Link
                   href="/portfolio-analytics"
-                  className={`rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] ${activeTab === "overview" ? "border-blue-200 bg-blue-50 text-tds-blue" : "border-white/80 bg-white text-tds-dim hover:bg-tds-wash"}`}
+                  className={`rounded-full border ${headerMode === "compact" ? "px-3 py-1.5 text-[11px]" : "px-4 py-2 text-xs"} font-semibold uppercase tracking-[0.16em] ${activeTab === "overview" ? "border-blue-200 bg-blue-50 text-tds-blue" : "border-white/80 bg-white text-tds-dim hover:bg-tds-wash"}`}
                 >
                   Overview
                 </Link>
                 <Link
                   href="/portfolio-analytics?tab=marketwatch"
-                  className={`rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] ${activeTab === "marketwatch" ? "border-blue-200 bg-blue-50 text-tds-blue" : "border-white/80 bg-white text-tds-dim hover:bg-tds-wash"}`}
+                  className={`rounded-full border ${headerMode === "compact" ? "px-3 py-1.5 text-[11px]" : "px-4 py-2 text-xs"} font-semibold uppercase tracking-[0.16em] ${activeTab === "marketwatch" ? "border-blue-200 bg-blue-50 text-tds-blue" : "border-white/80 bg-white text-tds-dim hover:bg-tds-wash"}`}
                 >
                   MarketWatch
                 </Link>
@@ -76,7 +86,7 @@ export default async function PortfolioAnalyticsPage({ searchParams }: Portfolio
         strategies={strategies}
         defaultStrategyId={activeStrategy?.id ?? null}
       />,
-      { showHeader: false },
+      { headerMode: "hidden" },
     );
   }
 
@@ -89,7 +99,7 @@ export default async function PortfolioAnalyticsPage({ searchParams }: Portfolio
       .order("closed_at", { ascending: true }),
     supabase
       .from("trades")
-      .select("id, ticker, direction, source, conviction, setup_types, thesis, entry_price, risk_pct, shares, market_price, strategy_name, strategy_snapshot")
+      .select("id, ticker, direction, source, conviction, setup_types, thesis, entry_price, stop_loss, exit_t1, exit_t2, exit_t3, risk_pct, shares, market_price, strategy_name, strategy_snapshot, created_at")
       .eq("user_id", userId)
       .eq("confirmed", true)
       .eq("closed", false)
@@ -119,6 +129,7 @@ export default async function PortfolioAnalyticsPage({ searchParams }: Portfolio
 
   return renderWorkspace(
     <PortfolioAnalyticsOverview
+      accountEquity={profile.equity != null ? Number(profile.equity) : null}
       mode={mode}
       activeStrategy={{
         name: activeStrategy?.name ?? "No default strategy selected",
@@ -163,6 +174,14 @@ export default async function PortfolioAnalyticsPage({ searchParams }: Portfolio
             thesis: trade.thesis ?? "",
             entryPrice,
             currentPrice,
+            stopLoss: trade.stop_loss != null ? Number(trade.stop_loss) : null,
+            targetOne: trade.exit_t1 != null ? Number(trade.exit_t1) : null,
+            targetTwo: trade.exit_t2 != null ? Number(trade.exit_t2) : null,
+            targetThree: trade.exit_t3 != null ? Number(trade.exit_t3) : null,
+            shares,
+            createdAt: trade.created_at ?? null,
+            dayChange: Number(liveQuotes[trade.ticker]?.change ?? 0),
+            dayChangePct: Number(liveQuotes[trade.ticker]?.changePct ?? 0),
             quoteStatus: liveQuotes[trade.ticker]?.dataStatus ?? null,
             quoteProvider: liveQuotes[trade.ticker]?.provider ?? null,
             livePnl,
@@ -177,5 +196,6 @@ export default async function PortfolioAnalyticsPage({ searchParams }: Portfolio
         }) ?? []
       }
     />,
+    { headerMode: "compact" },
   );
 }

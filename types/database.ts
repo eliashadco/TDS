@@ -373,6 +373,7 @@ export interface Database {
           id: string;
           user_id: string;
           item_type: "setup_type" | "condition" | "chart_pattern";
+          setup_category: "fundamental" | "technical" | null;
           label: string;
           family: string;
           detail: string;
@@ -384,6 +385,7 @@ export interface Database {
           id?: string;
           user_id: string;
           item_type: "setup_type" | "condition" | "chart_pattern";
+          setup_category?: "fundamental" | "technical" | null;
           label: string;
           family?: string;
           detail?: string;
@@ -393,6 +395,7 @@ export interface Database {
         };
         Update: {
           item_type?: "setup_type" | "condition" | "chart_pattern";
+          setup_category?: "fundamental" | "technical" | null;
           label?: string;
           family?: string;
           detail?: string;

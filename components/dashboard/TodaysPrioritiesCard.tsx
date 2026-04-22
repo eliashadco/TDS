@@ -30,6 +30,19 @@ function toneClasses(tone: PriorityTone): string {
   return "bg-sky-300";
 }
 
+function toneLabel(tone: PriorityTone): string {
+  if (tone === "alert") {
+    return "Risk alert";
+  }
+  if (tone === "warning") {
+    return "Action now";
+  }
+  if (tone === "success") {
+    return "Momentum";
+  }
+  return "Workflow";
+}
+
 export default function TodaysPrioritiesCard({ items }: TodaysPrioritiesCardProps) {
   const [checkedIds, setCheckedIds] = useState<string[]>([]);
   const criticalCount = items.filter((item) => item.tone === "alert" || item.tone === "warning").length;
@@ -57,8 +70,8 @@ export default function TodaysPrioritiesCard({ items }: TodaysPrioritiesCardProp
     <aside className="surface-panel queue-panel">
       <div className="surface-header">
         <div>
-          <p className="meta-label">Priority Queue</p>
-          <h3>Action required</h3>
+          <p className="meta-label">Monitoring Rail</p>
+          <h3>Decision memos</h3>
         </div>
         <span className="tag">{criticalCount} Critical</span>
       </div>
@@ -85,7 +98,7 @@ export default function TodaysPrioritiesCard({ items }: TodaysPrioritiesCardProp
               />
               <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${toneClasses(item.tone)}`} />
               <span className="min-w-0 flex-1">
-                <span className="meta-label">{item.tone === "alert" || item.tone === "warning" ? "Target Review" : "Workflow"}</span>
+                <span className="meta-label">{toneLabel(item.tone)}</span>
                 <strong className="mt-2 block">{item.title}</strong>
                 <span className="mt-2 block text-sm leading-6 text-[#4e6273]">{item.detail}</span>
               </span>

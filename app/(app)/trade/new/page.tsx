@@ -1,4 +1,4 @@
-import NewTradeClient from "@/components/trade/NewTradeClient";
+import TradeTerminal from "@/components/trade/TradeTerminal";
 import { loadSharedTradeStructureLibrary } from "@/lib/trading/structure-library";
 import { ensureStrategyWorkspaceForMode } from "@/lib/trading/strategies";
 import { createServerSupabase } from "@/lib/supabase/server";
@@ -62,7 +62,7 @@ export default async function NewTradePage() {
     } as Trade)) ?? [];
 
   return (
-    <NewTradeClient
+    <TradeTerminal
       key={`${userId}-${mode}`}
       userId={userId}
       initialMode={mode}

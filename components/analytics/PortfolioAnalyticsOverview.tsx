@@ -9,7 +9,6 @@ import PriceChart from "@/components/chart/PriceChart";
 import { QuoteStatusBadge, QuoteStatusLegend } from "@/components/market/QuoteStatusBadge";
 import { getCandleRange, getDefaultCandleTimeframe } from "@/lib/market/candle-range";
 import { createClient as createBrowserSupabase } from "@/lib/supabase/client";
-import { resolveMetricAssessmentDescription } from "@/lib/trading/user-metrics";
 import type { Candle, CandleTimeframe, QuoteDataStatus, QuoteProvider } from "@/types/market";
 import type { Metric, Trade, TradeMode } from "@/types/trade";
 
@@ -50,18 +49,6 @@ type ActiveStrategyContextView = {
   metricCount: number;
 };
 
-type StrategyRefresh = {
-  tradeId: string;
-  score: number;
-  passed: number;
-  total: number;
-  verdict: "GO" | "CAUTION" | "STOP";
-  summary: string;
-  edge?: string;
-  risks?: string;
-  fallback: boolean;
-};
-
 type PortfolioAnalyticsOverviewProps = {
   accountEquity: number | null;
   mode: TradeMode | null;
@@ -89,16 +76,12 @@ const TIMEFRAME_OPTIONS: Array<{ key: string; label: string; hint: string; value
   { key: "3", label: "Position", hint: "1W", value: "week" },
 ];
 
-function average(values: number[]): number {
-  if (values.length === 0) {
-    return 0;
-  }
-
-  return values.reduce((sum, value) => sum + value, 0) / values.length;
-}
-
 function money(value: number): string {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value);
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(value);
 }
 
 function preciseMoney(value: number): string {
@@ -128,25 +111,6 @@ function formatModeLabel(mode: TradeMode | null): string {
   }
 
   return mode.charAt(0).toUpperCase() + mode.slice(1);
-}
-
-function fallbackVerdict(score: number): StrategyRefresh["verdict"] {
-  if (score >= 80) {
-    return "GO";
-  }
-  if (score >= 60) {
-    return "CAUTION";
-  }
-  return "STOP";
-}
-
-function fallbackScore(trade: ActiveTradeAnalyticsView): number {
-  const pnlBias = Math.min(20, Math.abs(trade.livePnlPct) * 3);
-  const riskBias = Math.max(0, 20 - trade.riskPct * 100 * 1.5);
-  const convictionBias = trade.conviction === "MAX" ? 18 : trade.conviction === "HIGH" ? 12 : 7;
-  const directionalBias = trade.livePnl >= 0 ? 15 : 5;
-
-  return Math.max(35, Math.min(92, Math.round(25 + pnlBias + riskBias + convictionBias + directionalBias)));
 }
 
 function resolveBaseMode(mode: TradeMode | null): TradeMode {
@@ -310,28 +274,10 @@ function HeatGauge({ value, max = 12 }: { value: number; max?: number }) {
   );
 }
 
-async function mapInBatches<T, TResult>(
-  items: T[],
-  batchSize: number,
-  worker: (item: T) => Promise<TResult>,
-): Promise<TResult[]> {
-  const results: TResult[] = [];
-
-  for (let index = 0; index < items.length; index += batchSize) {
-    const batch = items.slice(index, index + batchSize);
-    results.push(...(await Promise.all(batch.map(worker))));
-  }
-
-  return results;
-}
-
 export default function PortfolioAnalyticsOverview({ accountEquity, mode, activeStrategy, activeTrades, closedTrades }: PortfolioAnalyticsOverviewProps) {
   const router = useRouter();
   const supabase = useMemo(() => createBrowserSupabase(), []);
   const baseMode = resolveBaseMode(mode);
-  const [refreshRows, setRefreshRows] = useState<Record<string, StrategyRefresh>>({});
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [loading, setLoading] = useState(activeTrades.length > 0);
   const [selectedTradeId, setSelectedTradeId] = useState<string | null>(activeTrades[0]?.id ?? null);
   const [watchlistQuery, setWatchlistQuery] = useState("");
   const [logQuery, setLogQuery] = useState("");
@@ -462,139 +408,6 @@ export default function PortfolioAnalyticsOverview({ accountEquity, mode, active
   }, [activeTrades]);
 
   useEffect(() => {
-    let isActive = true;
-
-    async function refreshStrategies() {
-      if (activeTrades.length === 0) {
-        setRefreshRows({});
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-
-      const rows = await mapInBatches(activeTrades, 4, async (trade) => {
-        const metrics = trade.strategyMetrics.filter((metric) => metric.enabled);
-
-        if (metrics.length === 0) {
-          return {
-            tradeId: trade.id,
-            score: 0,
-            passed: 0,
-            total: 0,
-            verdict: "STOP",
-            summary: `${trade.ticker} has no enabled checks saved in its assigned strategy, so the refresh could not be run.`,
-            risks: "Reopen the strategy and restore at least one enabled check before relying on follow-up analytics.",
-            fallback: true,
-          } satisfies StrategyRefresh;
-        }
-
-          try {
-            const assessResponse = await fetch("/api/ai/assess", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                ticker: trade.ticker,
-                direction: trade.direction,
-                thesis: trade.thesis || `${trade.ticker} active trade follow-up review.`,
-                setups: trade.setupTypes.length > 0 ? trade.setupTypes : [mode ? `${formatModeLabel(mode)} active strategy` : "Account-wide active trade review"],
-                asset: "Equity",
-                mode: mode ?? undefined,
-                metrics: metrics.map((metric) => ({
-                  id: metric.id,
-                  name: metric.name,
-                  desc: resolveMetricAssessmentDescription(metric, trade.direction),
-                })),
-              }),
-            });
-
-            if (!assessResponse.ok) {
-              throw new Error("Assessment unavailable");
-            }
-
-            const assessPayload = (await assessResponse.json()) as Record<string, { v: "PASS" | "FAIL"; r: string }>;
-            const passedMetrics = metrics.filter((metric) => assessPayload[metric.id]?.v === "PASS").map((metric) => metric.name);
-            const failedMetrics = metrics.filter((metric) => assessPayload[metric.id]?.v === "FAIL").map((metric) => metric.name);
-            const passed = passedMetrics.length;
-            const total = metrics.length;
-            const score = total > 0 ? Math.round((passed / total) * 100) : 0;
-
-            let verdict: StrategyRefresh["verdict"] = score >= 80 ? "GO" : score >= 60 ? "CAUTION" : "STOP";
-            let summary = `${trade.ticker} refreshed against ${trade.strategyName}${trade.strategyVersionNumber ? ` v${trade.strategyVersionNumber}` : ""}.`;
-            let edge: string | undefined;
-            let risks: string | undefined;
-
-            try {
-              const insightResponse = await fetch("/api/ai/insight", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  ticker: trade.ticker,
-                  direction: trade.direction,
-                  passed: passedMetrics,
-                  failed: failedMetrics,
-                  thesis: trade.thesis || `${trade.ticker} active trade follow-up review.`,
-                }),
-              });
-
-              if (insightResponse.ok) {
-                const insight = (await insightResponse.json()) as { verdict: "GO" | "CAUTION" | "STOP"; summary: string; edge?: string; risks?: string };
-                verdict = insight.verdict;
-                summary = insight.summary;
-                edge = insight.edge;
-                risks = insight.risks;
-              }
-            } catch {
-              // Fall back to the strategy score summary below.
-            }
-
-            return {
-              tradeId: trade.id,
-              score,
-              passed,
-              total,
-              verdict,
-              summary,
-              edge,
-              risks,
-              fallback: false,
-            } satisfies StrategyRefresh;
-          } catch {
-            const score = fallbackScore(trade);
-            return {
-              tradeId: trade.id,
-              score,
-              passed: 0,
-              total: trade.strategyMetrics.length,
-              verdict: fallbackVerdict(score),
-              summary: `${trade.ticker} strategy refresh fell back to live performance, risk load, and conviction because AI follow-up for ${trade.strategyName} is unavailable right now.`,
-              risks: trade.livePnl < 0 ? "Negative live P&L needs review before adding size." : "No AI risk summary available.",
-              fallback: true,
-            } satisfies StrategyRefresh;
-          }
-      });
-
-      if (!isActive) {
-        return;
-      }
-
-      setRefreshRows(
-        rows.reduce<Record<string, StrategyRefresh>>((acc, row) => {
-          acc[row.tradeId] = row;
-          return acc;
-        }, {}),
-      );
-      setLoading(false);
-    }
-
-    void refreshStrategies();
-
-    return () => {
-      isActive = false;
-    };
-  }, [activeTrades, mode]);
-
-  useEffect(() => {
     const activeTradeIds = new Set(activeTrades.map((trade) => trade.id));
     const channel = supabase
       .channel("portfolio-analytics-trades")
@@ -705,8 +518,7 @@ export default function PortfolioAnalyticsOverview({ accountEquity, mode, active
     0,
   );
   const aggregateDayDeltaPct = accountEquity && accountEquity > 0 ? (aggregateDayDelta / accountEquity) * 100 : 0;
-  const averageScore = average(Object.values(refreshRows).map((row) => row.score));
-  const goCount = Object.values(refreshRows).filter((row) => row.verdict === "GO").length;
+  const winningOpen = activeTrades.filter((trade) => trade.livePnl > 0).length;
   const legacyFallbackCount = activeTrades.filter((trade) => trade.usesDefaultStrategyFallback).length;
   const marketStatus = getMarketStatus();
 
@@ -718,8 +530,6 @@ export default function PortfolioAnalyticsOverview({ accountEquity, mode, active
 
     return [trade.ticker, trade.strategyName, trade.thesis, trade.direction].join(" ").toLowerCase().includes(search);
   });
-
-  const selectedRefresh = selectedTrade ? refreshRows[selectedTrade.id] : null;
 
   const compositionRows = [
     { label: "Thesis", value: activeTrades.filter((trade) => trade.source === "thesis").length, tone: "bg-blue-500" },
@@ -733,21 +543,7 @@ export default function PortfolioAnalyticsOverview({ accountEquity, mode, active
   const terminalEvents = [
     ...realtimeEvents,
     ...activeTrades.flatMap<TerminalEvent>((trade) => {
-      const refresh = refreshRows[trade.id];
       const events: TerminalEvent[] = [];
-
-      if (refresh) {
-        events.push({
-          id: `refresh-${trade.id}`,
-          tradeId: trade.id,
-          tone: refresh.verdict === "GO" ? "success" : refresh.verdict === "CAUTION" ? "warn" : "danger",
-          category: "Refresh",
-          summary: `${trade.ticker} scored ${refresh.score} with a ${refresh.verdict.toLowerCase()} verdict.`,
-          detail: refresh.summary,
-          timestampLabel: "Live",
-          searchable: `${trade.ticker} ${refresh.verdict} ${refresh.summary}`,
-        });
-      }
 
       if (trade.quoteStatus && trade.quoteStatus !== "live") {
         events.push({
@@ -802,6 +598,14 @@ export default function PortfolioAnalyticsOverview({ accountEquity, mode, active
           </div>
         </div>
 
+        <p className="mt-3 text-xs leading-relaxed text-tds-dim">
+          Review-linked proof metrics (expectancy, overrides, execution splits) and the PR 8 advanced statistics pack live on{" "}
+          <Link href="/portfolio-analytics?tab=strategy-proof" className="font-semibold text-tds-blue underline-offset-2 hover:underline">
+            Strategy proof
+          </Link>
+          .
+        </p>
+
         <div className="mt-3 grid gap-2.5 lg:grid-cols-[1.35fr_repeat(5,minmax(0,1fr))]">
           <article className="rounded-[24px] border border-slate-200 bg-slate-950 px-4 py-3.5 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
             <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/60">Portfolio value</p>
@@ -817,13 +621,13 @@ export default function PortfolioAnalyticsOverview({ accountEquity, mode, active
           <article className="rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-3.5">
             <p className="meta-label">Open trades</p>
             <strong className="mt-2.5 block font-mono text-[1.55rem] text-tds-text">{activeTrades.length}</strong>
-            <p className="mt-1.5 text-xs text-tds-dim">{goCount} GO verdict{goCount === 1 ? "" : "s"}</p>
+            <p className="mt-1.5 text-xs text-tds-dim">{winningOpen} winning · {activeTrades.length - winningOpen} flat or red</p>
           </article>
 
           <article className="rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-3.5">
             <p className="meta-label">Live P&amp;L</p>
             <strong className={cn("mt-2.5 block font-mono text-[1.55rem]", aggregatePnl >= 0 ? "text-tds-green" : "text-tds-red")}>{aggregatePnl >= 0 ? "+" : "-"}{money(Math.abs(aggregatePnl))}</strong>
-            <p className="mt-1.5 text-xs text-tds-dim">{averageScore > 0 ? `${averageScore.toFixed(0)} avg strategy score` : "Refreshing strategy scores"}</p>
+            <p className="mt-1.5 text-xs text-tds-dim">{portfolioHeat.toFixed(1)}% aggregate heat · monitor checks from trade detail</p>
           </article>
 
           <article className="rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-3.5">
@@ -875,7 +679,6 @@ export default function PortfolioAnalyticsOverview({ accountEquity, mode, active
               <div className="rounded-[24px] border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-tds-dim">No active trades match the current watchlist filter.</div>
             ) : (
               filteredTrades.map((trade) => {
-                const refresh = refreshRows[trade.id];
                 const isSelected = selectedTrade?.id === trade.id;
                 const sparkPoints = miniSeries[trade.id] ?? [];
 
@@ -914,7 +717,7 @@ export default function PortfolioAnalyticsOverview({ accountEquity, mode, active
                         </div>
                         <div className="mt-2.5 flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-tds-dim">
                           <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-1">{trade.source === "marketwatch" ? "MarketWatch" : "Thesis"}</span>
-                          <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-1">{refresh?.verdict ?? "Pending"}</span>
+                          <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-1">Open book</span>
                         </div>
                       </button>
 
@@ -1031,14 +834,19 @@ export default function PortfolioAnalyticsOverview({ accountEquity, mode, active
                 </article>
 
                 <article className="rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-3.5">
-                  <p className="meta-label">Follow-up verdict</p>
+                  <p className="meta-label">Monitoring discipline</p>
                   <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <span className={cn("rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]", selectedRefresh?.verdict === "GO" ? "bg-emerald-500/10 text-emerald-600" : selectedRefresh?.verdict === "CAUTION" ? "bg-amber-500/10 text-amber-600" : "bg-rose-500/10 text-rose-600")}>{selectedRefresh?.verdict ?? "PENDING"}</span>
-                    <span className="inline-tag neutral">{selectedRefresh ? `${selectedRefresh.passed}/${selectedRefresh.total} passed` : "Refreshing"}</span>
-                    {selectedRefresh?.fallback ? <span className="inline-tag neutral">Fallback</span> : null}
+                    <span className="inline-tag neutral">Parameter monitoring</span>
+                    <Link href={`/trade/${selectedTrade.id}`} className="inline-tag neutral hover:bg-slate-100">
+                      Open trade terminal →
+                    </Link>
                   </div>
-                  <p className="mt-3 text-sm leading-6 text-tds-text">{selectedRefresh?.summary ?? `Refreshing ${selectedTrade.strategyName} against live conditions...`}</p>
-                  {selectedRefresh?.risks ? <p className="mt-2 text-xs leading-5 text-tds-dim">Risk: {selectedRefresh.risks}</p> : null}
+                  <p className="mt-3 text-sm leading-6 text-tds-text">
+                    Legacy AI scoring endpoints were removed (PR 9). Run scheduled or manual monitor checks from the trade detail terminal; silent updates and critical alerts follow the non-scoring workflow.
+                  </p>
+                  {selectedTrade.livePnl < 0 ? (
+                    <p className="mt-2 text-xs leading-5 text-tds-dim">Negative live P&amp;L — review sizing and invalidation before adding exposure.</p>
+                  ) : null}
                 </article>
               </div>
             </>
@@ -1055,8 +863,8 @@ export default function PortfolioAnalyticsOverview({ accountEquity, mode, active
           <article className="rounded-[26px] border border-slate-200 bg-slate-950 px-4 py-3.5 text-white">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/55">Strategy thesis monitor</p>
-                <h3 className="mt-1 text-lg font-semibold tracking-[-0.04em]">Current scoring lane</h3>
+                <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/55">Strategy lane</p>
+                <h3 className="mt-1 text-lg font-semibold tracking-[-0.04em]">Active parameter lane</h3>
               </div>
               <HeatGauge value={portfolioHeat} />
             </div>

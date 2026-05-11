@@ -144,6 +144,72 @@ Rules:
 - No markdown, no extra keys.`;
 }
 
+/**
+ * V4 parameter extraction prompt (canon §8.3).
+ * Instructs the model to return DraftIntakeField candidates only.
+ * HARD RULE 5: every field returned MUST have provenance ∈ {ai_extract, ai_suggest}
+ * and resolutionState ∈ {candidate_extracted, candidate_suggested}.
+ * The server enforces this — the prompt is belt-and-suspenders.
+ */
+export function buildExtractParamsPrompt(input: {
+  ticker: string;
+  direction: "LONG" | "SHORT";
+  freeText: string;
+  strategyId?: string | null;
+  parameterDefinitions?: Array<{
+    id: string;
+    name: string;
+    type: string;
+    scope: string;
+    operational_class: string;
+  }>;
+}): string {
+  const paramBlock =
+    input.parameterDefinitions && input.parameterDefinitions.length > 0
+      ? `Strategy parameter definitions to extract:\n${input.parameterDefinitions
+          .map((p) => `- id:${p.id} name:${p.name} type:${p.type} scope:${p.scope} class:${p.operational_class}`)
+          .join("\n")}`
+      : "No strategy parameter definitions provided. Extract common trade parameters: entry_price, stop_loss, invalidation_rule, risk_pct, thesis.";
+
+  return `You are a trade parameter extraction assistant. Extract structured parameters from the trader's free text.
+
+Ticker: ${input.ticker}
+Direction: ${input.direction}
+${input.strategyId ? `Strategy ID: ${input.strategyId}` : "No strategy selected"}
+
+Trader input:
+"""
+${input.freeText}
+"""
+
+${paramBlock}
+
+Return a JSON array of DraftIntakeField objects. Rules:
+1. Every field MUST have provenance = "ai_extract" if you found an explicit value, or "ai_suggest" if inferred.
+2. Every field MUST have resolutionState = "candidate_extracted" for explicit values, or "candidate_suggested" for inferred values.
+3. NEVER set resolutionState = "user_confirmed" — the trader must confirm all values explicitly.
+4. Set challengeState = "not_checked" for all fields.
+5. value must be the extracted value matching the field type (numeric for price/level/numeric, string for text/enum, boolean for boolean). Null if not found.
+6. Use parameterDefinitionId from the definitions above when matching. Use null for fields without a definition.
+
+Return ONLY a JSON array (no markdown, no explanation):
+[
+  {
+    "id": "field_<name>",
+    "parameterDefinitionId": "<uuid or null>",
+    "name": "<field_name>",
+    "scope": "<context|contract|risk|execution>",
+    "operationalClass": "<informational|required_for_deploy|required_for_monitoring>",
+    "provenance": "ai_extract",
+    "resolutionState": "candidate_extracted",
+    "challengeState": "not_checked",
+    "value": <extracted_value_or_null>,
+    "candidateValues": [],
+    "notes": "<optional extraction note>"
+  }
+]`;
+}
+
 export function buildOverrideAuditPrompt(input: {
   ticker: string;
   direction: "LONG" | "SHORT";

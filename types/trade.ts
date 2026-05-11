@@ -45,6 +45,9 @@ export interface Position {
   r4Target: number;
 }
 
+/**
+ * @deprecated V3 scoring artefact. Removed in PR 9. Use DraftIntakeField / DraftSummary from types/draft.ts.
+ */
 export interface AIInsight {
   verdict: "GO" | "CAUTION" | "STOP";
   summary: string;
@@ -140,4 +143,9 @@ export interface Trade {
   insight: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
+  // V4 workflow columns (migration 015)
+  lineage_draft_id: string | null;
+  next_parameter_check_at: string | null;
+  last_parameter_check_at: string | null;
+  last_parameter_check_result: Record<string, unknown> | null;
 }

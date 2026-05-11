@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { formatMarketDataRefreshTime, getStoredMarketDataRefreshToken, subscribeToMarketDataRefresh } from "@/lib/market/refresh";
-import { resolveMetricAssessmentDescription } from "@/lib/trading/user-metrics";
 import type { Metric, TradeMode } from "@/types/trade";
 import type { Mover } from "@/types/market";
 
@@ -74,6 +73,7 @@ function formatModeLabel(mode: TradeMode): string {
 }
 
 export default function SmartWatchlistCard({ mode, strategyLabel, metrics }: SmartWatchlistCardProps) {
+  void metrics;
   const [items, setItems] = useState<SmartMover[]>([]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<string | null>(null);
@@ -112,71 +112,28 @@ export default function SmartWatchlistCard({ mode, strategyLabel, metrics }: Sma
           return;
         }
 
-        const scored = await Promise.all(
-          candidates.map(async (mover) => {
+        const scored = candidates
+          .map((mover) => {
             const direction = mover.changePct >= 0 ? "LONG" : "SHORT";
+            const score = fallbackScore(mode, mover);
 
-            try {
-              const response = await fetch("/api/ai/assess", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  ticker: mover.ticker,
-                  direction,
-                  thesis: mover.reason,
-                  setups: [`${formatModeLabel(mode)} strategy scan`],
-                  asset: "Equity",
-                  mode,
-                  metrics: metrics.map((metric) => ({
-                    id: metric.id,
-                    name: metric.name,
-                    desc: resolveMetricAssessmentDescription(metric, direction),
-                  })),
-                }),
-              });
-
-              if (!response.ok) {
-                throw new Error("AI scoring unavailable");
-              }
-
-              const payload = (await response.json()) as Record<string, { v: "PASS" | "FAIL"; r: string }>;
-              const passed = metrics.reduce((count, metric) => count + (payload[metric.id]?.v === "PASS" ? 1 : 0), 0);
-              const score = metrics.length > 0 ? Math.round((passed / metrics.length) * 100) : 0;
-
-              return {
-                ticker: mover.ticker,
-                name: mover.name,
-                direction,
-                changePct: mover.changePct,
-                price: mover.price,
-                score,
-                verdict: verdictForScore(score),
-                note: payload[metrics[0]?.id ?? ""]?.r ?? mover.reason,
-                sourceLabel: mover.sourceLabel,
-              } satisfies SmartMover;
-            } catch {
-              const score = fallbackScore(mode, mover);
-
-              return {
-                ticker: mover.ticker,
-                name: mover.name,
-                direction,
-                changePct: mover.changePct,
-                price: mover.price,
-                score,
-                verdict: verdictForScore(score),
-                note: `${formatModeLabel(mode)} fallback score from liquidity and momentum.`,
-                sourceLabel: mover.sourceLabel,
-              } satisfies SmartMover;
-            }
-          }),
-        );
-
+            return {
+              ticker: mover.ticker,
+              name: mover.name,
+              direction,
+              changePct: mover.changePct,
+              price: mover.price,
+              score,
+              verdict: verdictForScore(score),
+              note: `${formatModeLabel(mode)} heuristic from liquidity and momentum (AI assess removed).`,
+              sourceLabel: mover.sourceLabel,
+            } satisfies SmartMover;
+          })
         if (!isActive) {
           return;
         }
 
-        setItems(scored.sort((left, right) => right.score - left.score).slice(0, 5));
+        setItems(scored);
         setStatus(feedPayload.message ?? null);
       } catch (error) {
         if (isActive) {
@@ -202,7 +159,7 @@ export default function SmartWatchlistCard({ mode, strategyLabel, metrics }: Sma
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="meta-label">Smart Watchlist</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-tds-text">Top 5 strategy-fit movers</h2>
+          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-tds-text">Top 5 liquidity-ranked movers</h2>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-tds-dim">Ranked using {strategyLabel}.</p>
           <p className="mt-3 text-xs uppercase tracking-[0.16em] text-tds-dim">Market Sync {formatMarketDataRefreshTime(lastRefreshToken)}</p>
         </div>
@@ -212,7 +169,7 @@ export default function SmartWatchlistCard({ mode, strategyLabel, metrics }: Sma
         </Link>
       </div>
 
-      {loading ? <div className="trade-review-card trade-compact-card mt-6 p-5 text-sm text-tds-dim">Scoring movers...</div> : null}
+      {loading ? <div className="trade-review-card trade-compact-card mt-6 p-5 text-sm text-tds-dim">Loading movers...</div> : null}
       {!loading && status ? <div className="mt-5 rounded-[22px] border border-slate-200/80 bg-slate-50/70 px-4 py-3 text-sm text-tds-dim">{status}</div> : null}
 
       <div className="mt-6 space-y-3">
@@ -232,7 +189,7 @@ export default function SmartWatchlistCard({ mode, strategyLabel, metrics }: Sma
 
             <div className="text-right">
               <p className="font-mono text-lg text-tds-text">{item.score}</p>
-              <p className="text-xs uppercase tracking-[0.16em] text-tds-dim">Trade score</p>
+              <p className="text-xs uppercase tracking-[0.16em] text-tds-dim">Activity rank</p>
               <p className={`mt-2 text-sm font-semibold ${item.changePct >= 0 ? "text-tds-green" : "text-tds-red"}`}>{item.changePct >= 0 ? "+" : ""}{item.changePct.toFixed(2)}%</p>
             </div>
           </div>

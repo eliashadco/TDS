@@ -108,7 +108,7 @@ Turn the latest audit findings into an execution-ready remediation sequence that
 
 ### Likely Files
 - new helper near `lib/ai/direction.ts`
-- `components/trade/NewTradeClient.tsx`
+- ~~`components/trade/NewTradeClient.tsx`~~ (ARCHIVED — use TradeTerminal.tsx)
 - `components/marketwatch/MarketWatchClient.tsx`
 - `components/dashboard/SmartWatchlistCard.tsx`
 - `components/analytics/PortfolioAnalyticsOverview.tsx`
@@ -232,7 +232,7 @@ Turn the latest audit findings into an execution-ready remediation sequence that
 - new migrations for strategies and strategy_versions
 - new strategy types under `types/`
 - Settings replacement or expansion from “metrics editor” to “strategy studio”
-- `components/trade/NewTradeClient.tsx`
+- ~~`components/trade/NewTradeClient.tsx`~~ (ARCHIVED — use TradeTerminal.tsx)
 - `components/marketwatch/InstrumentPreviewDrawer.tsx`
 - `components/marketwatch/MarketWatchClient.tsx`
 - `components/dashboard/ReadyTradesCard.tsx`
@@ -294,7 +294,7 @@ Turn the latest audit findings into an execution-ready remediation sequence that
 
 ### Likely Files
 - new trade/workbench schema changes
-- `components/trade/NewTradeClient.tsx`
+- ~~`components/trade/NewTradeClient.tsx`~~ (ARCHIVED — use TradeTerminal.tsx)
 - `components/marketwatch/MarketWatchClient.tsx`
 - `components/trade/TradeDetailClient.tsx`
 - `app/(app)/trade/[id]/page.tsx`

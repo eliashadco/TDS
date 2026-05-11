@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import InstrumentPreviewDrawer, { type StrategySelectionOption } from "@/components/marketwatch/InstrumentPreviewDrawer";
 import MoversTable from "@/components/marketwatch/MoversTable";
-import ScoredList, { type ScoredMover } from "@/components/marketwatch/ScoredList";
+import WorkbenchList, { type ScoredMover } from "@/components/marketwatch/ScoredList";
 import { broadcastMarketDataRefresh, getStoredMarketDataRefreshToken } from "@/lib/market/refresh";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -17,14 +17,15 @@ import {
   updateStrategySnapshotStructure,
 } from "@/lib/trading/strategies";
 import { getMetricDefinition } from "@/lib/trading/presets";
-import { calculatePosition, getConviction } from "@/lib/trading/scoring";
-import { resolveMetricAssessmentDescription } from "@/lib/trading/user-metrics";
-import type { Database, Json } from "@/types/database";
+import type { Json } from "@/types/database";
 import type { SavedStrategy, StrategySnapshot } from "@/types/strategy";
 import type { ConvictionTier, Metric, TradeMode } from "@/types/trade";
 import type { Mover, Quote } from "@/types/market";
 
 type FilterTab = "all" | "gainers" | "losers";
+
+/** Default sizing tier when staging without AI metric passes (PR 9). */
+const WORKBENCH_STAGE_CONVICTION: ConvictionTier = { tier: "STD", risk: 0.02, color: "#059669" };
 
 type MarketWatchClientProps = {
   userId: string;
@@ -450,16 +451,6 @@ function mergeScoredItems(existing: ScoredMover[], incoming: ScoredMover[]): Sco
   });
 }
 
-function verdictByPassRate(passRate: number): "GO" | "CAUTION" | "SKIP" {
-  if (passRate >= 0.85) {
-    return "GO";
-  }
-  if (passRate >= 0.65) {
-    return "CAUTION";
-  }
-  return "SKIP";
-}
-
 function serializeTradePrefill(values: string[]): string {
   return values
     .map((value) => value.trim())
@@ -694,7 +685,7 @@ export default function MarketWatchClient({ userId, mode, equity, strategies, de
   const marketWatchActionsEnabled = laneSelected && strategyConfigured;
   const marketWatchDisabledReason = !laneSelected
     ? "Choose a lane configuration to save, score, and deploy from MarketWatch."
-    : "Create or enable a strategy with at least one check to score and deploy from MarketWatch.";
+    : "Create or enable a strategy with at least one check to stage and deploy from MarketWatch.";
 
   const defaultStrategy = useMemo(
     () => strategies.find((strategy) => strategy.id === defaultStrategyId) ?? strategies[0] ?? null,
@@ -899,6 +890,7 @@ export default function MarketWatchClient({ userId, mode, equity, strategies, de
 
       setWatchlistLoading(true);
 
+      // TODO (PR 9): verdict/last_scored_at/scores on watchlist_items are V3 scoring remnants
       const { data, error: watchlistError } = await supabase
         .from("watchlist_items")
         .select("id, ticker, direction, verdict, note, source, last_scored_at, scores, strategy_id, strategy_version_id, strategy_name, strategy_snapshot")
@@ -1292,55 +1284,11 @@ export default function MarketWatchClient({ userId, mode, equity, strategies, de
 
     setScoringTicker(params.mover.ticker);
     try {
-      const response = await fetch("/api/ai/assess", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ticker: params.mover.ticker,
-          direction: params.direction,
-          thesis: thesisSummary,
-          setups: params.strategy.setupTypes.length > 0 ? params.strategy.setupTypes : [params.strategy.label],
-          conditions: params.strategy.conditions,
-          chartPattern: params.strategy.chartPattern,
-          asset: "Equity",
-          mode,
-          strategyName: params.strategy.label,
-          strategyInstruction: params.strategy.strategySnapshot.aiInstruction ?? null,
-          metrics: selectedMetrics.map((metric) => ({
-            id: metric.id,
-            name: metric.name,
-            desc: resolveMetricAssessmentDescription(metric, params.direction),
-          })),
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("assessment failed");
-      }
-
-      const data = (await response.json()) as Record<string, { v: "PASS" | "FAIL"; r: string }>;
-      const scoreMap: Record<string, 0 | 1> = {};
-      const noteMap: Record<string, string> = {};
-
-      for (const metric of selectedMetrics) {
-        const result = data[metric.id];
-        if (!result) {
-          continue;
-        }
-        scoreMap[metric.id] = result.v === "PASS" ? 1 : 0;
-        noteMap[metric.id] = result.r;
-      }
-
       const fundamental = selectedMetrics.filter((metric) => metric.type === "fundamental");
       const technical = selectedMetrics.filter((metric) => metric.type === "technical");
-      const fScore = fundamental.reduce((sum, metric) => sum + (scoreMap[metric.id] ?? 0), 0);
-      const tScore = technical.reduce((sum, metric) => sum + (scoreMap[metric.id] ?? 0), 0);
       const fTotal = fundamental.length;
       const tTotal = technical.length;
       const total = selectedMetrics.length;
-      const score = Object.values(scoreMap).reduce<number>((sum, value) => sum + value, 0);
-      const passRate = total > 0 ? score / total : 0;
-      const conviction = getConviction(fScore, fTotal, tScore, tTotal);
       const updatedAt = new Date().toISOString();
       const selectedStrategySnapshot = updateStrategySnapshotStructure(params.strategy.strategySnapshot, {
         setupTypes: params.strategy.setupTypes,
@@ -1352,18 +1300,18 @@ export default function MarketWatchClient({ userId, mode, equity, strategies, de
         ticker: effectiveMover.ticker,
         name: effectiveMover.name,
         direction: params.direction,
-        score,
+        score: 0,
         total,
-        passRate,
-        verdict: verdictByPassRate(passRate),
-        note: noteMap[Object.keys(noteMap)[0] ?? ""] ?? effectiveMover.reason,
-        conviction,
-        fScore,
-        tScore,
+        passRate: 0,
+        verdict: "CAUTION",
+        note: "Staged without AI metric scan — confirm checks and sizing before qualify.",
+        conviction: WORKBENCH_STAGE_CONVICTION,
+        fScore: 0,
+        tScore: 0,
         fTotal,
         tTotal,
-        scores: scoreMap,
-        notes: noteMap,
+        scores: {},
+        notes: {},
         entry: effectiveMover.price > 0 ? effectiveMover.price : null,
         stop: null,
         price: effectiveMover.price,
@@ -1389,7 +1337,7 @@ export default function MarketWatchClient({ userId, mode, equity, strategies, de
         setSelectedMover(null);
       }
     } catch {
-      setError(`Scoring failed for ${params.mover.ticker}.`);
+      setError(`Workbench staging failed for ${params.mover.ticker}.`);
     } finally {
       setScoringTicker(null);
     }
@@ -1470,7 +1418,7 @@ export default function MarketWatchClient({ userId, mode, equity, strategies, de
 
     const strategy = selectedWorkbenchStrategy;
     if (!strategy) {
-      setWatchlistMessage("Select a strategy for the scored workbench first.");
+      setWatchlistMessage("Select a strategy for the workbench first.");
       return;
     }
 
@@ -1478,7 +1426,7 @@ export default function MarketWatchClient({ userId, mode, equity, strategies, de
       mover: buildMoverFromWatchlist(item),
       strategy,
       direction: item.direction,
-      successMessage: `${item.ticker} scored with ${strategy.label} and moved to the scored workbench.`,
+      successMessage: `${item.ticker} staged with ${strategy.label} and saved to the workbench.`,
     });
   }
 
@@ -1531,7 +1479,7 @@ export default function MarketWatchClient({ userId, mode, equity, strategies, de
 
     const strategy = selectedWorkbenchStrategy;
     if (!strategy) {
-      setWatchlistMessage("Select a strategy before dropping a ticker into the scored workbench.");
+      setWatchlistMessage("Select a strategy before dropping a ticker into the workbench.");
       return;
     }
 
@@ -1539,7 +1487,7 @@ export default function MarketWatchClient({ userId, mode, equity, strategies, de
       mover: dropped.mover,
       strategy,
       direction: dropped.direction ?? (dropped.mover.changePct >= 0 ? "LONG" : "SHORT"),
-      successMessage: `${dropped.mover.ticker} scored with ${strategy.label} and saved to the scored workbench.`,
+      successMessage: `${dropped.mover.ticker} staged with ${strategy.label} and saved to the workbench.`,
     });
   }
 
@@ -1697,13 +1645,11 @@ export default function MarketWatchClient({ userId, mode, equity, strategies, de
     setMoverRefreshToken(token);
   }
 
-  async function deploy(item: ScoredMover) {
+  // V4 qualify: creates a persisted draft then navigates to TradeTerminal.
+  // Navigation MUST await the API response (Hard Rule 8) — no optimistic push.
+  async function qualify(item: ScoredMover) {
     if (!marketWatchActionsEnabled || !mode) {
       setError(marketWatchDisabledReason);
-      return;
-    }
-
-    if (!userId || !item.conviction || item.entry == null || item.stop == null) {
       return;
     }
 
@@ -1712,76 +1658,45 @@ export default function MarketWatchClient({ userId, mode, equity, strategies, de
       return;
     }
 
-    const position = calculatePosition(equity, item.conviction, item.entry, item.stop, item.direction);
-    if (!position) {
-      return;
-    }
-
     setDeployingKey(buildStrategyScopedKey(item.strategyId, item.ticker, item.direction));
     try {
-      const trancheDeadline = new Date();
-      trancheDeadline.setDate(trancheDeadline.getDate() + 3);
+      const invalidationText =
+        item.strategySnapshot.structure.invalidationStyle ||
+        (item.direction === "LONG" ? "Lose intraday support" : "Reclaim intraday resistance");
 
-      const { error: insertError } = await supabase.from("trades").insert({
-        user_id: userId,
-        strategy_id: item.strategyId,
-        strategy_version_id: item.strategyVersionId,
-        strategy_name: item.strategyLabel,
-        strategy_snapshot: item.strategySnapshot as unknown as Database["public"]["Tables"]["trades"]["Insert"]["strategy_snapshot"],
-        ticker: item.ticker,
-        direction: item.direction,
-        asset_class: "Equity",
-        mode,
-        setup_types: item.setupTypes.length > 0 ? item.setupTypes : [item.strategyLabel],
-        conditions: item.conditions,
-        chart_pattern: item.chartPattern || "None",
-        thesis: item.thesisSummary,
-        catalyst_window: "1-3 days",
-        invalidation: item.strategySnapshot.structure.invalidationStyle || (item.direction === "LONG" ? "Lose intraday support" : "Reclaim intraday resistance"),
-        scores: item.scores,
-        notes: item.notes,
-        f_score: item.fScore,
-        t_score: item.tScore,
-        f_total: item.fTotal,
-        t_total: item.tTotal,
-        conviction: item.conviction.tier,
-        risk_pct: item.conviction.risk,
-        entry_price: item.entry,
-        stop_loss: item.stop,
-        shares: position.shares,
-        tranche1_shares: position.tranche1,
-        tranche2_shares: position.tranche2,
-        tranche2_filled: false,
-        tranche2_deadline: trancheDeadline.toISOString(),
-        exit_t1: false,
-        exit_t2: false,
-        exit_t3: false,
-        r2_target: position.r2Target,
-        r4_target: position.r4Target,
-        market_price: item.price,
-        confirmed: true,
-        closed: false,
-        source: "marketwatch",
-        state: "deployed",
-        classification: "in_policy",
+      const res = await fetch("/api/drafts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ticker: item.ticker,
+          direction: item.direction,
+          mode,
+          strategyId: item.strategyId,
+          draftContext: {
+            thesisSummary: item.thesisSummary,
+            invalidation: invalidationText,
+            setupTypes: item.setupTypes,
+            conditions: item.conditions,
+            chartPattern: item.chartPattern,
+            entry: item.entry,
+            stop: item.stop,
+            conviction: item.conviction?.tier ?? null,
+            price: item.price,
+          },
+        }),
       });
 
-      if (insertError) {
-        throw insertError;
+      if (!res.ok) {
+        const body = (await res.json()) as { error?: { message?: string } };
+        throw new Error(body.error?.message ?? "Failed to create draft");
       }
 
-      const watchlistRow = watchlistItems.find((entry) => buildStrategyScopedKey(entry.strategyId, entry.ticker, entry.direction) === buildStrategyScopedKey(item.strategyId, item.ticker, item.direction));
-      if (watchlistRow) {
-        const { error: deleteError } = await supabase.from("watchlist_items").delete().eq("id", watchlistRow.id);
-        if (!deleteError) {
-          setWatchlistItems((previous) => previous.filter((entry) => entry.id !== watchlistRow.id));
-          const itemKey = buildWatchlistItemKey(watchlistRow);
-          setWatchlistProfiles((previous) => previous.map((profile) => ({ ...profile, itemKeys: profile.itemKeys.filter((entry) => entry !== itemKey) })));
-        }
-      }
-      router.push("/dashboard");
+      const { draftId } = (await res.json()) as { draftId: string };
+
+      // Hard Rule 8: navigation only fires after draftId is confirmed
+      router.push(`/trade/new?draftId=${draftId}`);
     } catch {
-      setError(`Deploy failed for ${item.ticker}.`);
+      setError(`Qualify failed for ${item.ticker}.`);
     } finally {
       setDeployingKey(null);
     }
@@ -1793,7 +1708,7 @@ export default function MarketWatchClient({ userId, mode, equity, strategies, de
         <div className="terminal-page-header">
           <p className="meta-label">MarketWatch</p>
           <h2>MarketWatch</h2>
-          <p className="page-intro">Discovery stays visible at the account level. The {formatModeLabel(mode)} configuration only changes scoring, watchlists, and deploy defaults.</p>
+          <p className="page-intro">Discovery stays visible at the account level. The {formatModeLabel(mode)} configuration drives watchlists, workbench staging, and deploy defaults.</p>
         </div>
         <div className="marketwatch-actions">
           <div className="import-shell">
@@ -2007,8 +1922,8 @@ export default function MarketWatchClient({ userId, mode, equity, strategies, de
                         </button>
 
                         <span>
-                          <span className={cn("inline-tag neutral", item.workbench ? "scored" : "")}> 
-                            {item.workbench ? `${Math.round(item.workbench.passRate * 100)}% Scored` : item.verdict ?? "Staged"}
+                          <span className={cn("inline-tag neutral", item.workbench ? "scored" : "")}>
+                            {item.workbench ? "Workbench" : item.verdict ?? "Staged"}
                           </span>
                         </span>
 
@@ -2019,8 +1934,8 @@ export default function MarketWatchClient({ userId, mode, equity, strategies, de
                             type="button"
                             onClick={() => void scoreWatchlistTicker(item)}
                             disabled={busy || !marketWatchActionsEnabled}
-                            title={`Score ${item.ticker}`}
-                            aria-label={`Score ${item.ticker}`}
+                            title={`Stage ${item.ticker}`}
+                            aria-label={`Stage ${item.ticker} on workbench`}
                             className="square-action h-8 w-8 rounded-lg border border-slate-200 text-sm leading-none"
                           >
                             ⚡
@@ -2061,8 +1976,8 @@ export default function MarketWatchClient({ userId, mode, equity, strategies, de
           <section className="surface-panel p-6">
             <div className="section-heading-row">
               <div>
-                <p className="meta-label">Scored Workbench</p>
-                <h3>Strategy-scored queue</h3>
+                <p className="meta-label">Workbench</p>
+                <h3>Strategy staging queue</h3>
               </div>
               <span className="tag">{scored.length} items ready</span>
             </div>
@@ -2070,7 +1985,7 @@ export default function MarketWatchClient({ userId, mode, equity, strategies, de
             <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
               <div className="grid gap-2">
                 <label htmlFor="workbench-strategy-select" className="text-xs font-semibold uppercase tracking-[0.16em] text-tds-dim">
-                  Score Strategy
+                  Stage strategy
                 </label>
                 <select
                   id="workbench-strategy-select"
@@ -2090,7 +2005,7 @@ export default function MarketWatchClient({ userId, mode, equity, strategies, de
               <span className="tag">{selectedWorkbenchStrategy?.label ?? "No strategy selected"}</span>
             </div>
 
-            <p className="drop-hint mt-4">{marketWatchActionsEnabled ? "Select a strategy first, then drag a ticker from Active Movers or Watchlist into this workbench to score it." : marketWatchDisabledReason}</p>
+            <p className="drop-hint mt-4">{marketWatchActionsEnabled ? "Select a strategy first, then drag a ticker from Active Movers or Watchlist into this workbench to stage it." : marketWatchDisabledReason}</p>
 
             <section
               className={cn("workbench-dropzone mt-4", workbenchDropActive ? "drag-active" : "")}
@@ -2108,17 +2023,17 @@ export default function MarketWatchClient({ userId, mode, equity, strategies, de
               {scored.length === 0 ? (
                 <section className="surface-panel empty-workbench-card">
                   <div className="empty-state-panel">
-                    <p>No scored items in workbench. Drag a ticker here to calculate a strategy-specific score.</p>
+                    <p>No items on the workbench yet. Drag a ticker here to capture strategy context without AI scoring.</p>
                   </div>
                 </section>
               ) : (
-                <ScoredList
+                <WorkbenchList
                   items={scored}
                   equity={equity}
                   loadingKey={deployingKey}
                   onEntryChange={(strategyId, ticker, direction, value) => updateWorkbenchField(strategyId, ticker, direction, "entry", value)}
                   onStopChange={(strategyId, ticker, direction, value) => updateWorkbenchField(strategyId, ticker, direction, "stop", value)}
-                  onDeploy={(item) => void deploy(item)}
+                  onQualify={(item) => void qualify(item)}
                 />
               )}
             </section>

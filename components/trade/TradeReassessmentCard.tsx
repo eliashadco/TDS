@@ -1,15 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import AIProviderBadge from "@/components/ai/AIProviderBadge";
 import { createClient } from "@/lib/supabase/client";
-import { extractAIResponseMeta } from "@/lib/ai/response";
 import AssessmentMatrix from "@/components/trade/AssessmentMatrix";
 import { Button } from "@/components/ui/button";
 import { getConviction } from "@/lib/trading/scoring";
 import { resolveMetricAssessmentDescription } from "@/lib/trading/user-metrics";
 import type { Database, Json } from "@/types/database";
-import type { AIResponseMeta } from "@/lib/ai/response";
 import type { SavedStrategy } from "@/types/strategy";
 
 type TradeRow = Database["public"]["Tables"]["trades"]["Row"];
@@ -68,11 +65,9 @@ export default function TradeReassessmentCard({ trade, availableStrategies, onTr
   const [selectedStrategyId, setSelectedStrategyId] = useState<string>(trade.strategy_id ?? availableStrategies[0]?.id ?? "");
   const [scores, setScores] = useState<Record<string, 0 | 1>>(asNumberMap(trade.scores));
   const [notes, setNotes] = useState<Record<string, string>>(asStringMap(trade.notes));
-  const [loading, setLoading] = useState(false);
   const [applying, setApplying] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [reassessmentMeta, setReassessmentMeta] = useState<AIResponseMeta | null>(null);
 
   const selectedStrategy = availableStrategies.find((strategy) => strategy.id === selectedStrategyId) ?? null;
   const metrics = selectedStrategy?.metrics.filter((metric) => metric.enabled) ?? [];
@@ -111,70 +106,6 @@ export default function TradeReassessmentCard({ trade, availableStrategies, onTr
   const tScore = tMetrics.reduce((sum, metric) => sum + (scores[metric.id] ?? 0), 0);
   const conviction = getConviction(fScore, fMetrics.length, tScore, tMetrics.length);
   const modeSwitch = selectedStrategy.mode !== trade.mode;
-
-  async function runReassessment() {
-    if (!selectedStrategy || metrics.length === 0) {
-      setError("This strategy has no enabled checks to reassess.");
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    setMessage(null);
-    setReassessmentMeta(null);
-
-    try {
-      const response = await fetch("/api/ai/assess", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ticker: trade.ticker,
-          direction: trade.direction,
-          thesis: trade.thesis,
-          setups: selectedStrategy.structure.setupTypes,
-          conditions: selectedStrategy.structure.conditions,
-          chartPattern: selectedStrategy.structure.chartPattern,
-          asset: trade.asset_class,
-          mode: selectedStrategy.mode,
-          strategyName: selectedStrategy.name,
-          strategyInstruction: selectedStrategy.aiInstruction,
-          metrics: metrics.map((metric) => ({
-            id: metric.id,
-            name: metric.name,
-            desc: resolveMetricAssessmentDescription(metric, trade.direction),
-          })),
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("reassessment_failed");
-      }
-
-      setReassessmentMeta(extractAIResponseMeta(response));
-
-      const data = (await response.json()) as Record<string, { v: "PASS" | "FAIL"; r: string }>;
-      const nextScores: Record<string, 0 | 1> = {};
-      const nextNotes: Record<string, string> = {};
-
-      for (const metric of metrics) {
-        const result = data[metric.id];
-        if (!result) {
-          continue;
-        }
-
-        nextScores[metric.id] = result.v === "PASS" ? 1 : 0;
-        nextNotes[metric.id] = result.r;
-      }
-
-      setScores(nextScores);
-      setNotes(nextNotes);
-      setMessage(`${selectedStrategy.name} reassessment loaded. Review the matrix, then apply it to the trade if you want to switch frames.`);
-    } catch {
-      setError("Unable to run the reassessment right now. You can still set the matrix manually.");
-    } finally {
-      setLoading(false);
-    }
-  }
 
   async function applyReassessment() {
     if (!selectedStrategy || metrics.length === 0) {
@@ -234,17 +165,16 @@ export default function TradeReassessmentCard({ trade, availableStrategies, onTr
     <section className="surface-panel p-6 sm:p-7">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="meta-label">Reassessment Studio</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-tds-text">Re-score the live trade with another strategy</h2>
-          <p className="mt-3 text-sm leading-6 text-tds-dim">Use this when the trade has no saved assessment, when the current lane is stale, or when you want to promote the idea into a new mode like swing or investment.</p>
+          <p className="meta-label">Strategy snapshot</p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-tds-text">Re-frame the live trade with another strategy</h2>
+          <p className="mt-3 text-sm leading-6 text-tds-dim">Automated AI reassessment was removed (PR 9). Toggle PASS/FAIL on each check manually, then apply when you want this trade to adopt another lane&apos;s snapshot.</p>
         </div>
         <div className="flex items-center gap-2">
-          {reassessmentMeta ? <AIProviderBadge meta={reassessmentMeta} /> : null}
           {modeSwitch ? <span className="inline-tag neutral">Switching to {formatModeLabel(selectedStrategy.mode)}</span> : <span className="inline-tag neutral">{selectedStrategy.name}</span>}
         </div>
       </div>
 
-      <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto_auto] lg:items-end">
+      <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
         <div>
           <label htmlFor="trade-reassessment-strategy" className="text-xs font-semibold uppercase tracking-[0.16em] text-tds-dim">
             Reassess with strategy
@@ -262,10 +192,6 @@ export default function TradeReassessmentCard({ trade, availableStrategies, onTr
             ))}
           </select>
         </div>
-
-        <Button type="button" variant="secondary" disabled={loading} onClick={() => void runReassessment()}>
-          {loading ? "Reassessing..." : "Run reassessment"}
-        </Button>
 
         <Button type="button" disabled={applying || metrics.length === 0} onClick={() => void applyReassessment()}>
           {applying ? "Applying..." : modeSwitch ? "Apply and switch trade" : "Apply to trade"}
@@ -293,7 +219,7 @@ export default function TradeReassessmentCard({ trade, availableStrategies, onTr
           mode={selectedStrategy.mode}
           direction={trade.direction}
           editable
-          emptyMessage="Run the reassessment first or score the strategy manually."
+          emptyMessage="Set PASS/FAIL manually for each enabled check, then apply."
           noteLabel="Reassessment rationale"
           onScoreChange={(metricId, value) => setScores((previous) => ({ ...previous, [metricId]: value }))}
         />

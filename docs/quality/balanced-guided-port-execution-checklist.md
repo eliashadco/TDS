@@ -26,7 +26,7 @@ Gate to exit Phase 1:
 | Dashboard | `/dashboard` | `app/(app)/dashboard/page.tsx` | `components/dashboard/DashboardClient.tsx`, `components/dashboard/ReadyTradesCard.tsx`, `components/dashboard/TodaysPrioritiesCard.tsx` | Exact prototype port | Dashboard section |
 | Analytics Overview | `/portfolio-analytics` and `/analytics` redirect | `app/(app)/portfolio-analytics/page.tsx`, `app/(app)/analytics/page.tsx` | `components/analytics/PortfolioAnalyticsOverview.tsx`, `components/analytics/AnalyticsClient.tsx` | Exact prototype port | Analytics section |
 | MarketWatch | `/portfolio-analytics?tab=marketwatch` and `/marketwatch` redirect | `app/(app)/portfolio-analytics/page.tsx`, `app/(app)/marketwatch/page.tsx` | `components/marketwatch/MarketWatchClient.tsx`, `components/marketwatch/MoversTable.tsx`, `components/marketwatch/ScoredList.tsx`, `components/marketwatch/InstrumentPreviewDrawer.tsx` | Exact prototype port with app-specific extensions | MarketWatch section |
-| Trade Studio | `/trade/new` | `app/(app)/trade/new/page.tsx` | `components/trade/NewTradeClient.tsx`, `components/trade/ThesisStep.tsx`, `components/trade/AssessmentStep.tsx`, `components/trade/SizingStep.tsx`, `components/trade/ConfirmStep.tsx`, `components/trade/GuidedStructurePicker.tsx`, `components/trade/ScoreRow.tsx` | Exact prototype port | Trade Studio section |
+| Trade Studio | `/trade/new` | `app/(app)/trade/new/page.tsx` | `components/trade/TradeTerminal.tsx` (canonical) — `NewTradeClient.tsx` and V3 steppers ARCHIVED, removal target PR 9 | Canonical surface is TradeTerminal | Trade Studio section |
 | Trade Detail | `/trade/[id]` | `app/(app)/trade/[id]/page.tsx` | `components/trade/TradeDetailClient.tsx`, `components/trade/TradeReassessmentCard.tsx`, `components/trade/AssessmentMatrix.tsx`, `components/chart/PriceChart.tsx` | Derived from prototype language | No exact page in balanced-guided source |
 | Archive | `/archive` | `app/(app)/archive/page.tsx` | route file controls page UI | Exact prototype port | Archive section |
 | Settings Profile | `/settings/profile` | `app/(app)/settings/profile/page.tsx` | `components/settings/OnboardingRestartCard.tsx`, `components/settings/PortfolioResetCard.tsx`, `components/learn/LearnToggle.tsx` | Exact prototype port | Settings section |
@@ -153,11 +153,12 @@ Checklist:
 
 Files:
 - `app/(app)/trade/new/page.tsx`
-- `components/trade/NewTradeClient.tsx`
-- `components/trade/ThesisStep.tsx`
-- `components/trade/AssessmentStep.tsx`
-- `components/trade/SizingStep.tsx`
-- `components/trade/ConfirmStep.tsx`
+- `components/trade/TradeTerminal.tsx` ← canonical entry surface (V4)
+- ~~`components/trade/NewTradeClient.tsx`~~ ARCHIVED — removal target PR 9
+- ~~`components/trade/ThesisStep.tsx`~~ ARCHIVED — removal target PR 9
+- ~~`components/trade/AssessmentStep.tsx`~~ ARCHIVED — removal target PR 9
+- ~~`components/trade/SizingStep.tsx`~~ ARCHIVED — removal target PR 9
+- ~~`components/trade/ConfirmStep.tsx`~~ ARCHIVED — removal target PR 9
 - `components/trade/GuidedStructurePicker.tsx`
 - `components/trade/ScoreRow.tsx`
 

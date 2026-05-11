@@ -218,7 +218,7 @@ export default function InstrumentPreviewDrawer({
               className={selectedDirection === "LONG" ? "border-emerald-200 bg-emerald-50 text-emerald-700" : ""}
             >
               <ArrowUpRight className="mr-2 h-4 w-4" />
-              Long score
+              Long staging
             </Button>
             <Button
               type="button"
@@ -227,7 +227,7 @@ export default function InstrumentPreviewDrawer({
               className={selectedDirection === "SHORT" ? "border-rose-200 bg-rose-50 text-rose-700" : ""}
             >
               <ArrowDownLeft className="mr-2 h-4 w-4" />
-              Short score
+              Short staging
             </Button>
           </div>
         </div>
@@ -236,11 +236,11 @@ export default function InstrumentPreviewDrawer({
           <p className="meta-label">Strategy Selection</p>
           <p className="mt-3 text-sm leading-6 text-tds-dim">
             {scoringEnabled
-              ? "Choose the metric stack that should score this instrument. The general strategy uses your current custom indicators. Historical strategies reuse metric mixes from previous trades in this ticker."
-              : scoringDisabledReason ?? "Choose a lane configuration and enable a strategy to score from MarketWatch."}
+              ? "Choose the metric stack attached to this instrument. Staging copies mover context into your MarketWatch workbench without AI pass/fail."
+              : scoringDisabledReason ?? "Choose a lane configuration and enable a strategy to stage from MarketWatch."}
           </p>
 
-          <label htmlFor="strategy-select" className="mt-5 block text-xs font-semibold uppercase tracking-[0.16em] text-tds-dim">Score with strategy</label>
+          <label htmlFor="strategy-select" className="mt-5 block text-xs font-semibold uppercase tracking-[0.16em] text-tds-dim">Stage with strategy</label>
           <select
             id="strategy-select"
             value={selectedStrategyId}
@@ -282,16 +282,16 @@ export default function InstrumentPreviewDrawer({
             </Link>
           ) : (
             <Button type="button" onClick={onScore} disabled={scoring || !selectedStrategy || !scoringEnabled}>
-              {scoring ? "Scoring strategy..." : scoringEnabled ? "Score selected strategy" : "Scoring unavailable"}
+              {scoring ? "Staging..." : scoringEnabled ? "Stage selected strategy" : "Staging unavailable"}
             </Button>
           )}
           {planTradeHref ? (
             <Button type="button" variant="secondary" onClick={onScore} disabled={scoring || !selectedStrategy || !scoringEnabled}>
-              {scoring ? "Re-scoring..." : "Re-score strategy"}
+              {scoring ? "Staging..." : "Re-stage strategy"}
             </Button>
           ) : null}
           <p className="text-xs uppercase tracking-[0.16em] text-tds-dim">
-            {planTradeHref ? "Qualification passed. Carry this setup into Trade Studio." : scoringEnabled ? "Result will be moved into the custom watchlist workbench" : scoringDisabledReason ?? "Choose a lane configuration to unlock MarketWatch scoring."}
+            {planTradeHref ? "Qualification passed. Carry this setup into Trade Studio." : scoringEnabled ? "Staged rows sync into your MarketWatch workbench." : scoringDisabledReason ?? "Choose a lane configuration to unlock MarketWatch staging."}
           </p>
         </div>
       </aside>

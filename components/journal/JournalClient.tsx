@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowDownRight, ArrowUpRight, BookOpen, ShieldAlert, TrendingUp } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowDownRight, ArrowUpRight, BookOpen, ClipboardList, ShieldAlert, TrendingUp } from "lucide-react";
 import type { Trade } from "@/types/trade";
 
 /* ---------- types ---------- */
@@ -35,9 +36,14 @@ type Tab = "trades" | "overrides" | "discipline";
 type JournalClientProps = {
   trades: Trade[];
   overrides: Override[];
+  tradesPendingReview?: Trade[];
 };
 
 /* ---------- helpers ---------- */
+
+function isClosedTrade(t: Trade): boolean {
+  return t.closed === true || t.state === "closed";
+}
 
 function computePnlPct(t: Trade): number | null {
   if (!t.entry_price || !t.exit_price) return null;
@@ -77,11 +83,242 @@ function qualityLabel(q: string): string {
   }
 }
 
+/* ---------- Post-trade review gate (PR 5 — Hard Rule 4) ---------- */
+
+function TradeReviewGateForm({ trade, onSubmitted }: { trade: Trade; onSubmitted: () => void }) {
+  const router = useRouter();
+  const [expanded, setExpanded] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [executionAdherence, setExecutionAdherence] = useState<"clean" | "minor_deviation" | "major_deviation">("clean");
+  const [deviationTag, setDeviationTag] = useState("");
+  const [overridePresent, setOverridePresent] = useState(false);
+  const [exitPriceRule, setExitPriceRule] = useState("");
+  const [overrideRCostManual, setOverrideRCostManual] = useState("");
+  const [lesson, setLesson] = useState("");
+  const [outcomeR, setOutcomeR] = useState("");
+  const [maeR, setMaeR] = useState("");
+  const [mfeR, setMfeR] = useState("");
+  const [holdingMinutes, setHoldingMinutes] = useState("");
+  const [touched1r, setTouched1r] = useState(false);
+  const [touched2r, setTouched2r] = useState(false);
+  const [touched3r, setTouched3r] = useState(false);
+
+  const exitPxNum = exitPriceRule.trim() === "" ? NaN : Number(exitPriceRule);
+  const overrideCostNum = overrideRCostManual.trim() === "" ? NaN : Number(overrideRCostManual);
+
+  const formComplete = useMemo(() => {
+    const oR = Number(outcomeR);
+    const mae = Number(maeR);
+    const mfe = Number(mfeR);
+    const hold = Number(holdingMinutes);
+    if (!Number.isFinite(oR)) return false;
+    if (!Number.isFinite(mae)) return false;
+    if (!Number.isFinite(mfe)) return false;
+    if (!Number.isFinite(hold) || hold < 0 || !Number.isInteger(hold)) return false;
+    if (overridePresent) {
+      const hasEst = Number.isFinite(exitPxNum);
+      const hasManual = Number.isFinite(overrideCostNum);
+      if (!hasEst && !hasManual) return false;
+    }
+    return true;
+  }, [outcomeR, maeR, mfeR, holdingMinutes, overridePresent, exitPxNum, overrideCostNum]);
+
+  async function submitReview() {
+    if (!formComplete) return;
+    setBusy(true);
+    setError(null);
+    const body: Record<string, unknown> = {
+      executionAdherence,
+      overridePresent,
+      outcomeR: Number(outcomeR),
+      maeR: Number(maeR),
+      mfeR: Number(mfeR),
+      holdingMinutes: Number(holdingMinutes),
+      touched1r,
+      touched2r,
+      touched3r,
+    };
+    if (deviationTag.trim()) body.deviationTag = deviationTag.trim();
+    if (lesson.trim()) body.lesson = lesson.trim();
+    if (overridePresent && Number.isFinite(exitPxNum)) {
+      body.ruleBasedExitEstimate = { exit_price: exitPxNum };
+    }
+    if (overridePresent && !Number.isFinite(exitPxNum) && Number.isFinite(overrideCostNum)) {
+      body.overrideRCost = overrideCostNum;
+    }
+
+    try {
+      const res = await fetch(`/api/trades/${trade.id}/review`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const json = (await res.json().catch(() => ({}))) as { error?: { message?: string } };
+      if (!res.ok) {
+        setError(json?.error?.message ?? `Submit failed (${res.status})`);
+        return;
+      }
+      onSubmitted();
+      router.refresh();
+    } catch {
+      setError("Network error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="journal-review-gate rounded-lg border border-slate-700/50 bg-slate-950/35 p-4">
+      <button
+        type="button"
+        className="flex w-full items-center justify-between gap-3 text-left"
+        onClick={() => setExpanded(!expanded)}
+      >
+        <span className="flex items-center gap-2 font-semibold text-tds-text">
+          <ClipboardList className="h-4 w-4 shrink-0 text-amber-400" />
+          {trade.ticker}
+          <span className="text-xs font-normal uppercase tracking-wide text-tds-dim">review due</span>
+        </span>
+        <span className="text-xs text-tds-dim">{expanded ? "Hide" : "Open form"}</span>
+      </button>
+      {expanded ? (
+        <div className="mt-4 grid gap-3 text-sm">
+          <label className="grid gap-1">
+            <span className="text-tds-dim">Execution adherence</span>
+            <select
+              className="rounded-md border border-slate-700 bg-slate-950 px-2 py-2 text-tds-text"
+              value={executionAdherence}
+              onChange={(e) =>
+                setExecutionAdherence(e.target.value as "clean" | "minor_deviation" | "major_deviation")}
+            >
+              <option value="clean">Clean</option>
+              <option value="minor_deviation">Minor deviation</option>
+              <option value="major_deviation">Major deviation</option>
+            </select>
+          </label>
+          <label className="grid gap-1">
+            <span className="text-tds-dim">Deviation tag (optional)</span>
+            <input
+              className="rounded-md border border-slate-700 bg-slate-950 px-2 py-2 text-tds-text"
+              value={deviationTag}
+              onChange={(e) => setDeviationTag(e.target.value)}
+              placeholder="Short label"
+            />
+          </label>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={overridePresent} onChange={(e) => setOverridePresent(e.target.checked)} />
+            <span>Override present</span>
+          </label>
+          {overridePresent ? (
+            <>
+              <label className="grid gap-1">
+                <span className="text-tds-dim">Rule-based exit price (for R ledger)</span>
+                <input
+                  className="rounded-md border border-slate-700 bg-slate-950 px-2 py-2 text-tds-text"
+                  value={exitPriceRule}
+                  onChange={(e) => setExitPriceRule(e.target.value)}
+                  placeholder="Required unless override R cost below"
+                  inputMode="decimal"
+                />
+              </label>
+              <label className="grid gap-1">
+                <span className="text-tds-dim">Override R cost (only if no exit price)</span>
+                <input
+                  className="rounded-md border border-slate-700 bg-slate-950 px-2 py-2 text-tds-text"
+                  value={overrideRCostManual}
+                  onChange={(e) => setOverrideRCostManual(e.target.value)}
+                  placeholder="Signed R vs rule path"
+                  inputMode="decimal"
+                />
+              </label>
+            </>
+          ) : null}
+          <label className="grid gap-1">
+            <span className="text-tds-dim">Outcome (R)</span>
+            <input
+              className="rounded-md border border-slate-700 bg-slate-950 px-2 py-2 text-tds-text"
+              value={outcomeR}
+              onChange={(e) => setOutcomeR(e.target.value)}
+              inputMode="decimal"
+              required
+            />
+          </label>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <label className="grid gap-1">
+              <span className="text-tds-dim">MAE (R)</span>
+              <input
+                className="rounded-md border border-slate-700 bg-slate-950 px-2 py-2 text-tds-text"
+                value={maeR}
+                onChange={(e) => setMaeR(e.target.value)}
+                inputMode="decimal"
+              />
+            </label>
+            <label className="grid gap-1">
+              <span className="text-tds-dim">MFE (R)</span>
+              <input
+                className="rounded-md border border-slate-700 bg-slate-950 px-2 py-2 text-tds-text"
+                value={mfeR}
+                onChange={(e) => setMfeR(e.target.value)}
+                inputMode="decimal"
+              />
+            </label>
+          </div>
+          <label className="grid gap-1">
+            <span className="text-tds-dim">Holding minutes</span>
+            <input
+              className="rounded-md border border-slate-700 bg-slate-950 px-2 py-2 text-tds-text"
+              value={holdingMinutes}
+              onChange={(e) => setHoldingMinutes(e.target.value)}
+              inputMode="numeric"
+            />
+          </label>
+          <div className="flex flex-wrap gap-4">
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={touched1r} onChange={(e) => setTouched1r(e.target.checked)} />
+              Touched 1R
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={touched2r} onChange={(e) => setTouched2r(e.target.checked)} />
+              Touched 2R
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={touched3r} onChange={(e) => setTouched3r(e.target.checked)} />
+              Touched 3R
+            </label>
+          </div>
+          <label className="grid gap-1">
+            <span className="text-tds-dim">Lesson (optional)</span>
+            <textarea
+              className="min-h-[72px] rounded-md border border-slate-700 bg-slate-950 px-2 py-2 text-tds-text"
+              value={lesson}
+              onChange={(e) => setLesson(e.target.value)}
+            />
+          </label>
+          {error ? <p className="text-sm text-red-400">{error}</p> : null}
+          <button
+            type="button"
+            className="rounded-md bg-emerald-700 px-4 py-2 font-medium text-white disabled:cursor-not-allowed disabled:opacity-40"
+            disabled={!formComplete || busy}
+            onClick={() => void submitReview()}
+          >
+            {busy ? "Submitting…" : "Submit review"}
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 /* ---------- component ---------- */
 
-export default function JournalClient({ trades, overrides }: JournalClientProps) {
+export default function JournalClient({ trades, overrides, tradesPendingReview = [] }: JournalClientProps) {
   const [tab, setTab] = useState<Tab>("trades");
   const [discipline, setDiscipline] = useState<DisciplineData | null>(null);
+  const [clearedReviewIds, setClearedReviewIds] = useState<Set<string>>(() => new Set());
+
+  const router = useRouter();
 
   useEffect(() => {
     fetch("/api/discipline")
@@ -90,9 +327,18 @@ export default function JournalClient({ trades, overrides }: JournalClientProps)
       .catch(() => {});
   }, []);
 
+  const pendingIds = useMemo(
+    () => new Set(tradesPendingReview.map((t) => t.id).filter((id) => !clearedReviewIds.has(id))),
+    [tradesPendingReview, clearedReviewIds],
+  );
+
+  const visiblePendingReviews = useMemo(
+    () => tradesPendingReview.filter((t) => !clearedReviewIds.has(t.id)),
+    [tradesPendingReview, clearedReviewIds],
+  );
+
   /* ---------- derived data ---------- */
 
-  // group overrides by rule broken
   const ruleGroups = useMemo(() => {
     const groups = new Map<string, { override: Override; trade: Trade }[]>();
     for (const o of overrides) {
@@ -107,9 +353,7 @@ export default function JournalClient({ trades, overrides }: JournalClientProps)
     return groups;
   }, [overrides, trades]);
 
-  /* ---------- discipline stats ---------- */
-
-  const closedTrades = trades.filter((t) => t.state === "closed");
+  const closedTrades = trades.filter(isClosedTrade);
   const inPolicyTrades = closedTrades.filter((t) => t.classification === "in_policy");
   const overrideTradesClosed = closedTrades.filter(
     (t) => t.classification === "override" || t.classification === "out_of_bounds",
@@ -132,10 +376,33 @@ export default function JournalClient({ trades, overrides }: JournalClientProps)
         <p className="journal-subtitle">
           {closedTrades.length} closed trade{closedTrades.length !== 1 ? "s" : ""} &middot;{" "}
           {overrides.length} override{overrides.length !== 1 ? "s" : ""}
+          {visiblePendingReviews.length > 0
+            ? ` · ${visiblePendingReviews.length} review${visiblePendingReviews.length !== 1 ? "s" : ""} due`
+            : null}
         </p>
       </header>
 
-      {/* Tab bar */}
+      {visiblePendingReviews.length > 0 ? (
+        <section className="journal-panel mb-6">
+          <h2 className="mb-3 text-lg font-semibold text-tds-text">Post-trade reviews</h2>
+          <p className="mb-3 text-sm text-tds-dim">
+            Complete the structured review to record outcomes and clear workflow tasks (single server write path).
+          </p>
+          <div className="flex flex-col gap-3">
+            {visiblePendingReviews.map((t) => (
+              <TradeReviewGateForm
+                key={t.id}
+                trade={t}
+                onSubmitted={() => {
+                  setClearedReviewIds((prev) => new Set(prev).add(t.id));
+                  router.refresh();
+                }}
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
       <div className="journal-tabs">
         {TABS.map((t) => (
           <button
@@ -150,7 +417,6 @@ export default function JournalClient({ trades, overrides }: JournalClientProps)
         ))}
       </div>
 
-      {/* ---------- ALL TRADES TAB ---------- */}
       {tab === "trades" && (
         <div className="journal-panel">
           {trades.length === 0 ? (
@@ -166,6 +432,7 @@ export default function JournalClient({ trades, overrides }: JournalClientProps)
                     <th>Strategy</th>
                     <th>PnL</th>
                     <th>Type</th>
+                    <th>Review</th>
                     <th>State</th>
                   </tr>
                 </thead>
@@ -196,6 +463,13 @@ export default function JournalClient({ trades, overrides }: JournalClientProps)
                             {classificationLabel(t.classification)}
                           </span>
                         </td>
+                        <td>
+                          {pendingIds.has(t.id) ? (
+                            <span className="journal-badge" data-quality="high_risk">Due</span>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
                         <td className="journal-cell-state">{t.state}</td>
                       </tr>
                     );
@@ -207,7 +481,6 @@ export default function JournalClient({ trades, overrides }: JournalClientProps)
         </div>
       )}
 
-      {/* ---------- OVERRIDES TAB ---------- */}
       {tab === "overrides" && (
         <div className="journal-panel">
           {overrides.length === 0 ? (
@@ -263,7 +536,6 @@ export default function JournalClient({ trades, overrides }: JournalClientProps)
                 </div>
               ))}
 
-              {/* Review loop prompt (§11.3) */}
               <div className="journal-review-prompt">
                 <h3>Review Loop</h3>
                 <p>After reviewing your overrides, consider:</p>
@@ -278,11 +550,9 @@ export default function JournalClient({ trades, overrides }: JournalClientProps)
         </div>
       )}
 
-      {/* ---------- DISCIPLINE TAB ---------- */}
       {tab === "discipline" && (
         <div className="journal-panel">
           <div className="journal-discipline-grid">
-            {/* Weekly summary */}
             <div className="journal-discipline-card">
               <h3>Weekly Report</h3>
               <div className="journal-discipline-stats">
@@ -301,7 +571,6 @@ export default function JournalClient({ trades, overrides }: JournalClientProps)
               </div>
             </div>
 
-            {/* Performance impact */}
             <div className="journal-discipline-card">
               <h3>Performance Impact</h3>
               <div className="journal-discipline-stats">
@@ -320,7 +589,6 @@ export default function JournalClient({ trades, overrides }: JournalClientProps)
               </div>
             </div>
 
-            {/* Discipline Score */}
             <div className="journal-discipline-card journal-score-card">
               <h3>Discipline Score</h3>
               <div
@@ -340,7 +608,6 @@ export default function JournalClient({ trades, overrides }: JournalClientProps)
               </p>
             </div>
 
-            {/* All-time stats */}
             <div className="journal-discipline-card">
               <h3>All-Time Summary</h3>
               <div className="journal-discipline-stats">

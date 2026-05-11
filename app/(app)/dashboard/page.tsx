@@ -2,6 +2,7 @@ import { createServerSupabase } from "@/lib/supabase/server";
 import { getProtectedAppContext } from "@/lib/supabase/protected-app";
 import { getQuotes } from "@/lib/market/polygon";
 import { ensureStrategyWorkspaceForMode } from "@/lib/trading/strategies";
+import { buildDashboardSummary } from "@/lib/dashboard/summary";
 import DashboardClient from "@/components/dashboard/DashboardClient";
 import type { Metric, TradeMode } from "@/types/trade";
 
@@ -9,17 +10,9 @@ function asRecord(value: unknown): Record<string, unknown> {
   return typeof value === "object" && value !== null ? (value as Record<string, unknown>) : {};
 }
 
-function toNumber(value: unknown): number {
-  return Number(value ?? 0);
-}
-
 function toNullableNumber(value: unknown): number | null {
   const nextValue = Number(value);
   return Number.isFinite(nextValue) ? nextValue : null;
-}
-
-function asReadyVerdict(value: unknown): "GO" | "CAUTION" | "SKIP" | null {
-  return value === "GO" || value === "CAUTION" || value === "SKIP" ? value : null;
 }
 
 function buildReadyTradeView(row: {
@@ -27,9 +20,8 @@ function buildReadyTradeView(row: {
   strategy_id: string | null;
   ticker: string;
   direction: "LONG" | "SHORT";
-  verdict: string | null;
   note: string | null;
-  last_scored_at: string | null;
+  flagged_at: string | null;
   scores: unknown;
   strategy_name: string | null;
   strategy_snapshot: unknown;
@@ -37,20 +29,17 @@ function buildReadyTradeView(row: {
   const payload = asRecord(row.scores);
   const workbench = asRecord(payload.workbench);
   const strategySnapshot = asRecord(row.strategy_snapshot);
-  const verdict = asReadyVerdict(workbench.verdict) ?? asReadyVerdict(row.verdict);
-  const passRate = toNumber(workbench.passRate);
 
-  if (!verdict || verdict === "SKIP" || passRate <= 0) {
+  const tickerRaw = typeof workbench.ticker === "string" ? workbench.ticker.trim().toUpperCase() : row.ticker?.trim().toUpperCase() ?? "";
+  if (!tickerRaw) {
     return null;
   }
 
   return {
     id: row.id,
     strategyId: row.strategy_id,
-    ticker: typeof workbench.ticker === "string" ? workbench.ticker.toUpperCase() : row.ticker,
+    ticker: tickerRaw,
     direction: workbench.direction === "SHORT" || workbench.direction === "LONG" ? workbench.direction : row.direction,
-    verdict,
-    passRate,
     strategyLabel:
       typeof row.strategy_name === "string"
         ? row.strategy_name
@@ -72,20 +61,17 @@ function buildReadyTradeView(row: {
           ? workbench.reason
           : row.note ?? "Saved workbench idea.",
     triggerLevel: toNullableNumber(workbench.triggerLevel),
-    updatedAt: typeof workbench.updatedAt === "string" ? workbench.updatedAt : row.last_scored_at,
+    updatedAt: typeof workbench.updatedAt === "string" ? workbench.updatedAt : row.flagged_at,
+    flaggedAt: row.flagged_at,
     note: typeof workbench.note === "string" ? workbench.note : row.note ?? "Saved workbench idea.",
   };
 }
 
-function readyTradeSort(
-  left: { verdict: "GO" | "CAUTION" | "SKIP"; passRate: number; updatedAt: string | null },
-  right: { verdict: "GO" | "CAUTION" | "SKIP"; passRate: number; updatedAt: string | null },
-) {
-  const verdictRank = { GO: 2, CAUTION: 1, SKIP: 0 } as const;
-  const leftTime = left.updatedAt ? new Date(left.updatedAt).getTime() : 0;
-  const rightTime = right.updatedAt ? new Date(right.updatedAt).getTime() : 0;
+function readyTradeSort(left: { flaggedAt: string | null; updatedAt: string | null }, right: { flaggedAt: string | null; updatedAt: string | null }) {
+  const leftTime = (left.flaggedAt ?? left.updatedAt) ? new Date(left.flaggedAt ?? left.updatedAt ?? "").getTime() : 0;
+  const rightTime = (right.flaggedAt ?? right.updatedAt) ? new Date(right.flaggedAt ?? right.updatedAt ?? "").getTime() : 0;
 
-  return verdictRank[right.verdict] - verdictRank[left.verdict] || right.passRate - left.passRate || rightTime - leftTime;
+  return rightTime - leftTime;
 }
 
 export default async function DashboardPage() {
@@ -107,7 +93,8 @@ export default async function DashboardPage() {
     }
   }
 
-  const [{ data: activeTrades }, { data: watchlistTrades }, { data: closedTrades }, { data: watchlistItems }] = await Promise.all([
+  const [summary, { data: activeTrades }, { data: watchlistItems }] = await Promise.all([
+    buildDashboardSummary(supabase, userId),
     supabase
       .from("trades")
       .select("id, ticker, direction, conviction, source, setup_types, entry_price, stop_loss, risk_pct, shares, tranche2_deadline, r2_target, market_price, thesis")
@@ -116,22 +103,8 @@ export default async function DashboardPage() {
       .eq("closed", false)
       .order("created_at", { ascending: false }),
     supabase
-      .from("trades")
-      .select("id, ticker, direction, f_score, f_total, t_score, t_total")
-      .eq("user_id", userId)
-      .eq("confirmed", false)
-      .eq("closed", false)
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("trades")
-      .select("id, ticker, direction, closed_at, conviction")
-      .eq("user_id", userId)
-      .eq("closed", true)
-      .order("closed_at", { ascending: false })
-      .limit(5),
-    supabase
       .from("watchlist_items")
-      .select("id, strategy_id, ticker, direction, mode, verdict, note, source, last_scored_at, scores, strategy_name, strategy_snapshot")
+      .select("id, strategy_id, ticker, direction, mode, note, source, flagged_at, scores, strategy_name, strategy_snapshot")
       .eq("user_id", userId)
       .order("flagged_at", { ascending: false })
       .limit(16),
@@ -151,6 +124,7 @@ export default async function DashboardPage() {
 
   return (
     <DashboardClient
+      summary={summary}
       profile={{
         equity: profile.equity,
         mode: mode,
@@ -193,38 +167,6 @@ export default async function DashboardPage() {
             thesis: trade.thesis ?? "",
           };
         }) ?? []
-      }
-      watchlistTrades={
-        watchlistTrades?.map((trade) => ({
-          id: trade.id,
-          ticker: trade.ticker,
-          direction: trade.direction,
-          fScore: trade.f_score,
-          fTotal: trade.f_total,
-          tScore: trade.t_score,
-          tTotal: trade.t_total,
-        })) ?? []
-      }
-      closedTrades={
-        closedTrades?.map((trade) => ({
-          id: trade.id,
-          ticker: trade.ticker,
-          direction: trade.direction,
-          closedAt: trade.closed_at,
-          conviction: trade.conviction,
-        })) ?? []
-      }
-      customWatchlist={
-        watchlistItems?.map((item) => ({
-          id: item.id,
-          ticker: item.ticker,
-          direction: item.direction,
-          mode: item.mode,
-          verdict: item.verdict,
-          note: item.note,
-          source: item.source,
-          lastScoredAt: item.last_scored_at,
-        })) ?? []
       }
       readyTrades={readyTrades}
     />

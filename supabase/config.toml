@@ -354,6 +354,15 @@ authorization_url_path = "/oauth/consent"
 # Allow dynamic client registration
 allow_dynamic_registration = false
 
+[functions.trade-reassessment-scheduler]
+verify_jwt = false
+
+[functions.trade-evidence-updater]
+verify_jwt = false
+
+[functions.critical-event-notifier]
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.

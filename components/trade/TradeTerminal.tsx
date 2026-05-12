@@ -13,9 +13,8 @@ import { calculatePosition } from "@/lib/trading/scoring";
 import { filterStructureLibraryItems, mergeTradePresetOptions } from "@/lib/trading/structure-library";
 import { updateStrategySnapshotStructure } from "@/lib/trading/strategies";
 import { validatePortfolioHeat } from "@/lib/trading/validation";
-import { createClient } from "@/lib/supabase/client";
+// createClient removed — all workflow writes go through server API routes (Hard Rule 4)
 import { cn } from "@/lib/utils";
-import type { Database } from "@/types/database";
 import type { Candle, CandleTimeframe, Quote } from "@/types/market";
 import type { TradeSetupCategory, TradeStructureLibraryItem } from "@/types/structure-library";
 import type { SavedStrategy } from "@/types/strategy";
@@ -236,7 +235,7 @@ function buildJournalEntry(input: {
 
 export default function TradeTerminal(props: TradeTerminalProps) {
   const {
-    userId,
+    // userId intentionally omitted — auth is handled by server API routes (Hard Rule 4)
     initialMode,
     initialEquity,
     initialStrategies,
@@ -246,7 +245,6 @@ export default function TradeTerminal(props: TradeTerminalProps) {
   } = props;
 
   const router = useRouter();
-  const supabase = useMemo(() => createClient(), []);
   const [screen, setScreen] = useState<Screen>("IDENTITY");
   const [navDirection, setNavDirection] = useState<1 | -1>(1);
   const [saving, setSaving] = useState(false);
@@ -570,9 +568,6 @@ export default function TradeTerminal(props: TradeTerminalProps) {
     setSaving(true);
 
     try {
-      const trancheDeadline = new Date();
-      trancheDeadline.setDate(trancheDeadline.getDate() + 7);
-
       const journalEntry = buildJournalEntry({
         ticker: tradeDraft.ticker,
         direction: tradeDraft.direction,
@@ -591,68 +586,88 @@ export default function TradeTerminal(props: TradeTerminalProps) {
         conviction: RECOMMENDED_CONVICTION,
       });
 
-      const payload: Database["public"]["Tables"]["trades"]["Insert"] = {
-        user_id: userId,
-        strategy_id: selectedStrategy.id,
-        strategy_version_id: selectedStrategy.activeVersionId,
-        strategy_name: selectedStrategy.name,
-        strategy_snapshot: tradeStrategySnapshot as unknown as Database["public"]["Tables"]["trades"]["Insert"]["strategy_snapshot"],
-        ticker: tradeDraft.ticker,
-        direction: tradeDraft.direction,
-        asset_class: "Equity",
-        mode: initialMode,
-        setup_types: tradeDraft.setupTypes,
-        conditions: selectedPreparedStrategy?.conditions ?? [],
-        chart_pattern: selectedPreparedStrategy?.chartPattern ?? "None",
-        thesis: tradeDraft.thesis,
-        catalyst_window: null,
-        invalidation: tradeDraft.invalidation,
-        scores: {},
-        notes: {
-          explanation: tradeDraft.explanation,
-          strategy: selectedStrategy.name,
-          preparedStrategy: selectedPreparedStrategy
-            ? {
-                id: selectedPreparedStrategy.id,
-                name: selectedPreparedStrategy.name,
-                horizon: selectedPreparedStrategy.horizon,
-              }
-            : null,
-          setupTypes: tradeDraft.setupTypes,
-        },
-        f_score: 0,
-        t_score: 0,
-        f_total: 0,
-        t_total: 0,
-        conviction: RECOMMENDED_CONVICTION.tier,
-        risk_pct: RECOMMENDED_CONVICTION.risk,
-        entry_price: tradeDraft.sizing.entryPrice,
-        stop_loss: tradeDraft.sizing.stopLoss,
-        shares: recommendedPosition.shares,
-        tranche1_shares: recommendedPosition.tranche1,
-        tranche2_shares: recommendedPosition.tranche2,
-        tranche2_filled: false,
-        tranche2_deadline: trancheDeadline.toISOString(),
-        exit_t1: false,
-        exit_t2: false,
-        exit_t3: false,
-        r2_target: targetOne,
-        r4_target: targetTwo,
-        market_price: quote?.price ?? null,
-        source: "thesis",
-        state: "deployed",
-        classification: "in_policy",
-        confirmed: true,
-        closed: false,
-        insight: null,
-        journal_entry: journalEntry,
-        journal_exit: "",
-        journal_post: "",
-      };
+      // V4 deploy: create draft → confirm intake fields → freeze plan → challenge → deploy
+      // All writes go through server API routes (Hard Rule 4).
 
-      const { error } = await supabase.from("trades").insert(payload);
-      if (error) {
-        throw error;
+      // 1. Create draft
+      const createRes = await fetch("/api/drafts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ticker: tradeDraft.ticker,
+          direction: tradeDraft.direction,
+          mode: initialMode,
+          strategyId: selectedStrategy.id,
+          draftContext: {
+            thesis: tradeDraft.thesis,
+            invalidation: tradeDraft.invalidation,
+            setupTypes: tradeDraft.setupTypes,
+            notes: {
+              explanation: tradeDraft.explanation,
+              strategy: selectedStrategy.name,
+              preparedStrategy: selectedPreparedStrategy
+                ? {
+                    id: selectedPreparedStrategy.id,
+                    name: selectedPreparedStrategy.name,
+                    horizon: selectedPreparedStrategy.horizon,
+                  }
+                : null,
+              setupTypes: tradeDraft.setupTypes,
+            },
+            journalEntry,
+          },
+        }),
+      });
+      if (!createRes.ok) throw new Error("Failed to create draft");
+      const { draftId } = (await createRes.json()) as { draftId: string };
+
+      // 2. Set intake fields — invalidation_rule as user_confirmed (trader typed it explicitly)
+      const patchRes = await fetch(`/api/drafts/${draftId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          intake_fields: [
+            {
+              id: "field_invalidation_rule",
+              parameterDefinitionId: null,
+              name: "invalidation_rule",
+              scope: "contract",
+              operationalClass: "required_for_deploy",
+              provenance: "user",
+              resolutionState: "user_confirmed",
+              challengeState: "not_checked",
+              value: tradeDraft.invalidation,
+            },
+          ],
+        }),
+      });
+      if (!patchRes.ok) throw new Error("Failed to set intake fields");
+
+      // 3. Freeze plan (entry, stop, risk_pct converted from fraction to %)
+      const planRes = await fetch(`/api/drafts/${draftId}/plan`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          entry: tradeDraft.sizing.entryPrice,
+          stop: tradeDraft.sizing.stopLoss,
+          risk_pct: RECOMMENDED_CONVICTION.risk * 100,
+        }),
+      });
+      if (!planRes.ok) throw new Error("Failed to freeze plan");
+
+      // 4. Run challenge (confirms text fields; marks price levels as not_comparable)
+      const challengeRes = await fetch(`/api/drafts/${draftId}/challenge`, { method: "POST" });
+      if (!challengeRes.ok) throw new Error("Failed to run challenge");
+
+      // 5. Deploy
+      const deployRes = await fetch("/api/trades/deploy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ draftId }),
+      });
+      if (!deployRes.ok) {
+        const body = (await deployRes.json()) as { error?: { message?: string; blockers?: string[] } };
+        throw new Error(body.error?.message ?? "Deploy failed");
       }
 
       window.dispatchEvent(new Event("tds:trade-deployed"));

@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import AIProviderBadge from "@/components/ai/AIProviderBadge";
 import { createClient } from "@/lib/supabase/client";
-import { extractAIResponseMeta } from "@/lib/ai/response";
 import StrategyTemplate from "@/components/learn/StrategyTemplate";
 import { METRIC_LIBRARY } from "@/lib/trading/presets";
 import { buildMetricsFromPreset } from "@/lib/trading/strategy-presets";
@@ -18,7 +16,6 @@ import { equitySchema, metricCustomSchema } from "@/lib/validation/forms";
 import type { Database, Json } from "@/types/database";
 import type { TradeSetupCategory, TradeStructureLibraryItem, TradeStructureItemType } from "@/types/structure-library";
 import type { TradeMode } from "@/types/trade";
-import type { AIResponseMeta } from "@/lib/ai/response";
 import type { SavedStrategy, StrategyPresetDefinition, StrategyStatus, StrategyStructureSnapshot } from "@/types/strategy";
 
 type MetricType = "fundamental" | "technical";
@@ -171,7 +168,6 @@ export default function MetricsEditorClient({
   const [rating, setRating] = useState<RatingState | null>(null);
   const [ratingLoading, setRatingLoading] = useState(false);
   const [ratingError, setRatingError] = useState<string | null>(null);
-  const [ratingMeta, setRatingMeta] = useState<AIResponseMeta | null>(null);
 
   const [modalType, setModalType] = useState<MetricType | null>(null);
   const [libraryFilter, setLibraryFilter] = useState<LibraryFilter>("all");
@@ -642,24 +638,16 @@ export default function MetricsEditorClient({
 
     setRatingLoading(true);
     setRatingError(null);
-    setRatingMeta(null);
 
     try {
-      const response = await fetch("/api/ai/rate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode, metrics: activeMetricNames }),
+      const breadthScore = Math.min(92, 55 + Math.min(28, activeMetricNames.length * 3));
+      setRating({
+        score: breadthScore,
+        assessment:
+          "Heuristic preview only — the legacy AI strategy rating endpoint was removed (PR 9). Tune this stack against your playbook and execution logs.",
+        missing: "",
+        redundant: "",
       });
-
-      const data = (await response.json()) as RatingState | { error: string };
-      if (!response.ok || "error" in data) {
-        throw new Error("rate_failed");
-      }
-
-      setRatingMeta(extractAIResponseMeta(response));
-      setRating(data);
-    } catch {
-      setRatingError("AI rating is unavailable right now.");
     } finally {
       setRatingLoading(false);
     }
@@ -1559,8 +1547,8 @@ export default function MetricsEditorClient({
       {rating ? (
         <section className="surface-panel p-6">
           <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className="font-mono text-sm text-tds-text">AI Strategy Rating</h2>
-            {ratingMeta ? <AIProviderBadge meta={ratingMeta} /> : null}
+            <h2 className="font-mono text-sm text-tds-text">Strategy stack preview</h2>
+            <span className="meta-label">Heuristic preview</span>
           </div>
           <div className="flex flex-wrap items-start gap-4">
             <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-tds-blue bg-tds-bg font-mono text-2xl text-tds-text">

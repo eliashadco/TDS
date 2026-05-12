@@ -7,7 +7,7 @@ import type { ReadyTradeView } from "@/components/dashboard/ReadyTradesCard";
 
 type QueueAction = "accept" | "reject" | "snooze";
 
-type ScoredQueueCardProps = {
+type ExecutionQueueCardProps = {
   items: ReadyTradeView[];
 };
 
@@ -16,7 +16,17 @@ function formatTrigger(value: number | null): string {
   return value.toFixed(2);
 }
 
-export default function ScoredQueueCard({ items }: ScoredQueueCardProps) {
+function formatUpdatedShort(value: string | null): string {
+  if (!value) return "—";
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
+export default function ExecutionQueueCard({ items }: ExecutionQueueCardProps) {
   const [queueIndex, setQueueIndex] = useState(0);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [actionPending, setActionPending] = useState(false);
@@ -44,11 +54,6 @@ export default function ScoredQueueCard({ items }: ScoredQueueCardProps) {
         setLastAction({ ticker: current.ticker, action });
         setDismissed((prev) => new Set(prev).add(current.id));
 
-        // For snooze, item stays in watchlist — just skip in the queue
-        // For accept, navigate happens via the Link below
-        // For reject, we already archived above
-
-        // Reset index if we'd go out of bounds
         if (queueIndex >= total - 1) {
           setQueueIndex(0);
         }
@@ -61,16 +66,17 @@ export default function ScoredQueueCard({ items }: ScoredQueueCardProps) {
     [current, actionPending, queueIndex, total],
   );
 
-  // Queue exhausted
   if (!current) {
     return (
       <aside className="surface-panel scored-queue-panel">
         <div className="surface-header scored-queue-header">
           <div>
             <p className="meta-label">Execution Board</p>
-            <h3>Ready lane is clear</h3>
+            <h3>Workbench queue is clear</h3>
           </div>
-          <span className="signal-badge" aria-hidden="true">⚡</span>
+          <span className="signal-badge" aria-hidden="true">
+            ⚡
+          </span>
         </div>
 
         <div className="scored-queue-empty">
@@ -80,7 +86,7 @@ export default function ScoredQueueCard({ items }: ScoredQueueCardProps) {
               <span className="font-mono">{lastAction.ticker}</span>.
             </p>
           ) : (
-            <p>No scored setups are ready to deploy. Rotate back through the workbench for the next qualified setup.</p>
+            <p>No MarketWatch workbench rows are queued here. Save a candidate from the workbench to populate this lane.</p>
           )}
           <Link href="/marketwatch" className="secondary-button full-width scored-queue-empty-action">
             Open Workbench
@@ -91,34 +97,28 @@ export default function ScoredQueueCard({ items }: ScoredQueueCardProps) {
     );
   }
 
-  const fitPct = Math.round(current.passRate * 100);
-  const verdictColor = current.verdict === "GO" ? "green" : "amber";
-
   return (
     <aside className="surface-panel scored-queue-panel">
       <div className="surface-header scored-queue-header">
         <div>
           <p className="meta-label">Execution Board</p>
-          <h3>Highest-conviction setup in queue</h3>
+          <h3>Next workbench candidate</h3>
         </div>
         <span className="scored-queue-counter">
           {queueIndex + 1} / {total}
         </span>
       </div>
 
-      {/* Current card */}
-      <div className="scored-queue-card" data-verdict={verdictColor}>
+      <div className="scored-queue-card" data-verdict="neutral">
         <div className="scored-queue-card-top">
           <div className="scored-queue-ticker">
             <span className="scored-queue-ticker-symbol">{current.ticker}</span>
-            <span className={`inline-tag ${current.direction === "LONG" ? "green" : "red"}`}>
-              {current.direction}
-            </span>
-            <span className={`inline-tag ${verdictColor}`}>{current.verdict}</span>
+            <span className={`inline-tag ${current.direction === "LONG" ? "green" : "red"}`}>{current.direction}</span>
+            <span className="inline-tag neutral">Workbench</span>
           </div>
           <div className="scored-queue-score">
-            <span className="scored-queue-score-value">{fitPct}%</span>
-            <span className="scored-queue-score-label">fit</span>
+            <span className="scored-queue-score-value">{formatUpdatedShort(current.updatedAt)}</span>
+            <span className="scored-queue-score-label">updated</span>
           </div>
         </div>
 
@@ -131,13 +131,10 @@ export default function ScoredQueueCard({ items }: ScoredQueueCardProps) {
             <span className="meta-label">Trigger</span>
             <span className="font-mono">{formatTrigger(current.triggerLevel)}</span>
           </div>
-          {current.thesisSummary && (
-            <p className="scored-queue-thesis">{current.thesisSummary}</p>
-          )}
+          {current.thesisSummary ? <p className="scored-queue-thesis">{current.thesisSummary}</p> : null}
         </div>
       </div>
 
-      {/* Action buttons */}
       <div className="scored-queue-actions">
         <button
           className="scored-queue-btn scored-queue-reject"
@@ -162,15 +159,14 @@ export default function ScoredQueueCard({ items }: ScoredQueueCardProps) {
         <Link
           href={`/trade/new?ticker=${encodeURIComponent(current.ticker)}&direction=${current.direction}`}
           className="scored-queue-btn scored-queue-accept"
-          title="Accept — open trade wizard for this setup"
+          title="Open trade wizard for this setup"
         >
           <Check className="h-5 w-5" />
           <span>Execute</span>
         </Link>
       </div>
 
-      {/* Nav arrows for browsing (but primary flow is act-on-top) */}
-      {total > 1 && (
+      {total > 1 ? (
         <div className="scored-queue-nav">
           <button
             className="scored-queue-nav-btn"
@@ -182,10 +178,7 @@ export default function ScoredQueueCard({ items }: ScoredQueueCardProps) {
           </button>
           <span className="scored-queue-nav-dots">
             {remaining.map((item, idx) => (
-              <span
-                key={item.id}
-                className={`scored-queue-dot ${idx === queueIndex ? "active" : ""}`}
-              />
+              <span key={item.id} className={`scored-queue-dot ${idx === queueIndex ? "active" : ""}`} />
             ))}
           </span>
           <button
@@ -197,7 +190,7 @@ export default function ScoredQueueCard({ items }: ScoredQueueCardProps) {
             <ChevronRight className="h-4 w-4" />
           </button>
         </div>
-      )}
+      ) : null}
     </aside>
   );
 }

@@ -7,7 +7,9 @@
     "dev:reset": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/dev-reset.ps1",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",
@@ -36,6 +38,7 @@
     "postcss": "^8",
     "supabase": "^2.84.5",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.6"
   }
 }

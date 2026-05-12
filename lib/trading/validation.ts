@@ -177,7 +177,8 @@ export function evaluateGates(
 
 /* ---------- Portfolio heat gate ---------- */
 
-const MAX_PORTFOLIO_HEAT = 12; // 12% max exposure per mechanical system rules
+/** Maximum portfolio heat (% of equity at risk) enforced by deploy gates. */
+export const MAX_PORTFOLIO_HEAT = 12; // 12% max exposure per mechanical system rules
 
 export function validatePortfolioHeat(
   currentHeatPct: number,

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import PortfolioAnalyticsOverview from "@/components/analytics/PortfolioAnalyticsOverview";
+import StrategyReportClient from "@/components/analytics/StrategyReportClient";
 import MarketWatchClient from "@/components/marketwatch/MarketWatchClient";
 import { getQuotes } from "@/lib/market/polygon";
 import { createServerSupabase } from "@/lib/supabase/server";
@@ -18,7 +19,9 @@ export default async function PortfolioAnalyticsPage({ searchParams }: Portfolio
   const { userId, profile } = await getProtectedAppContext();
   const mode = (profile.mode as TradeMode) || null;
   const supabase = await createServerSupabase();
-  const requestedTab = searchParams?.tab === "marketwatch" ? "marketwatch" : "overview";
+  const tabParam = searchParams?.tab;
+  const activeTab =
+    tabParam === "marketwatch" ? "marketwatch" : tabParam === "strategy-proof" ? "strategy-proof" : "overview";
 
   const { strategies, defaultStrategyId, schemaReady } = mode
     ? await ensureStrategyWorkspaceForMode(supabase, userId, mode)
@@ -28,7 +31,6 @@ export default async function PortfolioAnalyticsPage({ searchParams }: Portfolio
     ? (strategies.find((strategy) => strategy.id === defaultStrategyId) ?? strategies[0] ?? null)
     : null;
   const enabledMetrics = activeStrategy?.metrics.filter((metric) => metric.enabled) ?? [];
-  const activeTab = requestedTab;
 
   function renderWorkspace(content: ReactNode, options?: { headerMode?: "full" | "compact" | "hidden" }) {
     const headerMode = options?.headerMode ?? "full";
@@ -67,6 +69,12 @@ export default async function PortfolioAnalyticsPage({ searchParams }: Portfolio
                 >
                   MarketWatch
                 </Link>
+                <Link
+                  href="/portfolio-analytics?tab=strategy-proof"
+                  className={`rounded-full border ${headerMode === "compact" ? "px-3 py-1.5 text-[11px]" : "px-4 py-2 text-xs"} font-semibold uppercase tracking-[0.16em] ${activeTab === "strategy-proof" ? "border-blue-200 bg-blue-50 text-tds-blue" : "border-white/80 bg-white text-tds-dim hover:bg-tds-wash"}`}
+                >
+                  Strategy proof
+                </Link>
               </div>
             </div>
           </section>
@@ -87,6 +95,17 @@ export default async function PortfolioAnalyticsPage({ searchParams }: Portfolio
         defaultStrategyId={activeStrategy?.id ?? null}
       />,
       { headerMode: "hidden" },
+    );
+  }
+
+  if (activeTab === "strategy-proof") {
+    return renderWorkspace(
+      <StrategyReportClient
+        strategyId={activeStrategy?.id ?? null}
+        strategyName={activeStrategy?.name ?? "Workspace strategy"}
+        mode={mode}
+      />,
+      { headerMode: "compact" },
     );
   }
 

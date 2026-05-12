@@ -100,7 +100,10 @@ function deriveBlindSignals(candles: Candle[], direction: "LONG" | "SHORT"): Bli
 
 export default function BlindEvaluationCard({ activeStrategy, items }: BlindEvaluationCardProps) {
   const candidates = useMemo(
-    () => activeStrategy ? items.filter((item) => item.verdict === "GO" && (item.strategyId ? item.strategyId === activeStrategy.id : item.strategyLabel === activeStrategy.name)) : [],
+    () =>
+      activeStrategy
+        ? items.filter((item) => (item.strategyId ? item.strategyId === activeStrategy.id : item.strategyLabel === activeStrategy.name))
+        : [],
     [activeStrategy, items],
   );
   const [candidateIndex, setCandidateIndex] = useState(0);
@@ -185,16 +188,16 @@ export default function BlindEvaluationCard({ activeStrategy, items }: BlindEval
               <span className="blind-eval-pill">Bias shield offline</span>
             </div>
           </div>
-          <p className="blind-eval-lead">Blind rounds come online when a GO setup clears the assigned strategy and is ready for anonymous chart review.</p>
+          <p className="blind-eval-lead">Blind rounds activate when a workbench candidate aligns with your active strategy lane and is ready for anonymous chart review.</p>
         </div>
         <div className="blind-eval-empty-grid">
           <article className="blind-eval-empty-card">
             <p className="blind-eval-panel-label">What activates a round</p>
-            <p className="blind-eval-empty-copy">A GO-scored setup, tied to the current lane, enters here once it clears the workbench and is ready for anonymous chart review.</p>
+            <p className="blind-eval-empty-copy">A candidate tied to the active strategy lane enters here from the workbench queue when you want structure-first review.</p>
           </article>
           <article className="blind-eval-empty-card">
             <p className="blind-eval-panel-label">Best next move</p>
-            <p className="blind-eval-empty-copy">Score MarketWatch candidates or build a new thesis so the queue can present the next structure-first challenge.</p>
+            <p className="blind-eval-empty-copy">Save MarketWatch candidates aligned with your lane or build a new thesis so the queue can present the next structure-first challenge.</p>
           </article>
         </div>
         <div className="blind-eval-empty-actions">
@@ -322,7 +325,7 @@ export default function BlindEvaluationCard({ activeStrategy, items }: BlindEval
                 <p className="blind-eval-panel-label">Reveal</p>
                 <h4>{current.ticker}</h4>
                 <p>{current.strategyLabel}</p>
-                <span className="blind-eval-fit-tag">Qualified at {Math.round(current.passRate * 100)}% fit</span>
+                <span className="blind-eval-fit-tag">Aligned with active lane</span>
               </div>
               <div className="blind-eval-revealed-cta">
                 <Link className="blind-eval-primary blind-eval-link" href={buildExecutionHref(current, current.strategyId ?? activeStrategy?.id ?? "")}>

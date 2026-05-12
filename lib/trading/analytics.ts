@@ -133,12 +133,25 @@ function buildAnalyticsFromRValues(rValues: number[], tradeCount: number): Analy
   };
 }
 
+function assertClosedTradeDataset(trades: Trade[], fnName: string): void {
+  for (const t of trades) {
+    const closed = t.closed === true || t.state === "closed";
+    if (!closed) {
+      throw new Error(`${fnName}: trade ${t.id} is not closed (open trades excluded — R5)`);
+    }
+  }
+}
+
+/** Closed trades only — never mix with live (R5). Throws if any trade is open. */
 export function calculateAnalytics(closedTrades: Trade[]): Analytics {
+  assertClosedTradeDataset(closedTrades, "calculateAnalytics");
   const rValues = closedTrades.map(estimateModeledRMultiple);
   return buildAnalyticsFromRValues(rValues, closedTrades.length);
 }
 
+/** Closed trades only — never mix with live (R5). Throws if any trade is open. */
 export function calculateRealizedAnalytics(closedTrades: Trade[]): RealizedAnalytics {
+  assertClosedTradeDataset(closedTrades, "calculateRealizedAnalytics");
   const outcomes = closedTrades.map(resolveRealizedOutcome).filter((outcome): outcome is RealizedOutcome => Boolean(outcome));
   const rValues = outcomes.map((outcome) => outcome.rMultiple);
   const analytics = buildAnalyticsFromRValues(rValues, closedTrades.length);

@@ -1,7 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
 type PriorityTone = "info" | "success" | "warning" | "alert";
 
 export type DashboardPriority = {
@@ -14,8 +12,6 @@ export type DashboardPriority = {
 type TodaysPrioritiesCardProps = {
   items: DashboardPriority[];
 };
-
-const STORAGE_KEY = "ii-dashboard-priorities-dismissed";
 
 function toneClasses(tone: PriorityTone): string {
   if (tone === "success") {
@@ -43,35 +39,16 @@ function toneLabel(tone: PriorityTone): string {
   return "Workflow";
 }
 
+/** Act Now rail — items come from the server summary only (PR 6 — no client dismiss / local pipeline state). */
 export default function TodaysPrioritiesCard({ items }: TodaysPrioritiesCardProps) {
-  const [checkedIds, setCheckedIds] = useState<string[]>([]);
   const criticalCount = items.filter((item) => item.tone === "alert" || item.tone === "warning").length;
-
-  useEffect(() => {
-    try {
-      const stored = window.localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        setCheckedIds(JSON.parse(stored) as string[]);
-      }
-    } catch {
-      setCheckedIds([]);
-    }
-  }, []);
-
-  function toggleItem(id: string) {
-    setCheckedIds((current) => {
-      const next = current.includes(id) ? current.filter((item) => item !== id) : [...current, id];
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      return next;
-    });
-  }
 
   return (
     <aside className="surface-panel queue-panel">
       <div className="surface-header">
         <div>
           <p className="meta-label">Monitoring Rail</p>
-          <h3>Decision memos</h3>
+          <h3>Act Now</h3>
         </div>
         <span className="tag">{criticalCount} Critical</span>
       </div>
@@ -85,24 +62,17 @@ export default function TodaysPrioritiesCard({ items }: TodaysPrioritiesCardProp
           </article>
         ) : null}
         {items.map((item) => {
-          const checked = checkedIds.includes(item.id);
           const toneClass = item.tone === "alert" || item.tone === "warning" ? "warn" : "calm";
 
           return (
-            <label key={item.id} className={`priority-card ${toneClass} flex cursor-pointer items-start gap-3 ${checked ? "opacity-60" : ""}`}>
-              <input
-                type="checkbox"
-                checked={checked}
-                onChange={() => toggleItem(item.id)}
-                className="mt-1 h-4 w-4 rounded border-[rgba(197,210,224,0.84)] bg-transparent text-[#247457] focus:ring-[#b8d7c8]"
-              />
+            <article key={item.id} className={`priority-card ${toneClass} flex items-start gap-3`}>
               <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${toneClasses(item.tone)}`} />
               <span className="min-w-0 flex-1">
                 <span className="meta-label">{toneLabel(item.tone)}</span>
                 <strong className="mt-2 block">{item.title}</strong>
                 <span className="mt-2 block text-sm leading-6 text-[#4e6273]">{item.detail}</span>
               </span>
-            </label>
+            </article>
           );
         })}
       </div>

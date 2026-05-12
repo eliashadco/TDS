@@ -39,13 +39,13 @@ export type ScoredMover = {
   updatedAt?: string | null;
 };
 
-type ScoredListProps = {
+type WorkbenchListProps = {
   items: ScoredMover[];
   equity: number;
   loadingKey: string | null;
   onEntryChange: (strategyId: string, ticker: string, direction: "LONG" | "SHORT", value: number | null) => void;
   onStopChange: (strategyId: string, ticker: string, direction: "LONG" | "SHORT", value: number | null) => void;
-  onDeploy: (item: ScoredMover) => void;
+  onQualify: (item: ScoredMover) => void;
 };
 
 function DirectionBadge({ direction }: { direction: "LONG" | "SHORT" }) {
@@ -56,16 +56,6 @@ function DirectionBadge({ direction }: { direction: "LONG" | "SHORT" }) {
   );
 }
 
-function VerdictBadge({ verdict }: { verdict: ScoredMover["verdict"] }) {
-  const classes =
-    verdict === "GO"
-      ? "bg-tds-green/10 text-tds-green"
-      : verdict === "CAUTION"
-        ? "bg-tds-amber/10 text-tds-amber"
-        : "bg-tds-red/10 text-tds-red";
-
-  return <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${classes}`}>{verdict}</span>;
-}
 
 function money(value: number): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value);
@@ -96,7 +86,7 @@ function getWorkbenchKey(item: ScoredMover): string {
   return `${item.strategyId}:${item.ticker}:${item.direction}`;
 }
 
-export default function ScoredList({ items, equity, loadingKey, onEntryChange, onStopChange, onDeploy }: ScoredListProps) {
+export default function WorkbenchList({ items, equity, loadingKey, onEntryChange, onStopChange, onQualify }: WorkbenchListProps) {
   return (
     <div className="overflow-hidden rounded-[28px] border border-white/75 bg-white/88 shadow-[0_24px_60px_-34px_rgba(15,23,42,0.24)]">
       <div className="overflow-x-auto">
@@ -125,7 +115,6 @@ export default function ScoredList({ items, equity, loadingKey, onEntryChange, o
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="font-mono text-base font-semibold text-tds-text">{item.ticker}</span>
                         <DirectionBadge direction={item.direction} />
-                        <VerdictBadge verdict={item.verdict} />
                         {item.conviction ? <span className="inline-tag neutral">{item.conviction.tier}</span> : null}
                       </div>
                       <p className="text-xs uppercase tracking-[0.14em] text-tds-dim">{item.name}</p>
@@ -136,9 +125,6 @@ export default function ScoredList({ items, equity, loadingKey, onEntryChange, o
                     <div className="max-w-[260px] space-y-2">
                       <p className="font-semibold text-tds-text">{item.strategyLabel}</p>
                       <p className="text-sm leading-6 text-tds-dim">{item.strategyDetail}</p>
-                      <p className="text-xs uppercase tracking-[0.14em] text-tds-dim">
-                        {item.score}/{item.total} passed · {Math.round(item.passRate * 100)}% pass rate · {item.strategyMetricIds.length} checks
-                      </p>
                     </div>
                   </td>
                   <td className="border-t border-slate-200/70 px-4 py-4">
@@ -175,9 +161,9 @@ export default function ScoredList({ items, equity, loadingKey, onEntryChange, o
                     <Button
                       type="button"
                       disabled={loadingKey === itemKey || !item.conviction || shares <= 0}
-                      onClick={() => onDeploy(item)}
+                      onClick={() => onQualify(item)}
                     >
-                      {loadingKey === itemKey ? "Deploying..." : "Deploy trade"}
+                      {loadingKey === itemKey ? "Qualifying..." : "Qualify"}
                     </Button>
                   </td>
                 </tr>

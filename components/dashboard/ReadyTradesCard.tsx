@@ -8,13 +8,13 @@ export type ReadyTradeView = {
   strategyId: string | null;
   ticker: string;
   direction: "LONG" | "SHORT";
-  verdict: "GO" | "CAUTION" | "SKIP";
-  passRate: number;
   strategyLabel: string;
   strategyDetail: string;
   thesisSummary: string;
   triggerLevel: number | null;
   updatedAt: string | null;
+  /** Row ordering from watchlist `flagged_at` */
+  flaggedAt: string | null;
   note: string;
 };
 
@@ -44,37 +44,39 @@ function formatTrigger(value: number | null): string {
 }
 
 export default function ReadyTradesCard({ items }: ReadyTradesCardProps) {
-  const readyCount = items.filter((item) => item.verdict === "GO").length;
-  const queuedCount = items.filter((item) => item.verdict === "CAUTION").length;
+  const queueDepth = items.length;
+  const withTrigger = items.filter((item) => item.triggerLevel != null && Number.isFinite(item.triggerLevel)).length;
   const leadSignal = items[0] ?? null;
 
   const signalSummary = leadSignal
-    ? `${leadSignal.ticker} leads the board at ${Math.round(leadSignal.passRate * 100)}% fit. Trigger ${formatTrigger(leadSignal.triggerLevel)} · updated ${formatUpdatedAt(leadSignal.updatedAt)}.`
-    : "Scanning for momentum continuation, event follow-through, and clean pullback structures.";
+    ? `${leadSignal.ticker} · trigger ${formatTrigger(leadSignal.triggerLevel)} · updated ${formatUpdatedAt(leadSignal.updatedAt)}.`
+    : "Save candidates from MarketWatch to populate your execution queue.";
 
   return (
     <aside className="surface-panel monitor-panel">
       <div className="surface-header monitor-header">
         <div>
-          <p className="meta-label">Signal Monitor</p>
-          <h3>AI Readiness</h3>
+          <p className="meta-label">Workbench queue</p>
+          <h3>Execution candidates</h3>
         </div>
-        <span className="signal-badge" aria-hidden="true">⚡</span>
+        <span className="signal-badge" aria-hidden="true">
+          ⚡
+        </span>
       </div>
 
       <div className="mini-stats signal-stats">
         <article>
-          <span className="meta-label">Ready</span>
-          <strong>{readyCount.toString().padStart(2, "0")}</strong>
+          <span className="meta-label">Queued</span>
+          <strong>{queueDepth.toString().padStart(2, "0")}</strong>
         </article>
         <article>
-          <span className="meta-label">Watch</span>
-          <strong>{queuedCount.toString().padStart(2, "0")}</strong>
+          <span className="meta-label">Triggers set</span>
+          <strong>{withTrigger.toString().padStart(2, "0")}</strong>
         </article>
       </div>
 
       <div className="monitor-log">
-        <p className="meta-label">Recent Signals</p>
+        <p className="meta-label">Lead row</p>
         <p>{signalSummary}</p>
       </div>
 

@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ShieldCheck, Sparkles } from "lucide-react";
+import type { DashboardSummary } from "@/types/dashboard-summary";
 import type { ReadyTradeView } from "@/components/dashboard/ReadyTradesCard";
 import BlindEvaluationCard from "@/components/dashboard/BlindEvaluationCard";
 import RiskMetricCard from "@/components/dashboard/RiskMetricCard";
-import ScoredQueueCard from "@/components/dashboard/ScoredQueueCard";
+import ExecutionQueueCard from "@/components/dashboard/ExecutionQueueCard";
 import TodaysPrioritiesCard, { type DashboardPriority } from "@/components/dashboard/TodaysPrioritiesCard";
 import { cn } from "@/lib/utils";
 import type { QuoteDataStatus, QuoteProvider } from "@/types/market";
@@ -39,36 +40,8 @@ type ActiveTradeView = {
   thesis: string;
 };
 
-type WatchTradeView = {
-  id: string;
-  ticker: string;
-  direction: "LONG" | "SHORT";
-  fScore: number;
-  fTotal: number;
-  tScore: number;
-  tTotal: number;
-};
-
-type ClosedTradeView = {
-  id: string;
-  ticker: string;
-  direction: "LONG" | "SHORT";
-  closedAt: string | null;
-  conviction: "MAX" | "HIGH" | "STD" | null;
-};
-
-type WatchlistItemView = {
-  id: string;
-  ticker: string;
-  direction: "LONG" | "SHORT";
-  mode: string;
-  verdict: string | null;
-  note: string | null;
-  source: string | null;
-  lastScoredAt: string | null;
-};
-
 type DashboardClientProps = {
+  summary: DashboardSummary;
   profile: ProfileView;
   activeStrategy: {
     id: string;
@@ -78,9 +51,6 @@ type DashboardClientProps = {
     metrics: Metric[];
   } | null;
   activeTrades: ActiveTradeView[];
-  watchlistTrades: WatchTradeView[];
-  closedTrades: ClosedTradeView[];
-  customWatchlist: WatchlistItemView[];
   readyTrades: ReadyTradeView[];
 };
 
@@ -100,101 +70,77 @@ function DirectionBadge({ direction }: { direction: "LONG" | "SHORT" }) {
   return <span className={`inline-tag ${direction === "LONG" ? "green" : "red"}`}>{direction === "LONG" ? "Long" : "Short"}</span>;
 }
 
-export default function DashboardClient({ profile, activeStrategy, activeTrades, customWatchlist, readyTrades }: DashboardClientProps) {
+export default function DashboardClient({
+  summary,
+  profile,
+  activeStrategy,
+  activeTrades,
+  readyTrades,
+}: DashboardClientProps) {
   const [discipline, setDiscipline] = useState<{
     score: number;
     summary: { totalTrades: number; inPolicyCount: number; overrideCount: number; oobCount: number; pnlInPolicy: number; pnlOverride: number };
   } | null>(null);
-  const [circuitBreaker, setCircuitBreaker] = useState<{ tripped: boolean; reason: string | null } | null>(null);
 
   useEffect(() => {
     fetch("/api/discipline")
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => { if (d) setDiscipline(d); })
       .catch(() => {});
-    fetch("/api/circuit-breaker")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (d) setCircuitBreaker(d); })
-      .catch(() => {});
   }, []);
 
-  const heat = activeTrades.reduce((sum, trade) => sum + trade.riskPct * 100, 0);
+  const heat = summary.riskState.portfolioHeatPct;
   const livePnl = activeTrades.reduce((sum, trade) => sum + trade.livePnl, 0);
   const deployedCapital = activeTrades.reduce((sum, trade) => sum + trade.entryPrice * trade.shares, 0);
   const livePnlPct = deployedCapital > 0 ? (livePnl / deployedCapital) * 100 : 0;
-  const readyTradeCount = readyTrades.filter((item) => item.verdict === "GO").length;
-  const queuedTradeCount = readyTrades.filter((item) => item.verdict === "CAUTION").length;
   const displayEquity = Math.max(profile.equity, 0);
   const isHeatHot = heat > 6;
-  const heatStateLabel = heat >= 10 ? "Heat Elevated" : heat > 6 ? "Heat Active" : "Heat Controlled";
+  const heatStateLabel = heat >= summary.riskState.cap ? "Heat Elevated" : heat > 6 ? "Heat Active" : "Heat Controlled";
   const liveDeltaLabel = `${livePnl >= 0 ? "+" : "-"}${money(Math.abs(livePnl))}`;
 
-  const priorities: DashboardPriority[] = [];
-  if (heat >= 10) {
-    priorities.push({
-      id: "rebalance-alert",
-      title: "Rebalancing alert",
-      detail: `Portfolio heat is ${heat.toFixed(2)}%. Compress exposure before adding new size.`,
-      tone: "alert",
-    });
-  }
+  const priorities: DashboardPriority[] = useMemo(() => {
+    const out: DashboardPriority[] = [];
 
-  for (const trade of activeTrades) {
-    if (trade.r2Target != null) {
-      const targetReached = trade.direction === "LONG" ? trade.currentPrice >= trade.r2Target : trade.currentPrice <= trade.r2Target;
-      if (targetReached) {
-        priorities.push({
-          id: `target-${trade.id}`,
-          title: `Target reached: ${trade.ticker}`,
-          detail: `${trade.ticker} is trading through its 2R objective. Review partials, stop movement, and follow-through.`,
-          tone: "success",
-        });
-      }
+    if (heat >= summary.riskState.cap * 0.83) {
+      out.push({
+        id: "rebalance-alert",
+        title: "Rebalancing alert",
+        detail: `Portfolio heat is ${heat.toFixed(2)}% (cap ${summary.riskState.cap}%). Compress exposure before adding new size.`,
+        tone: "alert",
+      });
     }
 
-    if (trade.trancheDeadline) {
-      const daysUntilDeadline = Math.ceil((new Date(trade.trancheDeadline).getTime() - Date.now()) / (24 * 60 * 60 * 1000));
-      if (daysUntilDeadline <= 2) {
-        priorities.push({
-          id: `deadline-${trade.id}`,
-          title: `Tranche deadline: ${trade.ticker}`,
-          detail: `${trade.ticker} tranche timing expires in ${Math.max(daysUntilDeadline, 0)} day(s). Confirm the add or reset the plan.`,
-          tone: "warning",
-        });
-      }
+    if (summary.circuitBreaker.active) {
+      out.push({
+        id: "circuit-breaker",
+        title: "Circuit breaker active",
+        detail: summary.circuitBreaker.reason ?? "Risk thresholds breached.",
+        tone: "alert",
+      });
     }
-  }
 
-  if (readyTradeCount > 0 || queuedTradeCount > 0) {
-    priorities.unshift({
-      id: "ready-trades",
-      title: readyTradeCount > 0 ? `${readyTradeCount} ready trade${readyTradeCount === 1 ? "" : "s"} staged` : `${queuedTradeCount} scored trade${queuedTradeCount === 1 ? " is" : "s are"} close`,
-      detail:
-        readyTradeCount > 0
-          ? `${readyTradeCount} workbench name${readyTradeCount === 1 ? " is" : "s are"} at GO. Review the AI Ready Board.`
-          : `${queuedTradeCount} workbench name${queuedTradeCount === 1 ? " is" : "s are"} near GO. Keep them on deck.`,
-      tone: readyTradeCount > 0 ? "success" : "info",
-    });
-  }
+    for (const task of summary.actNow.slice(0, 12)) {
+      const tone: DashboardPriority["tone"] =
+        task.type === "review_due" || task.type === "blocker_clear" ? "warning" : "info";
+      out.push({
+        id: task.taskId,
+        title: task.type.replace(/_/g, " "),
+        detail: `${task.reason} · due ${new Date(task.dueAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`,
+        tone,
+      });
+    }
 
-  const staleWatchlistCount = customWatchlist.filter((item) => !item.lastScoredAt || Date.now() - new Date(item.lastScoredAt).getTime() > 7 * 24 * 60 * 60 * 1000).length;
-  if (staleWatchlistCount > 0) {
-    priorities.push({
-      id: "watchlist-refresh",
-      title: "Watchlist refresh",
-      detail: `${staleWatchlistCount} custom watchlist name${staleWatchlistCount === 1 ? " needs" : "s need"} re-scoring against the active strategy stack.`,
-      tone: "info",
-    });
-  }
+    if (out.length === 0) {
+      out.push({
+        id: "clear-lane",
+        title: "No urgent workflow debt",
+        detail: "Risk is controlled. Wait for high-quality entries.",
+        tone: "info",
+      });
+    }
 
-  if (priorities.length === 0) {
-    priorities.push({
-      id: "clear-lane",
-      title: "No urgent workflow debt",
-      detail: "Risk is controlled. Wait for high-quality entries.",
-      tone: "info",
-    });
-  }
+    return out.slice(0, 8);
+  }, [summary.actNow, summary.circuitBreaker.active, summary.circuitBreaker.reason, summary.riskState.cap, heat]);
 
   return (
     <main className="dashboard-terminal trade-terminal dashboard-cockpit">
@@ -212,6 +158,20 @@ export default function DashboardClient({ profile, activeStrategy, activeTrades,
             <p className="dashboard-hero-copy-text">
               Live equity, portfolio heat, and execution readiness in one command surface designed to keep risk state and next action visible.
             </p>
+            {summary.recentDecisions.length > 0 ? (
+            <div className="mt-4 rounded-lg border border-slate-700/40 bg-slate-950/25 p-3">
+              <p className="meta-label mb-2">Recent workflow decisions</p>
+              <ul className="space-y-1.5 text-xs leading-relaxed text-tds-dim">
+                {summary.recentDecisions.slice(0, 5).map((d) => (
+                  <li key={`${d.at}-${d.eventType}-${d.summary.slice(0, 24)}`}>
+                    <span className="text-tds-text/90">{new Date(d.at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</span>
+                    {" · "}
+                    {d.summary}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            ) : null}
           </div>
 
           <div className="dashboard-command-cluster">
@@ -233,12 +193,20 @@ export default function DashboardClient({ profile, activeStrategy, activeTrades,
                 <strong>{activeStrategy?.name ?? "No strategy"}</strong>
               </article>
               <article className="dashboard-command-stat">
-                <p className="meta-label">Ready Board</p>
-                <strong>{readyTradeCount} GO</strong>
+                <p className="meta-label">Drafts · ready</p>
+                <strong>{summary.pipelineCounts.ready}</strong>
               </article>
               <article className="dashboard-command-stat">
-                <p className="meta-label">Heat State</p>
-                <strong>{heatStateLabel}</strong>
+                <p className="meta-label">Pipeline · live</p>
+                <strong>{summary.pipelineCounts.live}</strong>
+              </article>
+              <article className="dashboard-command-stat">
+                <p className="meta-label">Reviews due</p>
+                <strong>{summary.pipelineCounts.reviewDue}</strong>
+              </article>
+              <article className="dashboard-command-stat">
+                <p className="meta-label">Heat cap</p>
+                <strong>{summary.riskState.cap}%</strong>
               </article>
             </div>
           </div>
@@ -263,19 +231,19 @@ export default function DashboardClient({ profile, activeStrategy, activeTrades,
             unrealizedPnL={livePnl}
             pnlPercent={livePnlPct}
             equity={profile.equity}
-            activeTradeCount={activeTrades.length}
+            activeTradeCount={summary.riskState.openTrades}
             heatStateLabel={heatStateLabel}
           />
         </section>
 
-        <ScoredQueueCard items={readyTrades} />
+        <ExecutionQueueCard items={readyTrades} />
       </section>
 
       <section className="dashboard-monitoring-row">
         <BlindEvaluationCard activeStrategy={activeStrategy} items={readyTrades} />
 
         <div className="dashboard-monitoring-stack">
-          {circuitBreaker?.tripped ? (
+          {summary.circuitBreaker.active ? (
             <section className="surface-panel dashboard-circuit-shell" role="alert">
               <div className="dashboard-section-head dashboard-section-head-tight">
                 <div>
@@ -284,7 +252,12 @@ export default function DashboardClient({ profile, activeStrategy, activeTrades,
                 </div>
                 <span className="dashboard-circuit-badge">Review</span>
               </div>
-              <p className="dashboard-circuit-copy">{circuitBreaker.reason}</p>
+              <p className="dashboard-circuit-copy">{summary.circuitBreaker.reason}</p>
+              {summary.circuitBreaker.restingUntil ? (
+                <p className="mt-2 text-xs text-tds-dim">
+                  Resting until {new Date(summary.circuitBreaker.restingUntil).toLocaleString("en-US")}
+                </p>
+              ) : null}
               <Link href="/trade/new" className="secondary-button dashboard-circuit-action">
                 Review trade entry rules
               </Link>
@@ -344,7 +317,7 @@ export default function DashboardClient({ profile, activeStrategy, activeTrades,
               <p className="meta-label">Execution Queue</p>
               <h2>Capital currently at work</h2>
             </div>
-            <span className="tag">{activeTrades.length} Open Position{activeTrades.length === 1 ? "" : "s"}</span>
+            <span className="tag">{summary.riskState.openTrades} Open Position{summary.riskState.openTrades === 1 ? "" : "s"}</span>
           </div>
 
           {activeTrades.length === 0 ? (
@@ -396,7 +369,7 @@ export default function DashboardClient({ profile, activeStrategy, activeTrades,
           )}
         </section>
 
-        <TodaysPrioritiesCard items={priorities.slice(0, 5)} />
+        <TodaysPrioritiesCard items={priorities} />
       </section>
     </main>
   );
